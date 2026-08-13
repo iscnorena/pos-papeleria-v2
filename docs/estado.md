@@ -10,16 +10,16 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 
 ## Dónde vamos
 
-| Fase                              | Estado                                                    |
-| --------------------------------- | --------------------------------------------------------- |
-| **0 — Andamiaje y despliegue**    | 🟡 Código terminado, **faltan 2 criterios de aceptación** |
-| 1 — Autenticación                 | ⬜ Sin empezar                                            |
-| 2 — Catálogo y administración     | ⬜                                                        |
-| 3 — Turnos de caja                | ⬜                                                        |
-| 4 — Punto de venta                | ⬜                                                        |
-| 5 — Historial, reportes y tablero | ⬜                                                        |
-| 6 — Andamio de Herramientas       | ⬜                                                        |
-| 7 — AcomodaImpresion              | ⬜                                                        |
+| Fase                              | Estado                                                                                                                                             |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 — Andamiaje y despliegue**    | 🟡 Código terminado y verificado en local; **los 3 criterios de aceptación siguen sin verificar** (los tres dependen del despliegue y de Supabase) |
+| 1 — Autenticación                 | ⬜ Sin empezar                                                                                                                                     |
+| 2 — Catálogo y administración     | ⬜                                                                                                                                                 |
+| 3 — Turnos de caja                | ⬜                                                                                                                                                 |
+| 4 — Punto de venta                | ⬜                                                                                                                                                 |
+| 5 — Historial, reportes y tablero | ⬜                                                                                                                                                 |
+| 6 — Andamio de Herramientas       | ⬜                                                                                                                                                 |
+| 7 — AcomodaImpresion              | ⬜                                                                                                                                                 |
 
 ---
 
