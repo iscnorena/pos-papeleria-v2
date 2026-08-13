@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-papel font-sans text-base text-tinta antialiased;
+  }
+
+  /* §2 Accesibilidad: el foco se ve siempre. La caja se opera con teclado. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-boligrafo ring-offset-2 ring-offset-papel;
+  }
+
+  /* Las cifras no deben bailar al cambiar de valor. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+}
