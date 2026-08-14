@@ -9,15 +9,28 @@ import * as schema from './schema';
 // Supabase en modo "pooler/transaction" (PgBouncer) NO soporta sentencias preparadas:
 // `prepare: false` es obligatorio o las consultas fallan de forma intermitente.
 //
-// Cada invocación serverless puede caer en una instancia distinta (§1.1), así que el
-// pool se mantiene chico y se reutiliza entre recargas en desarrollo para no agotar
-// las conexiones de Supabase.
+// El tamaño del pool NO puede ser el mismo en los dos entornos:
+//
+// - En producción, cada invocación serverless atiende una petición y puede caer en una
+//   instancia distinta (§1.1). Una conexión por instancia es lo correcto: más solo
+//   serviría para agotar antes el límite de Supabase.
+//
+// - En desarrollo, un único proceso atiende TODAS las peticiones. Con `max: 1`, cada
+//   consulta de cada pestaña se forma en la misma fila detrás de una sola conexión, y
+//   una consulta lenta congela la aplicación entera — incluido el login, que entonces
+//   parece roto sin estarlo.
+//
+// `connect_timeout` está para que un intento de conexión atascado falle con un error
+// legible en vez de quedarse colgado hasta que se rinda el navegador.
+
+const enProduccion = process.env.NODE_ENV === 'production';
 
 const crearCliente = () =>
   postgres(env.databaseUrl, {
     prepare: false,
-    max: 1,
+    max: enProduccion ? 1 : 5,
     idle_timeout: 20,
+    connect_timeout: 15,
   });
 
 const globalParaDb = globalThis as unknown as {
