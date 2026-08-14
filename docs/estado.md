@@ -10,16 +10,16 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 
 ## Dónde vamos
 
-| Fase                              | Estado                                                                                                                                             |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 — Andamiaje y despliegue**    | 🟡 Código terminado y verificado en local; **los 3 criterios de aceptación siguen sin verificar** (los tres dependen del despliegue y de Supabase) |
-| 1 — Autenticación                 | ⬜ Sin empezar                                                                                                                                     |
-| 2 — Catálogo y administración     | ⬜                                                                                                                                                 |
-| 3 — Turnos de caja                | ⬜                                                                                                                                                 |
-| 4 — Punto de venta                | ⬜                                                                                                                                                 |
-| 5 — Historial, reportes y tablero | ⬜                                                                                                                                                 |
-| 6 — Andamio de Herramientas       | ⬜                                                                                                                                                 |
-| 7 — AcomodaImpresion              | ⬜                                                                                                                                                 |
+| Fase                              | Estado                                                                                                                                       |
+| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **0 — Andamiaje y despliegue**    | 🟡 En producción. Criterios 1 (despliegue) y 2 (tipografía) ✅ verificados. Falta **solo** el criterio 3 (`db:push`), bloqueado por Supabase |
+| 1 — Autenticación                 | ⬜ Sin empezar                                                                                                                               |
+| 2 — Catálogo y administración     | ⬜                                                                                                                                           |
+| 3 — Turnos de caja                | ⬜                                                                                                                                           |
+| 4 — Punto de venta                | ⬜                                                                                                                                           |
+| 5 — Historial, reportes y tablero | ⬜                                                                                                                                           |
+| 6 — Andamio de Herramientas       | ⬜                                                                                                                                           |
+| 7 — AcomodaImpresion              | ⬜                                                                                                                                           |
 
 ---
 
@@ -46,14 +46,22 @@ Commit `b6c3d32` · rama `main` · `iscnorena/pos-papeleria-v2`
 
 ### Pendiente para cerrar la fase
 
-1. **Desplegar a producción.** El proyecto ya está enlazado; solo falta empujar:
-   ```bash
-   npx vercel deploy --prod --yes
-   ```
-2. **Verificar la tipografía en el despliegue de producción**, no solo en local.
-   El criterio de §8 es que se vea la fuente correcta y no la sustituta del
-   sistema: abrir la página desplegada y confirmar que los tres renglones de
-   muestra salen en tres tipografías distintas.
+1. ~~**Desplegar a producción.**~~ ✅ Hecho el 13 de agosto de 2026 desde el
+   árbol local (`b7152a4`), con `npx vercel deploy --prod --yes`.
+   - Producción: <https://pos-papeleria.vercel.app>
+   - Despliegue: `dpl_4fS8SZzBpjor28dQqshLf5961XFS`, estado `READY`, build 7 s.
+   - Responde `200` en ~0.5 s. Ambas rutas (`/` y `/_not-found`) salen estáticas.
+2. ~~**Verificar la tipografía en producción.**~~ ✅ Confirmado a ojo en el
+   navegador el 13 de agosto de 2026: los tres renglones de muestra salen en
+   tres tipografías distintas y se ven bien. Lo comprobado por red, de apoyo:
+   - Las 10 reglas `@font-face` están presentes, cada una con su `unicode-range`
+     (el minificador los reescribe: `U+0000-00FF` → `U+??`, `U+0100-02BA` →
+     `U+100-2BA`; son los mismos rangos).
+   - Las tres familias se encadenan `latin` → `latin-ext` → fallback del sistema,
+     que es lo que evita el problema descrito abajo en «decisiones».
+   - Se precargan exactamente los 5 subconjuntos `latin`, ninguno de los `ext`.
+   - Los `.woff2` responden `200` con `content-type: font/woff2`.
+
 3. **Crear el proyecto de Supabase** y llenar `.env.local` con `DATABASE_URL`
    (cadena del **pooler**, puerto 6543 — la directa se agota en serverless),
    `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Región **`us-east-1`** para que
