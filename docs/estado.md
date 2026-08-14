@@ -14,7 +14,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | --------------------------------- | ------------------------------------------------------------------------- |
 | **0 — Andamiaje y despliegue**    | ✅ **Cerrada.** Los 3 criterios de aceptación verificados, sin pendientes |
 | 1 — Autenticación                 | ✅ **Cerrada.** Los 5 criterios verificados con Playwright                |
-| 2 — Catálogo y administración     | ⬜                                                                        |
+| 2 — Catálogo y administración     | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 3 — Turnos de caja                | ⬜                                                                        |
 | 4 — Punto de venta                | ⬜                                                                        |
 | 5 — Historial, reportes y tablero | ⬜                                                                        |
@@ -124,6 +124,60 @@ abre su propia conexión y solo comparte el esquema.
   porque la sesión se resuelve con el mismo `auth` del resto del servidor.
 - **`cookies()`, `headers()`, `params` y `searchParams` son promesas.** El acceso
   síncrono se eliminó del todo en la 16.
+
+---
+
+## Fase 2 — detalle
+
+Commit `30b9e6f`. Los 4 criterios se verifican con `npm run test:e2e`
+(`e2e/fase-2-catalogo.spec.ts`), que además limpia lo que crea.
+
+### El fallo que costó encontrar: `max: 1` en el pool
+
+Al probar la fase, el login empezó a tardar **60 segundos** y las pantallas de
+administración se colgaban. No era la base (una consulta suelta tardaba 98 ms) ni
+Turbopack: era `max: 1` en `src/db/index.ts`.
+
+En producción serverless esa cifra es la correcta — cada instancia atiende una
+petición, y más conexiones solo agotarían antes el límite de Supabase. Pero en
+desarrollo **un solo proceso atiende todas las peticiones**, así que cada consulta
+de cada pestaña hacía fila detrás de una única conexión y una lenta congelaba la
+aplicación entera, login incluido. Ahora el tamaño depende de `NODE_ENV`, y hay
+`connect_timeout` para que un intento atascado falle con un error legible.
+
+La pista que lo destapó fue el registro del servidor:
+`GET /productos 200 in 64s (application-code: 63s)` y, detrás, todos los
+`POST /login` clavados en 60 s.
+
+### Cómo se aplican los cambios de esquema
+
+`drizzle-kit push --force` **ya no es viable**: se cuelga sin mensaje cuando hay
+que resolver renombrados, y el entorno bloquea tanto ese comando como cualquier
+`DROP`. El camino que funciona, y que además es el que pide §1 («migraciones en
+SQL legible que puedes revisar antes de aplicar»):
+
+1. `npx drizzle-kit generate` — escribe el SQL en `drizzle/`, sin tocar la base.
+2. Revisar ese SQL.
+3. Aplicar **solo lo aditivo** (tablas, índices y llaves nuevas).
+
+Queda una deuda: la base no tiene historial de migraciones, porque las primeras
+tablas se crearon con `push`. Para arrancarlo limpio habría que vaciar la base de
+desarrollo y correr `drizzle-kit migrate` desde cero — todo su contenido lo
+regenera `npm run db:seed`, pero hace falta permiso para borrar.
+
+### Decisiones de esta fase
+
+**Un formulario descriptivo compartido** (`FormularioCrud`) para los cuatro CRUD:
+se declara la lista de campos y él coloca cada error junto al campo que falló, que
+es lo que pide el criterio 1. Cuatro formularios casi idénticos no justificaban
+cuatro implementaciones.
+
+**El ajuste de inventario fija la cantidad contada, no la suma.** Es lo que hace
+falta tras un inventario físico y evita el error de aplicar dos veces el mismo
+ajuste. La condición lleva siempre producto **y** sucursal.
+
+**`src/lib/catalogo.ts` nació en esta fase aunque lo use la Fase 4.** Es la
+consulta del catálogo vendible, y es la que hace verificable el criterio 4.
 
 ### Bloqueo abierto: no hay auto-deploy
 
