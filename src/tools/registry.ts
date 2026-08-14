@@ -28,8 +28,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     icono: IconoHojas,
     ruta: '/herramientas/acomoda-impresion',
     roles: ['admin', 'cajera'],
-    // Pasa a `lista` en la Fase 7, que es donde se construye.
-    estado: 'proxima',
+    estado: 'lista',
   },
   {
     id: 'etiquetas',
