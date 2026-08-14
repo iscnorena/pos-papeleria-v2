@@ -14,8 +14,14 @@ export function conectar() {
   return postgres(url, { prepare: false, max: 1 });
 }
 
-/** Entra por la pantalla de login con usuario y contraseña. */
+/**
+ * Entra por la pantalla de login con usuario y contraseña.
+ *
+ * Limpia las cookies primero: con una sesión viva, el `proxy` desvía `/login` a `/` y el
+ * formulario no llega a existir. Esto permite encadenar varios usuarios en una prueba.
+ */
 export async function entrarComo(page: Page, usuario: string, contrasena = 'password') {
+  await page.context().clearCookies();
   await page.goto('/login');
   const panel = page.getByRole('tabpanel', { name: 'Contraseña' });
   await panel.getByLabel('Usuario').fill(usuario);
@@ -106,6 +112,38 @@ export async function limpiarRastrosE2E(): Promise<void> {
     await sql`delete from users where username like 'e2e%'`;
     await sql`delete from product_categories where name like 'Categoría e2e %'`;
     await sql`delete from branches where name like 'Sucursal e2e %'`;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+/** Borra turnos y todo lo que cuelga de ellos. Deja la caja como recién instalada. */
+export async function limpiarTurnos(): Promise<void> {
+  const sql = conectar();
+  try {
+    await sql`delete from shift_payments`;
+    await sql`delete from sale_payments`;
+    await sql`delete from sale_items`;
+    await sql`delete from sales`;
+    await sql`delete from cash_register_shifts`;
+    await sql`delete from folios`;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+/** Abre un turno directo en la base, para preparar escenarios sin pasar por la interfaz. */
+export async function abrirTurnoDe(username: string, fondo = '500.00'): Promise<number> {
+  const sql = conectar();
+  try {
+    const filas = await sql<{ id: number }[]>`
+      insert into cash_register_shifts (user_id, branch_id, opening_amount)
+      select id, branch_id, ${fondo} from users where username = ${username}
+      returning id
+    `;
+    const id = filas[0]?.id;
+    if (!id) throw new Error(`No se pudo abrir turno para ${username}`);
+    return id;
   } finally {
     await sql.end({ timeout: 5 });
   }

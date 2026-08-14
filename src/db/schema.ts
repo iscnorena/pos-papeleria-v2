@@ -7,6 +7,7 @@ import {
   numeric,
   pgEnum,
   pgTable,
+  primaryKey,
   serial,
   text,
   timestamp,
@@ -128,6 +129,144 @@ export const inventories = pgTable(
   ],
 );
 
+export const shiftStatusEnum = pgEnum('shift_status', ['open', 'closed']);
+export const saleStatusEnum = pgEnum('sale_status', ['completed', 'cancelled']);
+export const paymentMethodEnum = pgEnum('payment_method', ['cash', 'card', 'transfer']);
+
+export const cashRegisterShifts = pgTable(
+  'cash_register_shifts',
+  {
+    id: serial('id').primaryKey(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    branchId: integer('branch_id')
+      .notNull()
+      .references(() => branches.id),
+    openingAmount: numeric('opening_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+    // Los tres se llenan al cerrar y quedan congelados: el corte no debe depender de
+    // recalcular ventas históricas (§7.5).
+    expectedCash: numeric('expected_cash', { precision: 12, scale: 2 }),
+    actualCash: numeric('actual_cash', { precision: 12, scale: 2 }),
+    difference: numeric('difference', { precision: 12, scale: 2 }),
+    openedAt: timestamp('opened_at', { withTimezone: true }).notNull().defaultNow(),
+    closedAt: timestamp('closed_at', { withTimezone: true }),
+    status: shiftStatusEnum('status').notNull().default('open'),
+    notes: text('notes'),
+    ...timestamps,
+  },
+  (t) => [
+    index('shifts_user_status_idx').on(t.userId, t.status),
+    index('shifts_branch_opened_idx').on(t.branchId, t.openedAt),
+  ],
+);
+
+export const sales = pgTable(
+  'sales',
+  {
+    id: serial('id').primaryKey(),
+    ticketNumber: text('ticket_number').notNull(),
+    // Token opaco de 32 bytes para compartir el ticket sin cuenta (§6). NUNCA el id.
+    publicToken: text('public_token').notNull(),
+    userId: integer('user_id')
+      .notNull()
+      .references(() => users.id),
+    branchId: integer('branch_id')
+      .notNull()
+      .references(() => branches.id),
+    shiftId: integer('shift_id')
+      .notNull()
+      .references(() => cashRegisterShifts.id),
+    subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0'),
+    tax: numeric('tax', { precision: 12, scale: 2 }).notNull().default('0'),
+    discount: numeric('discount', { precision: 12, scale: 2 }).notNull().default('0'),
+    total: numeric('total', { precision: 12, scale: 2 }).notNull().default('0'),
+    totalCost: numeric('total_cost', { precision: 12, scale: 2 }).notNull().default('0'),
+    profit: numeric('profit', { precision: 12, scale: 2 }).notNull().default('0'),
+    status: saleStatusEnum('status').notNull().default('completed'),
+    notes: text('notes'),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('sales_ticket_number_unique').on(t.ticketNumber),
+    uniqueIndex('sales_public_token_unique').on(t.publicToken),
+    index('sales_branch_created_idx').on(t.branchId, t.createdAt),
+    index('sales_shift_idx').on(t.shiftId),
+  ],
+);
+
+export const saleItems = pgTable(
+  'sale_items',
+  {
+    id: serial('id').primaryKey(),
+    saleId: integer('sale_id')
+      .notNull()
+      .references(() => sales.id, { onDelete: 'cascade' }),
+    // Obligatorio HOY, a propósito. §6 prevé permitirlo nulo cuando las Herramientas
+    // cobren servicios sin producto asociado, pero manda dejar esa migración anotada y
+    // no hacerla todavía. Está en la deuda de `docs/estado.md`.
+    productId: integer('product_id')
+      .notNull()
+      .references(() => products.id),
+    // `product_name` y `unit_cost` se COPIAN al vender (§7.2): si mañana cambia el precio
+    // o el nombre del producto, el ticket viejo no debe cambiar.
+    productName: text('product_name').notNull(),
+    quantity: numeric('quantity', { precision: 12, scale: 2 }).notNull(),
+    unitCost: numeric('unit_cost', { precision: 12, scale: 2 }).notNull().default('0'),
+    unitPrice: numeric('unit_price', { precision: 12, scale: 2 }).notNull().default('0'),
+    discount: numeric('discount', { precision: 12, scale: 2 }).notNull().default('0'),
+    subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0'),
+    profit: numeric('profit', { precision: 12, scale: 2 }).notNull().default('0'),
+    ...timestamps,
+  },
+  (t) => [index('sale_items_sale_idx').on(t.saleId)],
+);
+
+export const salePayments = pgTable(
+  'sale_payments',
+  {
+    id: serial('id').primaryKey(),
+    saleId: integer('sale_id')
+      .notNull()
+      .references(() => sales.id, { onDelete: 'cascade' }),
+    method: paymentMethodEnum('method').notNull(),
+    amount: numeric('amount', { precision: 12, scale: 2 }).notNull(),
+    reference: text('reference'),
+    ...timestamps,
+  },
+  (t) => [index('sale_payments_sale_idx').on(t.saleId)],
+);
+
+export const shiftPayments = pgTable(
+  'shift_payments',
+  {
+    id: serial('id').primaryKey(),
+    shiftId: integer('shift_id')
+      .notNull()
+      .references(() => cashRegisterShifts.id, { onDelete: 'cascade' }),
+    method: paymentMethodEnum('method').notNull(),
+    totalAmount: numeric('total_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+    transactionCount: integer('transaction_count').notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [uniqueIndex('shift_payments_shift_method_unique').on(t.shiftId, t.method)],
+);
+
+// §7.3 — el contador de folios vive aquí y se incrementa de forma atómica dentro de la
+// transacción de la venta. Contar ventas existentes se rompe en serverless: dos cajas en
+// instancias distintas leerían el mismo último folio.
+export const folios = pgTable(
+  'folios',
+  {
+    branchId: integer('branch_id')
+      .notNull()
+      .references(() => branches.id, { onDelete: 'cascade' }),
+    date: date('date').notNull(),
+    lastNumber: integer('last_number').notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.branchId, t.date] })],
+);
+
 export const branchesRelations = relations(branches, ({ many }) => ({
   users: many(users),
   inventories: many(inventories),
@@ -150,6 +289,40 @@ export const inventoriesRelations = relations(inventories, ({ one }) => ({
   branch: one(branches, { fields: [inventories.branchId], references: [branches.id] }),
 }));
 
+export const cashRegisterShiftsRelations = relations(cashRegisterShifts, ({ one, many }) => ({
+  user: one(users, { fields: [cashRegisterShifts.userId], references: [users.id] }),
+  branch: one(branches, { fields: [cashRegisterShifts.branchId], references: [branches.id] }),
+  sales: many(sales),
+  payments: many(shiftPayments),
+}));
+
+export const salesRelations = relations(sales, ({ one, many }) => ({
+  user: one(users, { fields: [sales.userId], references: [users.id] }),
+  branch: one(branches, { fields: [sales.branchId], references: [branches.id] }),
+  shift: one(cashRegisterShifts, {
+    fields: [sales.shiftId],
+    references: [cashRegisterShifts.id],
+  }),
+  items: many(saleItems),
+  payments: many(salePayments),
+}));
+
+export const saleItemsRelations = relations(saleItems, ({ one }) => ({
+  sale: one(sales, { fields: [saleItems.saleId], references: [sales.id] }),
+  product: one(products, { fields: [saleItems.productId], references: [products.id] }),
+}));
+
+export const salePaymentsRelations = relations(salePayments, ({ one }) => ({
+  sale: one(sales, { fields: [salePayments.saleId], references: [sales.id] }),
+}));
+
+export const shiftPaymentsRelations = relations(shiftPayments, ({ one }) => ({
+  shift: one(cashRegisterShifts, {
+    fields: [shiftPayments.shiftId],
+    references: [cashRegisterShifts.id],
+  }),
+}));
+
 export const usersRelations = relations(users, ({ one }) => ({
   branch: one(branches, { fields: [users.branchId], references: [branches.id] }),
 }));
@@ -159,4 +332,11 @@ export type User = typeof users.$inferSelect;
 export type ProductCategory = typeof productCategories.$inferSelect;
 export type Product = typeof products.$inferSelect;
 export type Inventory = typeof inventories.$inferSelect;
+export type CashRegisterShift = typeof cashRegisterShifts.$inferSelect;
+export type Sale = typeof sales.$inferSelect;
+export type SaleItem = typeof saleItems.$inferSelect;
+export type SalePayment = typeof salePayments.$inferSelect;
+export type ShiftPayment = typeof shiftPayments.$inferSelect;
 export type Rol = (typeof rolEnum.enumValues)[number];
+export type EstadoTurno = (typeof shiftStatusEnum.enumValues)[number];
+export type EstadoVenta = (typeof saleStatusEnum.enumValues)[number];

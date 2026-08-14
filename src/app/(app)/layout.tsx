@@ -57,6 +57,8 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
         <nav aria-label="Secciones" className="w-44 shrink-0">
           <p className="mb-2 font-mono text-micro uppercase text-grafito-claro">Operación</p>
           <EnlaceNav href="/dashboard">Tablero</EnlaceNav>
+          <EnlaceNav href="/caja">Caja</EnlaceNav>
+          <EnlaceNav href="/turnos">Turnos</EnlaceNav>
 
           {sesion.rol === 'admin' && (
             <>
