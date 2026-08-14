@@ -60,6 +60,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           <EnlaceNav href="/caja">Caja</EnlaceNav>
           <EnlaceNav href="/turnos">Turnos</EnlaceNav>
           <EnlaceNav href="/historial">Historial</EnlaceNav>
+          <EnlaceNav href="/herramientas">Herramientas</EnlaceNav>
 
           {sesion.rol === 'admin' && (
             <>
