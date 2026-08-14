@@ -18,7 +18,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | 3 — Turnos de caja                | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 4 — Punto de venta                | ✅ **Cerrada.** Los 7 criterios verificados con Playwright                |
 | 5 — Historial, reportes y tablero | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
-| 6 — Andamio de Herramientas       | ⬜                                                                        |
+| 6 — Andamio de Herramientas       | ✅ **Cerrada.** Los 3 criterios verificados con Playwright                |
 | 7 — AcomodaImpresion              | ⬜                                                                        |
 
 ---
@@ -303,6 +303,37 @@ mete todo en una columna. Y el BOM UTF-8 es lo que evita que «María» salga
 
 **La cajera no ve la ganancia en el tablero.** Ve sus ventas y su ingreso; el
 margen es información de negocio (§3).
+
+---
+
+## Fase 6 — detalle
+
+Commit `5384902`. Los 3 criterios se verifican con `npm run test:e2e`
+(`e2e/fase-6-herramientas.spec.ts`).
+
+La prueba del criterio 1 es literal: **escribe** una entrada nueva en
+`src/tools/registry.ts`, comprueba que la herramienta aparece en la vitrina y que
+su ruta responde 200, y restaura el archivo. Si hiciera falta tocar cualquier
+otro archivo, fallaría.
+
+### Decisiones de esta fase
+
+**«Etiquetas y códigos de barras» es solo de admin.** Hacía falta al menos una
+herramienta restringida para que el criterio 2 tuviera algo que probar, y esa es
+la que lo justifica sola: imprimir etiquetas de precio es trabajo de catálogo, no
+de caja.
+
+**Las tarjetas `proxima` son un bloque atenuado, no un enlace deshabilitado.** Un
+`<a>` con el cursor cambiado sigue siendo navegable con teclado y anunciable por
+un lector de pantalla: parecería clicable a quien no ve el color.
+
+**AcomodaImpresion se registra ya, en estado `proxima`.** Pasa a `lista` en la
+Fase 7. Así la vitrina cuenta hacia dónde va la sección desde el primer día, que
+es una de las dos razones por las que §6 pide las tarjetas atenuadas.
+
+**`NEXT_PUBLIC_COBRO_HERRAMIENTAS` es la única variable `NEXT_PUBLIC_` del
+sistema.** No es un secreto sino un interruptor que decide el navegador. Todo lo
+demás vive solo en el servidor (§2).
 
 ### Bloqueo abierto: no hay auto-deploy
 
