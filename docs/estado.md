@@ -13,7 +13,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | Fase                              | Estado                                                                    |
 | --------------------------------- | ------------------------------------------------------------------------- |
 | **0 — Andamiaje y despliegue**    | ✅ **Cerrada.** Los 3 criterios de aceptación verificados, sin pendientes |
-| 1 — Autenticación                 | ⬜ Sin empezar                                                            |
+| 1 — Autenticación                 | ✅ **Cerrada.** Los 5 criterios verificados con Playwright                |
 | 2 — Catálogo y administración     | ⬜                                                                        |
 | 3 — Turnos de caja                | ⬜                                                                        |
 | 4 — Punto de venta                | ⬜                                                                        |
@@ -80,6 +80,50 @@ Commit `b6c3d32` · rama `main` · `iscnorena/pos-papeleria-v2`
    - Las variables solo entran en despliegues **nuevos**. El de producción actual
      se hizo sin ellas, y no importa: hoy nada importa `src/db`. El primer
      despliegue de la Fase 1 ya las tendrá.
+
+---
+
+## Fase 1 — detalle
+
+Commit `0d9e5ce`. Los 5 criterios de aceptación se verifican solos con
+`npm run test:e2e` (`e2e/fase-1-autenticacion.spec.ts`), no a ojo.
+
+### Cómo entrar
+
+`admin` / `password`, PIN `1234`. También `cajera` (PIN 5678) y `maria`
+(PIN 9012, Sucursal 2). Los crea `npm run db:seed`, que es idempotente.
+
+### Decisiones de esta fase
+
+**El PIN es único global, no por sucursal.** §5 permite las dos lecturas y manda la
+global «si aún no sabes la sucursal». La pantalla de login no pregunta sucursal
+porque el equipo se comparte entre turnos, que es exactamente ese caso. La
+unicidad se valida al crear el usuario, en la Fase 2.
+
+**Validar el PIN compara contra cada usuario activo.** bcrypt siembra distinto en
+cada hash, así que no se puede buscar por hash. Con tres usuarios es irrelevante;
+si algún día fueran cientos, habría que preguntar la sucursal en el login y
+filtrar por ella.
+
+**`experimental.authInterrupts` activado.** Es lo que habilita `forbidden()`, y sin
+él una página no puede responder 403: solo `notFound()` puede fijar el estado. La
+Fase 2 exige un 403 real y un 404 mentiría sobre lo ocurrido. Es experimental; si
+una versión futura lo cambia, el reemplazo es un Route Handler que responda 403.
+
+**La semilla no importa `src/db`.** Ese módulo lleva `server-only` y revienta fuera
+del servidor de Next. Quitarlo debilitaría una protección real, así que la semilla
+abre su propia conexión y solo comparte el esquema.
+
+**Un usuario inexistente también paga una comparación bcrypt.** Si no, responder
+«no existe» sería medible por tiempo aunque el mensaje fuera idéntico.
+
+### Cambios de Next.js 16 que afectaron el diseño
+
+- **`middleware` → `proxy`.** Archivo `src/proxy.ts`, export con nombre `proxy`.
+  Corre siempre en runtime `nodejs`, que no se puede configurar — aquí conviene,
+  porque la sesión se resuelve con el mismo `auth` del resto del servidor.
+- **`cookies()`, `headers()`, `params` y `searchParams` son promesas.** El acceso
+  síncrono se eliminó del todo en la 16.
 
 ### Bloqueo abierto: no hay auto-deploy
 
