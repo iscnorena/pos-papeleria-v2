@@ -16,7 +16,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | 1 — Autenticación                 | ✅ **Cerrada.** Los 5 criterios verificados con Playwright                |
 | 2 — Catálogo y administración     | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 3 — Turnos de caja                | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
-| 4 — Punto de venta                | ⬜                                                                        |
+| 4 — Punto de venta                | ✅ **Cerrada.** Los 7 criterios verificados con Playwright                |
 | 5 — Historial, reportes y tablero | ⬜                                                                        |
 | 6 — Andamio de Herramientas       | ⬜                                                                        |
 | 7 — AcomodaImpresion              | ⬜                                                                        |
@@ -220,6 +220,47 @@ sencillamente no existe; un 403 confirmaría que existe y de quién es.
 **El detalle de un turno cerrado lee `shift_payments`, no recalcula.** Es la razón
 de congelarlo (§7.5): cancelar hoy una venta de ayer no debe mover el corte de
 ayer. Uno abierto sí se calcula en vivo.
+
+---
+
+## Fase 4 — detalle
+
+Commit `d5ffd91`. Los 7 criterios se verifican con `npm run test:e2e`
+(`e2e/fase-4-punto-de-venta.spec.ts`), incluidos el de concurrencia y el de
+cobrar sin tocar el mouse.
+
+### El bug que encontraron las pruebas
+
+La cinta del ticket declaraba `width: 72mm` con la idea de que los 4mm de relleno
+a cada lado sumaran 80. Pero Tailwind pone `box-sizing: border-box`, así que esos
+72mm **ya incluían** el relleno: el ticket salía a 72mm de ancho en el rollo. Se
+descubrió midiendo el ancho real en el navegador, no leyendo el CSS.
+
+### Decisiones de esta fase
+
+**Una sola función de cálculo.** `src/lib/venta.ts` es puro y lo usan el carrito
+del navegador y la Server Action que guarda. Si el cliente y el servidor
+calcularan por separado, tarde o temprano mostrarían totales distintos.
+
+**Del cliente solo se cree QUÉ se vende y CUÁNTO se paga.** Precios, costos y
+totales se releen de la base y se recalculan en el servidor (§10).
+
+**El descuento de stock lleva la condición dentro del propio `UPDATE`**
+(`stock >= cantidad`), no en un `SELECT` previo. Comprobar antes y actualizar
+después deja hueco para que dos cajas vendan el mismo último cuaderno. Si el
+`UPDATE` no devuelve filas, se aborta la transacción entera.
+
+**F12 abre el cobro y F12 lo confirma.** Hacía falta una tecla de confirmación
+para que el criterio 6 —cobrar sin mouse— fuera cierto de punta a punta:
+F2 → buscar → Enter → F12 → importe → Enter → F12.
+
+**El ticket vive fuera del grupo `(app)` y el `proxy` lo deja pasar sin sesión.**
+Lo protege el token opaco de 32 bytes, no la cookie: el cliente no tiene cuenta y
+tiene que poder abrirlo desde su teléfono (§6).
+
+**«Descargar PDF» del ticket queda pendiente.** §6 lo pide con pdf-lib en el
+cliente; se arma en la Fase 7, que es donde entra esa librería, para no cargarla
+en cada ticket de una caja que solo quiere imprimir.
 
 ### Bloqueo abierto: no hay auto-deploy
 
