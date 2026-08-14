@@ -214,6 +214,55 @@ export async function ventasRecientes(limite = 10) {
   }
 }
 
+/**
+ * Inserta una venta directamente, con la hora exacta que se le pida. Sirve para probar el
+ * corte de día: por la interfaz no se puede vender «ayer a las 8 de la noche».
+ */
+export async function ventaFabricada(opciones: {
+  username: string;
+  shiftId: number;
+  productId: number;
+  cuando: Date;
+  total: string;
+  folio: string;
+}): Promise<number> {
+  const sql = conectar();
+  try {
+    const [usuario] = await sql<{ id: number; branch_id: number }[]>`
+      select id, branch_id from users where username = ${opciones.username} limit 1`;
+    if (!usuario) throw new Error(`No existe el usuario ${opciones.username}`);
+
+    const token = Array.from({ length: 64 }, () =>
+      Math.floor(Math.random() * 16).toString(16),
+    ).join('');
+
+    const [venta] = await sql<{ id: number }[]>`
+      insert into sales
+        (ticket_number, public_token, user_id, branch_id, shift_id,
+         subtotal, total, total_cost, profit, created_at)
+      values
+        (${opciones.folio}, ${token}, ${usuario.id}, ${usuario.branch_id}, ${opciones.shiftId},
+         ${opciones.total}, ${opciones.total}, '0.00', ${opciones.total}, ${opciones.cuando})
+      returning id`;
+    if (!venta) throw new Error('No se pudo fabricar la venta');
+
+    await sql`
+      insert into sale_items
+        (sale_id, product_id, product_name, quantity, unit_cost, unit_price, subtotal, profit)
+      values
+        (${venta.id}, ${opciones.productId}, 'Fabricado', '1.00', '0.00', ${opciones.total},
+         ${opciones.total}, ${opciones.total})`;
+
+    await sql`
+      insert into sale_payments (sale_id, method, amount)
+      values (${venta.id}, 'cash', ${opciones.total})`;
+
+    return venta.id;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 /** El token público de una venta, para abrir su ticket. */
 export async function tokenDeVenta(saleId: number): Promise<string> {
   const sql = conectar();

@@ -11,6 +11,6 @@ export default defineConfig({
     environment: 'node',
   },
   resolve: {
-    alias: { '@': resolve(__dirname, './src') },
+    alias: { '@': resolve(import.meta.dirname, './src') },
   },
 });
