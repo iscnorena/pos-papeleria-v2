@@ -15,7 +15,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | **0 — Andamiaje y despliegue**    | ✅ **Cerrada.** Los 3 criterios de aceptación verificados, sin pendientes |
 | 1 — Autenticación                 | ✅ **Cerrada.** Los 5 criterios verificados con Playwright                |
 | 2 — Catálogo y administración     | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
-| 3 — Turnos de caja                | ⬜                                                                        |
+| 3 — Turnos de caja                | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 4 — Punto de venta                | ⬜                                                                        |
 | 5 — Historial, reportes y tablero | ⬜                                                                        |
 | 6 — Andamio de Herramientas       | ⬜                                                                        |
@@ -179,6 +179,48 @@ ajuste. La condición lleva siempre producto **y** sucursal.
 **`src/lib/catalogo.ts` nació en esta fase aunque lo use la Fase 4.** Es la
 consulta del catálogo vendible, y es la que hace verificable el criterio 4.
 
+---
+
+## Fase 3 — detalle
+
+Commit `fb2dd4e`. Los 4 criterios se verifican con `npm run test:e2e`
+(`e2e/fase-3-turnos.spec.ts`).
+
+### Migraciones: ahora sí hay historial
+
+La base de desarrollo se vació con autorización y se reconstruyó desde cero con
+`drizzle-kit migrate`. El flujo de aquí en adelante, y el que pide §1:
+
+1. `npx drizzle-kit generate` — escribe el SQL en `drizzle/`, sin tocar la base.
+2. **Revisar ese SQL.** Conviene mirar que no haya `DROP` ni `TRUNCATE` reales;
+   los `ON DELETE` de las llaves foráneas salen en cualquier búsqueda ingenua y
+   no son borrados.
+3. `npm run db:migrate`.
+
+`drizzle-kit push` quedó descartado: se cuelga sin mensaje cuando tiene que
+resolver un renombrado.
+
+### Decisiones de esta fase
+
+**Todo el modelo de datos restante de §7 entró en la misma migración** (`sales`,
+`sale_items`, `sale_payments`, `folios`), aunque las ventas sean de la Fase 4. Así
+el cálculo del corte es el definitivo desde ahora — consulta pagos reales, hoy
+vacíos — y la Fase 4 no tiene que tocar el esquema.
+
+**`sale_items.product_id` es NOT NULL a propósito.** §6 prevé permitirlo nulo
+cuando las Herramientas cobren servicios sin producto, pero manda **no hacer esa
+migración todavía**. Sigue anotada en la deuda.
+
+**Nadie cierra el turno de otra persona, ni un admin.** El corte lo firma quien
+contó el dinero. El admin **ve** todos los turnos (§3), pero cerrar es del dueño.
+
+**Una cajera que pide el turno de otra recibe 404, no 403.** Para ella ese turno
+sencillamente no existe; un 403 confirmaría que existe y de quién es.
+
+**El detalle de un turno cerrado lee `shift_payments`, no recalcula.** Es la razón
+de congelarlo (§7.5): cancelar hoy una venta de ayer no debe mover el corte de
+ayer. Uno abierto sí se calcula en vivo.
+
 ### Bloqueo abierto: no hay auto-deploy
 
 Vercel **rechazó enlazar el repo de GitHub**:
@@ -248,6 +290,11 @@ contra Supabase Auth en lugar de Auth.js.
 - **`drizzle-kit` arrastra un aviso `moderate` de npm audit** (`@esbuild-kit/*`
   → `esbuild`). Es herramienta de desarrollo, no llega a producción, y no hay
   versión publicada que lo resuelva. Revisar al subir de versión.
+- **Producción y desarrollo comparten la MISMA base de Supabase.** Hoy da igual
+  porque no hay datos reales, pero en cuanto el negocio empiece a vender, correr
+  `npm run test:e2e` estaría creando y borrando cosas en la base de producción.
+  Antes de ese día hace falta un segundo proyecto de Supabase para desarrollo, y
+  que `.env.local` apunte ahí.
 - **Migración pendiente de la Fase 6:** cuando se conecte el cobro de
   herramientas habrá que permitir `product_id` nulo en `sale_items` con
   `product_name` obligatorio. **No hacerla todavía** (§6 de la especificación).
