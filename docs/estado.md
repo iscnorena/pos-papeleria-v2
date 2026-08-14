@@ -504,14 +504,28 @@ Verificar que `iscnorenam@gmail.com` esté confirmado en
 
 ---
 
+## Validación a mano
+
+Los criterios de aceptación de las 7 fases se verifican solos. Lo que **no** puede
+firmar una máquina está en [`validacion.md`](validacion.md): son ocho cosas, entre
+imprimir un ticket en la térmica, medir 5cm con regla y hacer un corte de caja con
+dinero de verdad.
+
+---
+
 ## Al retomar
 
-1. La Fase 0 no dejó pendientes. Arrancar directo con la Fase 1.
-2. **Fase 1 — Autenticación**: esquema de `users`, `branches` y
-   `login_attempts`; login con las dos pestañas (contraseña y PIN); límite de
-   intentos; middleware; `requerirRol`; semilla mínima. Al crear esas tablas,
-   **borrar `health_check`** (ver «Deuda anotada»). Hace falta `AUTH_SECRET` en
-   `.env.local`: `openssl rand -base64 32`.
-3. Regla de la especificación (§10): **no empezar la Fase N+1 antes de verificar
-   a mano los criterios de aceptación de la Fase N.** Los de la Fase 0 ya están
-   verificados los tres.
+**Las 7 fases están cerradas y desplegadas.** Lo que sigue:
+
+1. **Recorrer [`validacion.md`](validacion.md)**, que es lo único que queda de los
+   criterios de aceptación.
+2. **Separar la base de desarrollo de la de producción** antes de la primera venta
+   real (ver «Deuda anotada»).
+3. Lo demás son mejoras, no deudas: conectar GitHub con Vercel para el
+   auto-deploy, el botón «Descargar PDF» del ticket, y construir las tres
+   herramientas que hoy están en `proxima`.
+
+Nota sobre la regla §10 («no empezar la Fase N+1 antes de verificar a mano la
+Fase N»): se construyeron las siete seguidas por indicación explícita, y a cambio
+**cada criterio quedó automatizado** en vez de comprobado a ojo una sola vez. Lo
+que no se pudo automatizar está en `validacion.md`, sin excepciones escondidas.
