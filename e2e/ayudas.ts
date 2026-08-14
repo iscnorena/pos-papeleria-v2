@@ -149,6 +149,85 @@ export async function abrirTurnoDe(username: string, fondo = '500.00'): Promise<
   }
 }
 
+/**
+ * Crea (o repone) un producto de prueba con precio y existencia exactos, en ambas
+ * sucursales. Los precios de la semilla son los del negocio y no cuadran con los importes
+ * que piden los criterios, así que las pruebas traen los suyos.
+ */
+export async function prepararProducto(opciones: {
+  code: string;
+  nombre: string;
+  precio: string;
+  costo: string;
+  stock: string;
+}): Promise<number> {
+  const sql = conectar();
+  try {
+    const [existente] = await sql<{ id: number }[]>`
+      select id from products where code = ${opciones.code} limit 1`;
+
+    const id =
+      existente?.id ??
+      (
+        await sql<{ id: number }[]>`
+          insert into products (name, code, sale_price, cost_price, manages_inventory)
+          values (${opciones.nombre}, ${opciones.code}, ${opciones.precio}, ${opciones.costo}, true)
+          returning id`
+      )[0]!.id;
+
+    await sql`
+      update products
+      set sale_price = ${opciones.precio}, cost_price = ${opciones.costo},
+          name = ${opciones.nombre}, is_active = true, manages_inventory = true
+      where id = ${id}`;
+
+    const sucursales = await sql<{ id: number }[]>`select id from branches`;
+    for (const s of sucursales) {
+      await sql`
+        insert into inventories (product_id, branch_id, stock)
+        values (${id}, ${s.id}, ${opciones.stock})
+        on conflict (product_id, branch_id) do update set stock = ${opciones.stock}`;
+    }
+    return id;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+/** Las ventas registradas, de la más nueva a la más vieja, con sus pagos. */
+export async function ventasRecientes(limite = 10) {
+  const sql = conectar();
+  try {
+    const ventas = await sql<
+      { id: number; ticket_number: string; total: string; status: string }[]
+    >`select id, ticket_number, total, status from sales order by id desc limit ${limite}`;
+
+    const conPagos = [];
+    for (const venta of ventas) {
+      const pagos = await sql<{ method: string; amount: string }[]>`
+        select method, amount from sale_payments where sale_id = ${venta.id} order by id`;
+      conPagos.push({ ...venta, pagos });
+    }
+    return conPagos;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+/** El token público de una venta, para abrir su ticket. */
+export async function tokenDeVenta(saleId: number): Promise<string> {
+  const sql = conectar();
+  try {
+    const filas = await sql<{ public_token: string }[]>`
+      select public_token from sales where id = ${saleId} limit 1`;
+    const token = filas[0]?.public_token;
+    if (!token) throw new Error(`La venta ${saleId} no existe`);
+    return token;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 /** Cuántos intentos fallidos hay registrados. §5 los exige en la base, no en memoria. */
 export async function contarIntentos(tipo = 'pin'): Promise<number> {
   const sql = conectar();

@@ -1,0 +1,128 @@
+/*
+ * §6 — el ticket se imprime desde el navegador con CSS de impresión. Nada de Chromium en
+ * el servidor: en Vercel no hay dónde.
+ *
+ * El ancho de la cinta es 80mm menos 4mm de margen a cada lado, que es lo que las térmicas
+ * de 80mm dejan imprimir de verdad. Todo va en `mono` porque los importes tienen que
+ * alinearse en columna.
+ */
+
+.ticket {
+  background: #f1efe7; /* papel-hondo: en pantalla se ve la cinta sobre la mesa */
+  min-height: 100dvh;
+  padding: 2rem 1rem;
+}
+
+.cinta {
+  /* 80mm CONTANDO el relleno. Tailwind pone `box-sizing: border-box`, así que poner 72mm
+     aquí dejaba la cinta en 72mm de ancho total y el ticket salía angosto en el rollo. */
+  width: 80mm;
+  margin: 0 auto;
+  padding: 4mm;
+  background: #fff;
+  color: #17212f;
+  font-family: var(--fuente-mono-latin), ui-monospace, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.cinta hr {
+  border: none;
+  border-top: 1px dashed #cfcab9;
+  margin: 6px 0;
+}
+
+.centro {
+  text-align: center;
+}
+
+.negocio {
+  font-family: var(--fuente-display-latin), ui-sans-serif, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.renglon {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.renglon.total {
+  font-size: 15px;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.cinta table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.concepto {
+  padding: 2px 0;
+  vertical-align: top;
+}
+
+.detalle {
+  color: #5a6472;
+}
+
+.importe {
+  padding: 2px 0;
+  text-align: right;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.cancelada {
+  margin-top: 4px;
+  border: 1px solid #be3a2e;
+  color: #be3a2e;
+  font-weight: 600;
+  text-align: center;
+  padding: 2px;
+}
+
+.pie {
+  margin-top: 4px;
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+/* ── Impresión ────────────────────────────────────────────────────────────────────
+ * 80mm de ancho y alto automático: el rollo no tiene páginas. Margen cero porque el
+ * margen real lo pone `.cinta`, y todo lo que no es el ticket desaparece.
+ */
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+
+@media print {
+  .ticket {
+    background: #fff;
+    padding: 0;
+    min-height: 0;
+  }
+
+  .acciones {
+    display: none;
+  }
+
+  .cinta {
+    margin: 0;
+    /* En térmica, el gris se imprime sucio: todo a negro puro. */
+    color: #000;
+  }
+
+  .detalle {
+    color: #000;
+  }
+}

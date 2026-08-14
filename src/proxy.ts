@@ -10,11 +10,22 @@ import { auth } from '@/auth';
 // §5: protege todo salvo `/login` y los recursos estáticos. Esto es una comprobación
 // optimista de sesión, no la autorización: el rol se revalida en cada Server Action (§2).
 
+/**
+ * Rutas que se ven sin sesión.
+ *
+ * `/ticket/…` está aquí a propósito (§6): el cliente abre su ticket desde el teléfono y no
+ * tiene cuenta. Lo que la protege no es la sesión sino el token opaco de 32 bytes, que no
+ * se puede adivinar ni recorrer — por eso la URL lleva el token y nunca el id de la venta.
+ */
+function esPublica(pathname: string): boolean {
+  return pathname === '/login' || pathname.startsWith('/ticket/');
+}
+
 export const proxy = auth((req) => {
   const { pathname, search } = req.nextUrl;
   const haySesion = Boolean(req.auth?.user);
 
-  if (!haySesion && pathname !== '/login') {
+  if (!haySesion && !esPublica(pathname)) {
     const destino = new URL('/login', req.nextUrl);
     // Se recuerda a dónde iba para volver ahí después de entrar.
     if (pathname !== '/') destino.searchParams.set('siguiente', pathname + search);
