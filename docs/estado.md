@@ -17,7 +17,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | 2 — Catálogo y administración     | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 3 — Turnos de caja                | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 4 — Punto de venta                | ✅ **Cerrada.** Los 7 criterios verificados con Playwright                |
-| 5 — Historial, reportes y tablero | ⬜                                                                        |
+| 5 — Historial, reportes y tablero | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 6 — Andamio de Herramientas       | ⬜                                                                        |
 | 7 — AcomodaImpresion              | ⬜                                                                        |
 
@@ -261,6 +261,48 @@ tiene que poder abrirlo desde su teléfono (§6).
 **«Descargar PDF» del ticket queda pendiente.** §6 lo pide con pdf-lib en el
 cliente; se arma en la Fase 7, que es donde entra esa librería, para no cargarla
 en cada ticket de una caja que solo quiere imprimir.
+
+---
+
+## Fase 5 — detalle
+
+Commit `7696c2f`. Los 4 criterios se verifican con `npm run test:e2e`
+(`e2e/fase-5-reportes.spec.ts`).
+
+### El bug de zona horaria
+
+`limitesDelDia` calculaba el desfase de la zona con `toLocaleString` seguido de
+`new Date`. Ese truco es común y **está mal**: `new Date` interpreta la cadena en
+la zona de la MÁQUINA, así que el resultado dependía de dónde corriera el código.
+Daba bien en Vercel, que corre en UTC, y mal en cualquier equipo configurado en
+hora de México — exactamente el escenario de quien desarrolla el sistema.
+
+Ahora el desfase se le pregunta a `Intl` con `timeZoneName: 'longOffset'`, que
+conoce la base de datos de zonas y acierta también con el horario de verano. Hay
+pruebas de Vitest (`src/lib/fechas.test.ts`) que fijan el comportamiento: una
+venta de las 20:30 pertenece a ese día, no al siguiente.
+
+Lo encontró el criterio 3, que existe justo para eso.
+
+### Decisiones de esta fase
+
+**Historial y reportes comparten `src/lib/reportes.ts`.** El criterio 1 pide que
+cuadren entre sí; la única forma de garantizarlo es que no haya dos
+implementaciones que puedan divergir.
+
+**El alcance del rol no es un filtro más.** En `condicionesDe`, la cajera queda
+atada a sus ventas antes de mirar la URL: cambiar `?cajera=` a mano no la amplía.
+
+**Cancelar lleva la condición `status = 'completed'` dentro del `UPDATE`.** Si dos
+administradores cancelan la misma venta a la vez, solo uno encuentra fila y el
+stock se devuelve una sola vez.
+
+**El CSV usa punto y coma, no coma.** El Excel en español espera `;`; con comas
+mete todo en una columna. Y el BOM UTF-8 es lo que evita que «María» salga
+«MarÃ­a» — es el criterio 4 literal.
+
+**La cajera no ve la ganancia en el tablero.** Ve sus ventas y su ingreso; el
+margen es información de negocio (§3).
 
 ### Bloqueo abierto: no hay auto-deploy
 
