@@ -19,7 +19,7 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 | 4 — Punto de venta                | ✅ **Cerrada.** Los 7 criterios verificados con Playwright                |
 | 5 — Historial, reportes y tablero | ✅ **Cerrada.** Los 4 criterios verificados con Playwright                |
 | 6 — Andamio de Herramientas       | ✅ **Cerrada.** Los 3 criterios verificados con Playwright                |
-| 7 — AcomodaImpresion              | ⬜                                                                        |
+| 7 — AcomodaImpresion              | ✅ **Cerrada.** Los 12 criterios verificados (3 con reserva, ver abajo)   |
 
 ---
 
@@ -334,6 +334,55 @@ es una de las dos razones por las que §6 pide las tarjetas atenuadas.
 **`NEXT_PUBLIC_COBRO_HERRAMIENTAS` es la única variable `NEXT_PUBLIC_` del
 sistema.** No es un secreto sino un interruptor que decide el navegador. Todo lo
 demás vive solo en el servidor (§2).
+
+---
+
+## Fase 7 — detalle
+
+Commit `f8e7041`. Los 12 criterios de §7.8 se verifican con `npm run test:e2e`
+(`e2e/fase-7-acomoda-impresion.spec.ts`), más 40 pruebas de Vitest sobre el motor
+de retícula, los precios y los presets.
+
+### Tres criterios quedan con reserva
+
+Se verificó todo lo que llega a comprobar un navegador, pero estos tres piden
+algo que una máquina no puede firmar:
+
+1. **Criterio 5 — medir 5cm con regla.** La prueba comprueba que el rectángulo
+   ocupa exactamente la proporción que corresponde a 5cm sobre el ancho del papel,
+   y Vitest fija que `cmAPx(5) = 188.976 px`. **Falta imprimir una hoja y medirla.**
+2. **Criterio 9 — buscar «gato» en los tres bancos.** Necesita llaves de API
+   reales, que no están configuradas. Se prueba su contrario, el criterio 10: sin
+   llave, el buscador lo dice y no lanza ninguna excepción.
+3. **Criterio 11 — que el PDF coincida con la vista previa celda por celda.** La
+   prueba comprueba que el PDF sale, es válido, tiene las páginas que anuncia la
+   vista previa y mide lo que debe. **La comparación visual la tiene que hacer una
+   persona** — aunque el riesgo es bajo por diseño: los dos dibujan el mismo
+   arreglo de celdas.
+
+### Decisiones de esta fase
+
+**Una sola fuente de verdad, literal.** `celdasDePagina` la llaman la vista previa
+y el generador de PDF; lo único que cambia es la escala y que el PDF invierte el
+eje Y. §10 lo marca en mayúsculas y es la regla que evita cobrarle al cliente por
+hojas distintas a las que vio.
+
+**En pantalla se pintan miniaturas de 400px.** Los archivos originales solo se
+tocan al generar el PDF. Es lo que sostiene el criterio 12 (30 imágenes de 4MB sin
+que la vista previa se atasque), y `createImageBitmap` decodifica fuera del hilo
+principal para que soltar treinta fotos de golpe no congele la página.
+
+**Que los modos «tamaño fijo» y «maximizar» deformen la imagen NO es un error.**
+Es el comportamiento del original (`Stretch.Fill`) y el negocio lo usa así. Está
+comentado en el código para que nadie lo «arregle».
+
+**La descarga de imágenes valida el anfitrión.** Sin esa lista blanca, el endpoint
+sería un proxy abierto: cualquiera podría pedirle al servidor direcciones internas
+y leer la respuesta.
+
+**Los presets toleran archivos incompletos.** Un `.json` de otra versión de la app
+de escritorio carga igual, con los campos que falten en su valor por defecto, en
+vez de romper.
 
 ### Bloqueo abierto: no hay auto-deploy
 
