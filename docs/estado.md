@@ -10,16 +10,16 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 
 ## Dónde vamos
 
-| Fase                              | Estado                                                                                                                       |
-| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| **0 — Andamiaje y despliegue**    | ✅ **Cerrada.** Los 3 criterios de aceptación verificados. Queda una tarea sin bloquear nada: cargar las variables en Vercel |
-| 1 — Autenticación                 | ⬜ Sin empezar                                                                                                               |
-| 2 — Catálogo y administración     | ⬜                                                                                                                           |
-| 3 — Turnos de caja                | ⬜                                                                                                                           |
-| 4 — Punto de venta                | ⬜                                                                                                                           |
-| 5 — Historial, reportes y tablero | ⬜                                                                                                                           |
-| 6 — Andamio de Herramientas       | ⬜                                                                                                                           |
-| 7 — AcomodaImpresion              | ⬜                                                                                                                           |
+| Fase                              | Estado                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------- |
+| **0 — Andamiaje y despliegue**    | ✅ **Cerrada.** Los 3 criterios de aceptación verificados, sin pendientes |
+| 1 — Autenticación                 | ⬜ Sin empezar                                                            |
+| 2 — Catálogo y administración     | ⬜                                                                        |
+| 3 — Turnos de caja                | ⬜                                                                        |
+| 4 — Punto de venta                | ⬜                                                                        |
+| 5 — Historial, reportes y tablero | ⬜                                                                        |
+| 6 — Andamio de Herramientas       | ⬜                                                                        |
+| 7 — AcomodaImpresion              | ⬜                                                                        |
 
 ---
 
@@ -68,10 +68,18 @@ Commit `b6c3d32` · rama `main` · `iscnorena/pos-papeleria-v2`
 4. ~~**Correr `npm run db:push`.**~~ ✅ Creó `health_check` en Supabase con las
    tres columnas del esquema. Se verificó además con un `insert` + `delete` de
    prueba: la tabla acepta escrituras y quedó en 0 filas.
-5. **Cargar las variables en el proyecto de Vercel** (Settings → Environment
-   Variables), o el despliegue no podrá hablar con la base cuando empiece la
-   Fase 1. **Es lo único que queda pendiente de la Fase 0**, y no es criterio de
-   aceptación: los tres ya están verificados.
+5. ~~**Cargar las variables en el proyecto de Vercel.**~~ ✅ Subidas por CLI
+   (`vercel env add`) las tres que lee `src/env.ts` — `DATABASE_URL`,
+   `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` — a **Production** y **Preview**,
+   las seis marcadas `Sensitive`.
+   - **No** se cargaron en el entorno `Development` de Vercel: ese solo lo usa
+     `vercel dev`, y aquí se trabaja con `next dev` leyendo `.env.local`.
+   - `Sensitive` significa que Vercel ya no las devuelve en claro: no se pueden
+     leer desde el dashboard ni con `vercel env pull`, solo sobrescribir. La
+     copia buena vive en `.env.local`.
+   - Las variables solo entran en despliegues **nuevos**. El de producción actual
+     se hizo sin ellas, y no importa: hoy nada importa `src/db`. El primer
+     despliegue de la Fase 1 ya las tendrá.
 
 ### Bloqueo abierto: no hay auto-deploy
 
@@ -190,9 +198,7 @@ Verificar que `iscnorenam@gmail.com` esté confirmado en
 
 ## Al retomar
 
-1. **Cargar las variables en Vercel** (pendiente 5 de arriba). No bloquea el
-   cierre de la Fase 0, pero sí la Fase 1: en cuanto algo importe `src/db`, toda
-   ruta que lo use revienta en producción sin `DATABASE_URL`.
+1. La Fase 0 no dejó pendientes. Arrancar directo con la Fase 1.
 2. **Fase 1 — Autenticación**: esquema de `users`, `branches` y
    `login_attempts`; login con las dos pestañas (contraseña y PIN); límite de
    intentos; middleware; `requerirRol`; semilla mínima. Al crear esas tablas,
