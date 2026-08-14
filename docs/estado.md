@@ -10,16 +10,16 @@ decisiones. Se actualiza al cerrar cada fase. La especificación manda: ver
 
 ## Dónde vamos
 
-| Fase                              | Estado                                                                                                                                       |
-| --------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| **0 — Andamiaje y despliegue**    | 🟡 En producción. Criterios 1 (despliegue) y 2 (tipografía) ✅ verificados. Falta **solo** el criterio 3 (`db:push`), bloqueado por Supabase |
-| 1 — Autenticación                 | ⬜ Sin empezar                                                                                                                               |
-| 2 — Catálogo y administración     | ⬜                                                                                                                                           |
-| 3 — Turnos de caja                | ⬜                                                                                                                                           |
-| 4 — Punto de venta                | ⬜                                                                                                                                           |
-| 5 — Historial, reportes y tablero | ⬜                                                                                                                                           |
-| 6 — Andamio de Herramientas       | ⬜                                                                                                                                           |
-| 7 — AcomodaImpresion              | ⬜                                                                                                                                           |
+| Fase                              | Estado                                                                                                                       |
+| --------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| **0 — Andamiaje y despliegue**    | ✅ **Cerrada.** Los 3 criterios de aceptación verificados. Queda una tarea sin bloquear nada: cargar las variables en Vercel |
+| 1 — Autenticación                 | ⬜ Sin empezar                                                                                                               |
+| 2 — Catálogo y administración     | ⬜                                                                                                                           |
+| 3 — Turnos de caja                | ⬜                                                                                                                           |
+| 4 — Punto de venta                | ⬜                                                                                                                           |
+| 5 — Historial, reportes y tablero | ⬜                                                                                                                           |
+| 6 — Andamio de Herramientas       | ⬜                                                                                                                           |
+| 7 — AcomodaImpresion              | ⬜                                                                                                                           |
 
 ---
 
@@ -62,15 +62,16 @@ Commit `b6c3d32` · rama `main` · `iscnorena/pos-papeleria-v2`
    - Se precargan exactamente los 5 subconjuntos `latin`, ninguno de los `ext`.
    - Los `.woff2` responden `200` con `content-type: font/woff2`.
 
-3. **Crear el proyecto de Supabase** y llenar `.env.local` con `DATABASE_URL`
-   (cadena del **pooler**, puerto 6543 — la directa se agota en serverless),
-   `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY`. Región **`us-east-1`** para que
-   empate con `iad1`.
-4. **Correr `npm run db:push`** y confirmar que crea la tabla en Supabase. Ese es
-   el último criterio de aceptación de la Fase 0.
-5. **Cargar esas mismas variables en el proyecto de Vercel** (Settings →
-   Environment Variables), o el despliegue no podrá hablar con la base cuando
-   empiece la Fase 1.
+3. ~~**Crear el proyecto de Supabase** y llenar `.env.local`.~~ ✅ Proyecto
+   `fwtbpdimycbjplteuviw` en **`us-east-1`**, conectado por el **transaction
+   pooler** (`:6543`, `?pgbouncer=true`), que es lo que pide §1.
+4. ~~**Correr `npm run db:push`.**~~ ✅ Creó `health_check` en Supabase con las
+   tres columnas del esquema. Se verificó además con un `insert` + `delete` de
+   prueba: la tabla acepta escrituras y quedó en 0 filas.
+5. **Cargar las variables en el proyecto de Vercel** (Settings → Environment
+   Variables), o el despliegue no podrá hablar con la base cuando empiece la
+   Fase 1. **Es lo único que queda pendiente de la Fase 0**, y no es criterio de
+   aceptación: los tres ya están verificados.
 
 ### Bloqueo abierto: no hay auto-deploy
 
@@ -122,6 +123,15 @@ en `latin`; precargar los 10 archivos era desperdicio. Bajó a 5 precargas.
 **Los paquetes `@fontsource*` viven en `devDependencies`.** Solo son el origen de
 los `.woff2` copiados a `public/fonts/`; en tiempo de ejecución no se usan.
 
+**La llave secreta se guarda como `SUPABASE_SERVICE_ROLE_KEY`, aunque Supabase ya
+no la llame así.** El dashboard ahora entrega `sb_publishable_…` y `sb_secret_…`
+en vez de las viejas `anon` / `service_role`. La `sb_secret_…` es la sucesora
+directa de `service_role`, y §2 de la especificación fija el nombre de la
+variable, así que se conserva `SUPABASE_SERVICE_ROLE_KEY` y ahí va ese valor.
+`SUPABASE_PUBLISHABLE_KEY` y `SUPABASE_JWKS_URL` también están en `.env.local`
+pero **hoy no las lee nadie**; el JWKS solo serviría si la Fase 1 autenticara
+contra Supabase Auth en lugar de Auth.js.
+
 ---
 
 ## Deuda anotada
@@ -135,6 +145,13 @@ los `.woff2` copiados a `public/fonts/`; en tiempo de ejecución no se usan.
 - **Migración pendiente de la Fase 6:** cuando se conecte el cobro de
   herramientas habrá que permitir `product_id` nulo en `sale_items` con
   `product_name` obligatorio. **No hacerla todavía** (§6 de la especificación).
+- **`npm run db:push` no corre sin terminal interactiva.** `strict: true` en
+  `drizzle.config.ts` siempre pide confirmación, y sin TTY revienta con
+  «Interactive prompts require a TTY terminal». Peor: cuando falla _antes_ de
+  eso (por credenciales, por ejemplo) el spinner de «Pulling schema» se traga el
+  error y solo deja un código de salida 1 mudo. Para correrlo sin TTY:
+  `npx drizzle-kit push --force`. **Revisar siempre el SQL que imprime antes**,
+  porque `--force` también auto-aprueba sentencias con pérdida de datos.
 
 ---
 
@@ -163,7 +180,8 @@ dejarlo como está.
 | Cuenta Vercel        | `iscnorenam-8534` (`iscnorenam@gmail.com`)                            |
 | Team Vercel          | `christopher-norenas-projects`                                        |
 | Proyecto Vercel      | `pos-papeleria` (`prj_BbMW9DIQbolMFldpGHtVzTwEMORg`)                  |
-| Supabase             | ⬜ Sin crear                                                          |
+| Producción           | <https://pos-papeleria.vercel.app>                                    |
+| Supabase             | proyecto `fwtbpdimycbjplteuviw`, región `us-east-1`                   |
 
 Verificar que `iscnorenam@gmail.com` esté confirmado en
 `github.com/settings/emails`, o los commits no se atribuyen al perfil.
@@ -172,9 +190,14 @@ Verificar que `iscnorenam@gmail.com` esté confirmado en
 
 ## Al retomar
 
-1. Cerrar los 5 pendientes de la Fase 0 de arriba.
-2. Recién entonces, **Fase 1 — Autenticación**: esquema de `users`, `branches` y
+1. **Cargar las variables en Vercel** (pendiente 5 de arriba). No bloquea el
+   cierre de la Fase 0, pero sí la Fase 1: en cuanto algo importe `src/db`, toda
+   ruta que lo use revienta en producción sin `DATABASE_URL`.
+2. **Fase 1 — Autenticación**: esquema de `users`, `branches` y
    `login_attempts`; login con las dos pestañas (contraseña y PIN); límite de
-   intentos; middleware; `requerirRol`; semilla mínima.
+   intentos; middleware; `requerirRol`; semilla mínima. Al crear esas tablas,
+   **borrar `health_check`** (ver «Deuda anotada»). Hace falta `AUTH_SECRET` en
+   `.env.local`: `openssl rand -base64 32`.
 3. Regla de la especificación (§10): **no empezar la Fase N+1 antes de verificar
-   a mano los criterios de aceptación de la Fase N.**
+   a mano los criterios de aceptación de la Fase N.** Los de la Fase 0 ya están
+   verificados los tres.
