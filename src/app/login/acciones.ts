@@ -1,18 +1,14 @@
 'use server';
 
 import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
 import { AuthError } from 'next-auth';
-import { and, count, eq, gt } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { signIn } from '@/auth';
-import { db } from '@/db';
-import { loginAttempts } from '@/db/schema';
+import { anotarIntento, intentosRecientes, ipDelCliente } from '@/lib/limiteIntentos';
 
 // §5 — límite de intentos del login por PIN: 5 fallos por IP en 15 minutos, con respuesta
-// genérica que no revela si el PIN existe. Los intentos van a la base y no a memoria
-// porque cada request puede caer en una instancia distinta (§1.1).
+// genérica que no revela si el PIN existe.
 
 const MAX_INTENTOS = 5;
 const VENTANA_MINUTOS = 15;
@@ -25,32 +21,6 @@ const esquemaContrasena = z.object({
 });
 
 const esquemaPin = z.string().regex(/^\d{4,6}$/, 'El PIN son 4 a 6 dígitos.');
-
-async function ipDelCliente(): Promise<string> {
-  const h = await headers();
-  // En Vercel el proxy pone la IP real al frente de `x-forwarded-for`.
-  const reenviada = h.get('x-forwarded-for')?.split(',')[0]?.trim();
-  return reenviada || h.get('x-real-ip') || 'desconocida';
-}
-
-async function intentosRecientes(ip: string, tipo: string): Promise<number> {
-  const desde = new Date(Date.now() - VENTANA_MINUTOS * 60_000);
-  const [fila] = await db
-    .select({ n: count() })
-    .from(loginAttempts)
-    .where(
-      and(
-        eq(loginAttempts.ip, ip),
-        eq(loginAttempts.kind, tipo),
-        gt(loginAttempts.attemptedAt, desde),
-      ),
-    );
-  return fila?.n ?? 0;
-}
-
-async function anotarFallo(ip: string, tipo: string): Promise<void> {
-  await db.insert(loginAttempts).values({ ip, kind: tipo });
-}
 
 /** A dónde ir después de entrar. Solo rutas internas: un destino externo sería un salto abierto. */
 function destinoSeguro(siguiente: FormDataEntryValue | null): string {
@@ -86,7 +56,7 @@ export async function entrarConContrasena(
 export async function entrarConPin(_previo: EstadoLogin, datos: FormData): Promise<EstadoLogin> {
   const ip = await ipDelCliente();
 
-  if ((await intentosRecientes(ip, 'pin')) >= MAX_INTENTOS) {
+  if ((await intentosRecientes(ip, 'pin', VENTANA_MINUTOS)) >= MAX_INTENTOS) {
     return { error: 'Demasiados intentos, espera unos minutos.' };
   }
 
@@ -94,7 +64,7 @@ export async function entrarConPin(_previo: EstadoLogin, datos: FormData): Promi
   if (!analisis.success) {
     // Un PIN mal formado también gasta intento: si no, probar 0000…9999 saldría gratis
     // mandando cadenas de 3 dígitos.
-    await anotarFallo(ip, 'pin');
+    await anotarIntento(ip, 'pin');
     return { error: analisis.error.issues[0]?.message ?? 'PIN incorrecto.' };
   }
 
@@ -102,7 +72,7 @@ export async function entrarConPin(_previo: EstadoLogin, datos: FormData): Promi
     await signIn('pin', { pin: analisis.data, redirect: false });
   } catch (error) {
     if (error instanceof AuthError) {
-      await anotarFallo(ip, 'pin');
+      await anotarIntento(ip, 'pin');
       return { error: 'PIN incorrecto.' };
     }
     throw error;
