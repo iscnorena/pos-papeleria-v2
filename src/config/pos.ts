@@ -12,6 +12,9 @@ export const POS = {
   pieTicket: '¡Gracias por su compra!',
   anchoTicketMm: 80,
   metodosPago: { cash: 'Efectivo', card: 'Tarjeta', transfer: 'Transferencia' },
+  // Tope contra errores de dedo al teclear un precio abierto (ej. 3000 en vez de 30.00),
+  // no un límite de negocio. Ajustable a mano si hace falta.
+  precioAbiertoMaximo: 200000, // $2,000.00
 } as const;
 
 export type MetodoPago = keyof typeof POS.metodosPago;

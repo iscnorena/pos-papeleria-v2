@@ -9,6 +9,7 @@ import { clases } from '@/lib/clases';
 import { aCentavos, formatear, formatearCantidad } from '@/lib/money';
 import { totalesDe, usarCarrito } from './carrito';
 import { ModalCobro } from './ModalCobro';
+import { ModalPrecioAbierto } from './ModalPrecioAbierto';
 import { PantallaExito } from './PantallaExito';
 import type { VentaRegistrada } from './acciones';
 
@@ -22,12 +23,14 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
   const [categoria, setCategoria] = useState<number | null>(null);
   const [cobrando, setCobrando] = useState(false);
   const [ultimaVenta, setUltimaVenta] = useState<VentaRegistrada | null>(null);
+  const [precioAbiertoPendiente, setPrecioAbiertoPendiente] = useState<ProductoDeCaja | null>(null);
   const buscador = useRef<HTMLInputElement>(null);
 
   const renglones = usarCarrito((e) => e.renglones);
   const activo = usarCarrito((e) => e.activo);
   const descuentoGeneral = usarCarrito((e) => e.descuentoGeneral);
   const agregar = usarCarrito((e) => e.agregar);
+  const agregarPrecioAbierto = usarCarrito((e) => e.agregarPrecioAbierto);
   const sumarCantidad = usarCarrito((e) => e.sumarCantidad);
   const quitar = usarCarrito((e) => e.quitar);
   const vaciar = usarCarrito((e) => e.vaciar);
@@ -56,6 +59,13 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
   }, [catalogo, busqueda, categoria]);
 
   const puedeCobrar = renglones.length > 0 && totales.total >= 0;
+
+  // Precio abierto: en vez de copiar el precio del catálogo, se pide en una ventana
+  // emergente (impresión a color, etc.).
+  function agregarOPedirPrecio(producto: ProductoDeCaja) {
+    if (producto.precioAbierto) setPrecioAbiertoPendiente(producto);
+    else agregar(producto);
+  }
 
   const abrirCobro = useCallback(() => {
     if (puedeCobrar) setCobrando(true);
@@ -123,7 +133,7 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
             evento.preventDefault();
             const primero = filtrados[0];
             if (primero) {
-              agregar(primero);
+              agregarOPedirPrecio(primero);
               setBusqueda('');
             }
           }}
@@ -160,7 +170,7 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
               <button
                 key={producto.id}
                 type="button"
-                onClick={() => agregar(producto)}
+                onClick={() => agregarOPedirPrecio(producto)}
                 className={clases(
                   'flex min-h-tecla flex-col items-start gap-1 border p-3 text-left shadow-impresa',
                   'transition-colors duration-avance hover:bg-papel-hondo',
@@ -169,7 +179,9 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
               >
                 <span className="line-clamp-2 text-base text-tinta">{producto.nombre}</span>
                 <span className="tabular font-mono text-cuerpo text-tinta">
-                  {formatear(aCentavos(producto.precio) ?? 0)}
+                  {producto.precioAbierto
+                    ? 'Precio libre'
+                    : formatear(aCentavos(producto.precio) ?? 0)}
                 </span>
                 {producto.manejaInventario ? (
                   agotado ? (
@@ -265,6 +277,15 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
           setUltimaVenta(venta);
         }}
       />
+
+      <ModalPrecioAbierto
+        producto={precioAbiertoPendiente}
+        onCerrar={() => setPrecioAbiertoPendiente(null)}
+        onConfirmar={(precio) => {
+          if (precioAbiertoPendiente) agregarPrecioAbierto(precioAbiertoPendiente, precio);
+          setPrecioAbiertoPendiente(null);
+        }}
+      />
     </div>
   );
 }
@@ -297,21 +318,27 @@ function RenglonTicket({
       </div>
 
       <div className="mt-1 flex items-center gap-2">
-        <label className="sr-only" htmlFor={`cant-${renglon.productId}`}>
-          Cantidad de {renglon.nombre}
-        </label>
-        <input
-          id={`cant-${renglon.productId}`}
-          value={formatearCantidad(renglon.cantidad)}
-          onChange={(e) =>
-            cambiarCantidad(renglon.productId, (aCentavos(e.target.value) ?? 0) || 100)
-          }
-          inputMode="decimal"
-          className="tabular w-16 border border-linea-fuerte bg-white px-2 py-1 text-right font-mono text-fino"
-        />
-        <span className="font-mono text-micro text-grafito-claro">
-          × {formatear(renglon.precioUnitario)}
-        </span>
+        {renglon.precioAbierto ? (
+          <span className="font-mono text-micro uppercase text-grafito-claro">Precio libre</span>
+        ) : (
+          <>
+            <label className="sr-only" htmlFor={`cant-${renglon.productId}`}>
+              Cantidad de {renglon.nombre}
+            </label>
+            <input
+              id={`cant-${renglon.productId}`}
+              value={formatearCantidad(renglon.cantidad)}
+              onChange={(e) =>
+                cambiarCantidad(renglon.productId, (aCentavos(e.target.value) ?? 0) || 100)
+              }
+              inputMode="decimal"
+              className="tabular w-16 border border-linea-fuerte bg-white px-2 py-1 text-right font-mono text-fino"
+            />
+            <span className="font-mono text-micro text-grafito-claro">
+              × {formatear(renglon.precioUnitario)}
+            </span>
+          </>
+        )}
 
         <label className="sr-only" htmlFor={`desc-${renglon.productId}`}>
           Descuento de {renglon.nombre}

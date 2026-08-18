@@ -18,6 +18,7 @@ export type ProductoDeCaja = {
   precio: string;
   costo: string;
   manejaInventario: boolean;
+  precioAbierto: boolean;
   existencia: string;
 };
 
@@ -39,6 +40,7 @@ export async function catalogoDeSucursal(branchId: number): Promise<ProductoDeCa
       precio: products.salePrice,
       costo: products.costPrice,
       manejaInventario: products.managesInventory,
+      precioAbierto: products.openPrice,
       existencia: inventories.stock,
     })
     .from(products)

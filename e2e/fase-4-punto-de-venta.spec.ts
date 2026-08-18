@@ -373,3 +373,62 @@ test('8 · el folio de la terminal se guarda en el pago con tarjeta y no sale en
   await expect(pagina.getByText('MP-99887766')).toHaveCount(0);
   await anonimo.close();
 });
+
+test('9 · un producto de precio abierto pide el importe en una ventana, sin límite ni catálogo por precio', async ({
+  page,
+}) => {
+  await prepararProducto({
+    code: 'E2E-LIBRE',
+    nombre: 'Impresión color prueba',
+    precio: '0.00',
+    costo: '0.00',
+    stock: '0.00',
+    manejaInventario: false,
+    precioAbierto: true,
+  });
+
+  await abrirTurnoDe('cajera', '500.00');
+  await entrarComo(page, 'cajera');
+  await page.goto('/caja');
+
+  // Buscarlo y darle Enter (flujo de lector de código) abre la ventana en vez de agregarlo
+  // directo, porque no tiene un precio fijo que copiar.
+  const buscador = page.getByLabel('Buscar producto');
+  await buscador.fill('E2E-LIBRE');
+  await buscador.press('Enter');
+
+  const dialogo = page.getByRole('dialog');
+  await expect(dialogo).toBeVisible();
+  await expect(dialogo.getByText('Impresión color prueba')).toBeVisible();
+
+  // Un importe absurdo se rechaza con el tope de seguridad.
+  await dialogo.getByLabel('Importe').fill('3000');
+  await dialogo.getByRole('button', { name: 'Agregar' }).click();
+  await expect(dialogo.getByText(/no puede superar/)).toBeVisible();
+
+  // Corregido, se agrega con cantidad fija y sin el input de cantidad normal.
+  await dialogo.getByLabel('Importe').fill('7.50');
+  await dialogo.getByRole('button', { name: 'Agregar' }).click();
+  await expect(dialogo).toBeHidden();
+
+  const ticket = page.getByRole('complementary', { name: 'Ticket' });
+  await expect(ticket.getByText('Precio libre')).toBeVisible();
+  await expect(ticket.locator('.bg-marcador')).toHaveText('$7.50');
+
+  // Volver a tocarlo suma otro trabajo a la misma línea, en vez de reemplazar el importe.
+  await buscador.fill('E2E-LIBRE');
+  await buscador.press('Enter');
+  await dialogo.getByLabel('Importe').fill('2.50');
+  await dialogo.getByRole('button', { name: 'Agregar' }).click();
+  await expect(ticket.locator('.bg-marcador')).toHaveText('$10.00');
+
+  await page.getByRole('button', { name: 'Cobrar (F12)' }).click();
+  const cobro = page.getByRole('dialog');
+  await cobro.getByLabel('Importe').fill('10');
+  await cobro.getByRole('button', { name: 'Agregar' }).click();
+  await cobro.getByRole('button', { name: /Confirmar cobro/ }).click();
+  await expect(page.getByText('Venta cobrada')).toBeVisible();
+
+  const [venta] = await ventasRecientes(1);
+  expect(venta!.total).toBe('10.00');
+});

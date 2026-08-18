@@ -99,6 +99,9 @@ export const products = pgTable(
     costPrice: numeric('cost_price', { precision: 12, scale: 2 }).notNull().default('0'),
     salePrice: numeric('sale_price', { precision: 12, scale: 2 }).notNull().default('0'),
     managesInventory: boolean('manages_inventory').notNull().default(true),
+    // El cajero teclea el importe al cobrarlo (impresión a color, etc.); `salePrice` se
+    // ignora para estos productos.
+    openPrice: boolean('open_price').notNull().default(false),
     expiryDate: date('expiry_date'),
     isActive: boolean('is_active').notNull().default(true),
     ...timestamps,

@@ -29,6 +29,9 @@ const esquema = z.object({
         productId: z.number().int().positive(),
         cantidad: z.number().int().positive('La cantidad debe ser mayor que cero.'),
         descuento: z.number().int().min(0),
+        // Solo se usa para productos marcados `openPrice` en el catálogo; para el resto se
+        // ignora y el precio se relee de la base (ver comentario de `registrarVenta`).
+        precioUnitario: z.number().int().min(0).max(POS.precioAbiertoMaximo).optional(),
       }),
     )
     .min(1, 'El carrito está vacío.'),
@@ -85,6 +88,7 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
       salePrice: products.salePrice,
       costPrice: products.costPrice,
       managesInventory: products.managesInventory,
+      openPrice: products.openPrice,
       isActive: products.isActive,
     })
     .from(products)
@@ -97,6 +101,9 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
     if (!producto.isActive) {
       return { ok: false, error: `«${producto.name}» ya no está a la venta.` };
     }
+    if (producto.openPrice && !(renglon.precioUnitario && renglon.precioUnitario > 0)) {
+      return { ok: false, error: `Falta el precio de «${producto.name}».` };
+    }
   }
 
   const conPrecios = renglones.map((renglon) => {
@@ -105,7 +112,11 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
       ...renglon,
       nombre: producto.name,
       manejaInventario: producto.managesInventory,
-      precioUnitario: aCentavos(producto.salePrice) ?? 0,
+      // Precio abierto es la única excepción a "el precio siempre sale de la base": el
+      // catálogo marcó ese producto como tal, y ya se validó arriba que trae un importe.
+      precioUnitario: producto.openPrice
+        ? renglon.precioUnitario!
+        : (aCentavos(producto.salePrice) ?? 0),
       costoUnitario: aCentavos(producto.costPrice) ?? 0,
     };
   });

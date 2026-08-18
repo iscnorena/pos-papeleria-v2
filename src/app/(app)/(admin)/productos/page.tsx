@@ -27,6 +27,7 @@ export default async function PantallaProductos({
         costPrice: products.costPrice,
         salePrice: products.salePrice,
         managesInventory: products.managesInventory,
+        openPrice: products.openPrice,
         isActive: products.isActive,
         categoria: productCategories.name,
       })
@@ -62,6 +63,7 @@ export default async function PantallaProductos({
                 <Celda>
                   {p.name}
                   {!p.managesInventory && <Distintivo className="ml-2">Sin inventario</Distintivo>}
+                  {p.openPrice && <Distintivo className="ml-2">Precio libre</Distintivo>}
                 </Celda>
                 <Celda mono>{p.code ?? '—'}</Celda>
                 <Celda>{p.categoria ?? '—'}</Celda>
@@ -146,6 +148,14 @@ export default async function PantallaProductos({
                 etiqueta: 'Maneja inventario',
                 valor: enEdicion?.managesInventory ?? true,
                 ayuda: 'Al activarlo se crea su existencia en todas las sucursales, en 0.',
+              },
+              {
+                tipo: 'casilla',
+                nombre: 'openPrice',
+                etiqueta: 'Precio abierto',
+                valor: enEdicion?.openPrice ?? false,
+                ayuda:
+                  'El cajero teclea el importe al cobrarlo (ej. impresión a color); el importe fijo de arriba no se usa.',
               },
               {
                 tipo: 'casilla',

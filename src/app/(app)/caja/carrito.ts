@@ -22,6 +22,7 @@ export type RenglonCarrito = {
   costoUnitario: number;
   descuento: number;
   manejaInventario: boolean;
+  precioAbierto: boolean;
   existencia: number;
 };
 
@@ -31,6 +32,7 @@ type EstadoCarrito = {
   descuentoGeneral: number;
 
   agregar: (producto: ProductoDeCaja) => void;
+  agregarPrecioAbierto: (producto: ProductoDeCaja, precio: number) => void;
   cambiarCantidad: (productId: number, cantidad: number) => void;
   sumarCantidad: (productId: number, delta: number) => void;
   cambiarDescuento: (productId: number, descuento: number) => void;
@@ -69,6 +71,41 @@ export const usarCarrito = create<EstadoCarrito>((set) => ({
             costoUnitario: aCentavos(producto.costo) ?? 0,
             descuento: 0,
             manejaInventario: producto.manejaInventario,
+            precioAbierto: producto.precioAbierto,
+            existencia: aCentavos(producto.existencia) ?? 0,
+          },
+        ],
+        activo: producto.id,
+      };
+    }),
+
+  // Cada toque manda a la ventana emergente a pedir un importe (el precio no es fijo, ej.
+  // una impresión a color). Si ya había un renglón del mismo producto, el importe nuevo se
+  // SUMA al que ya traía —es "otro trabajo más"— en vez de reemplazarlo.
+  agregarPrecioAbierto: (producto, precio) =>
+    set((estado) => {
+      const existente = estado.renglones.find((r) => r.productId === producto.id);
+      if (existente) {
+        return {
+          renglones: estado.renglones.map((r) =>
+            r.productId === producto.id ? { ...r, precioUnitario: r.precioUnitario + precio } : r,
+          ),
+          activo: producto.id,
+        };
+      }
+      return {
+        renglones: [
+          ...estado.renglones,
+          {
+            productId: producto.id,
+            nombre: producto.nombre,
+            codigo: producto.codigo,
+            cantidad: 100,
+            precioUnitario: precio,
+            costoUnitario: aCentavos(producto.costo) ?? 0,
+            descuento: 0,
+            manejaInventario: producto.manejaInventario,
+            precioAbierto: true,
             existencia: aCentavos(producto.existencia) ?? 0,
           },
         ],

@@ -1,0 +1,1 @@
+ALTER TABLE "products" ADD COLUMN "open_price" boolean DEFAULT false NOT NULL;

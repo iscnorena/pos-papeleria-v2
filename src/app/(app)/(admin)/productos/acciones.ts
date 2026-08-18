@@ -41,6 +41,7 @@ const esquema = z.object({
   costPrice: dinero('El costo'),
   salePrice: dinero('El precio de venta'),
   managesInventory: z.boolean(),
+  openPrice: z.boolean(),
   expiryDate: z.string().trim().optional(),
   isActive: z.boolean(),
 });
@@ -60,6 +61,7 @@ export async function guardarProducto(
     costPrice: datos.get('costPrice') ?? '0',
     salePrice: datos.get('salePrice') ?? '0',
     managesInventory: datos.get('managesInventory') === 'on',
+    openPrice: datos.get('openPrice') === 'on',
     expiryDate: datos.get('expiryDate') || undefined,
     isActive: datos.get('isActive') === 'on',
   });
