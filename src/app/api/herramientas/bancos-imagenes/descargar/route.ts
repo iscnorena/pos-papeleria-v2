@@ -1,18 +1,11 @@
 import { NextResponse } from 'next/server';
 
+import { ANFITRIONES_PERMITIDOS } from '@/lib/bancosImagenes';
 import { sesionActual } from '@/lib/sesion';
 
 // §7.6 — la descarga de la imagen grande también pasa por el servidor, para evitar CORS, y
 // devuelve el binario al cliente, que lo mete al lote en memoria. La imagen NUNCA se
 // guarda aquí: no hay dónde (§1.1) y §10 lo prohíbe explícitamente.
-
-/** Solo se descargan imágenes de los tres bancos, no de una URL cualquiera. */
-const ANFITRIONES_PERMITIDOS = [
-  'images.unsplash.com',
-  'images.pexels.com',
-  'pixabay.com',
-  'cdn.pixabay.com',
-];
 
 export async function GET(peticion: Request) {
   const sesion = await sesionActual();

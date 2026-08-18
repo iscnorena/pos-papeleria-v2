@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
-import type { ImagenDeBanco } from '@/app/api/herramientas/bancos-imagenes/route';
+import type { ImagenDeBanco } from '@/lib/bancosImagenes';
 
 // §7.6 — buscador de bancos de imágenes. Los tres proveedores en este orden, y las llaves
 // nunca llegan al navegador: todo pasa por el Route Handler.
