@@ -6,6 +6,7 @@ import { RIFAS } from '@/config/pos';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import {
   COLOR_FONDO_DEFECTO,
   TICKETS_POR_PAGINA_MAXIMO,
@@ -18,8 +19,11 @@ import { generarPdfRifas } from './pdf';
 import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 
 // Componente único, compartido por la ruta interna (/herramientas/rifas, con sesión) y la
-// pública (/imprimir/rifas, sin sesión): no hay ninguna diferencia de capacidades entre
-// las dos, así que no hace falta duplicarlo como sí se hizo con Acomoda Impresión/`/imprimir`.
+// pública (/imprimir/rifas, sin sesión). La única diferencia entre las dos es el botón de
+// WhatsApp: solo aparece si se recibe `whatsappNumber` (la ruta pública lo resuelve por
+// sucursal; la interna no lo pasa, porque el personal ya está en la papelería).
+
+const TEXTO_WHATSAPP = 'cree este documento en generador de loterias me gustaria imprimir';
 
 const CONFIG_INICIAL: RaffleConfig = {
   quantity: 100,
@@ -69,10 +73,11 @@ async function normalizarImagen(archivo: File): Promise<string> {
   return canvas.toDataURL('image/png');
 }
 
-export function GeneradorRifas() {
+export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } = {}) {
   const [config, setConfig] = useState<RaffleConfig>(CONFIG_INICIAL);
   const [pagina, setPagina] = useState(0);
   const [generando, setGenerando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
   const [progreso, setProgreso] = useState<{ actual: number; total: number } | null>(null);
   const [aviso, setAviso] = useState<{ texto: string; tono: 'error' | 'neutro' } | null>(null);
 
@@ -115,15 +120,14 @@ export function GeneradorRifas() {
     }
   }
 
-  async function descargarPdf() {
-    setAviso(null);
-
+  /** Comparte `true` si config está en rango; si no, deja el aviso puesto y devuelve `false`. */
+  function validar(): boolean {
     if (config.quantity < 1 || config.quantity > RIFAS.cantidadMaxima) {
       setAviso({
         texto: `La cantidad de boletos debe estar entre 1 y ${RIFAS.cantidadMaxima}.`,
         tono: 'error',
       });
-      return;
+      return false;
     }
     if (
       config.ticketsPorPagina < TICKETS_POR_PAGINA_MINIMO ||
@@ -133,8 +137,14 @@ export function GeneradorRifas() {
         texto: `Los boletos por página deben estar entre ${TICKETS_POR_PAGINA_MINIMO} y ${TICKETS_POR_PAGINA_MAXIMO}.`,
         tono: 'error',
       });
-      return;
+      return false;
     }
+    return true;
+  }
+
+  async function descargarPdf() {
+    setAviso(null);
+    if (!validar()) return;
 
     setGenerando(true);
     setProgreso(null);
@@ -161,6 +171,40 @@ export function GeneradorRifas() {
       setAviso({ texto: 'No se pudo generar el PDF. Intenta de nuevo.', tono: 'error' });
     } finally {
       setGenerando(false);
+      setProgreso(null);
+    }
+  }
+
+  async function enviarPorWhatsapp() {
+    if (!whatsappNumber) return;
+    setAviso(null);
+    if (!validar()) return;
+
+    setEnviando(true);
+    setProgreso(null);
+    try {
+      const resultado = await generarPdfRifas(config, (actual, total) =>
+        setProgreso({ actual, total }),
+      );
+      await compartirPdfPorWhatsapp({
+        bytes: resultado.bytes,
+        nombreArchivo: `rifa-${Date.now()}.pdf`,
+        whatsappNumber,
+        tituloCompartir: 'Rifa',
+        textoCompartir: TEXTO_WHATSAPP,
+        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+      });
+
+      if (resultado.camposSaneados.length > 0) {
+        setAviso({
+          texto: `Se quitaron caracteres no compatibles (probablemente emoji) en: ${resultado.camposSaneados.join(', ')}.`,
+          tono: 'neutro',
+        });
+      }
+    } catch {
+      setAviso({ texto: 'No se pudo generar el PDF. Intenta de nuevo.', tono: 'error' });
+    } finally {
+      setEnviando(false);
       setProgreso(null);
     }
   }
@@ -303,18 +347,35 @@ export function GeneradorRifas() {
 
       {aviso && <Aviso tono={aviso.tono}>{aviso.texto}</Aviso>}
 
-      <Boton
-        tamano="tecla"
-        className="w-full"
-        disabled={generando}
-        onClick={() => void descargarPdf()}
-      >
-        {generando
-          ? progreso
-            ? `Generando… (${progreso.actual}/${progreso.total})`
-            : 'Generando…'
-          : 'Descargar PDF'}
-      </Boton>
+      <div className={whatsappNumber ? 'grid grid-cols-2 gap-2' : ''}>
+        <Boton
+          tamano="tecla"
+          variante={whatsappNumber ? 'secundaria' : 'primaria'}
+          className="w-full"
+          disabled={generando || enviando}
+          onClick={() => void descargarPdf()}
+        >
+          {generando
+            ? progreso
+              ? `Generando… (${progreso.actual}/${progreso.total})`
+              : 'Generando…'
+            : 'Descargar PDF'}
+        </Boton>
+        {whatsappNumber && (
+          <Boton
+            tamano="tecla"
+            className="w-full"
+            disabled={generando || enviando}
+            onClick={() => void enviarPorWhatsapp()}
+          >
+            {enviando
+              ? progreso
+                ? `Enviando… (${progreso.actual}/${progreso.total})`
+                : 'Enviando…'
+              : 'Enviar por WhatsApp'}
+          </Boton>
+        )}
+      </div>
     </div>
   );
 }

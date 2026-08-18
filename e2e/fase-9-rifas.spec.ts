@@ -5,8 +5,12 @@ import { archivoPng } from './png';
 
 // Números de rifa (§ fuera de la spec original, como fase-8): la MISMA herramienta en
 // /herramientas/rifas (con sesión) y /imprimir/rifas (sin sesión, colgando del índice
-// público). A diferencia de Acomoda Impresión, no hay WhatsApp ni rutas API: todo ocurre
-// en el navegador con pdf-lib + fontkit.
+// público). Sin rutas API propias: todo ocurre en el navegador con pdf-lib + fontkit.
+//
+// /imprimir/rifas SÍ tiene "Enviar por WhatsApp" (además de "Descargar PDF", a diferencia
+// de /imprimir/acomoda-impresion que solo tiene WhatsApp) — depende de que la sucursal
+// "Principal" de la semilla tenga `whatsapp_number` cargado (527445008175), igual que
+// fase-8. La ruta interna no lo muestra: el personal ya está en la papelería.
 
 test('1 · /herramientas/rifas responde para admin y cajera con sesión', async ({ page }) => {
   await entrarComo(page, 'cajera');
@@ -119,6 +123,34 @@ test('7b · la foto del premio es opcional: se puede generar sin ella y con ella
     page.getByRole('button', { name: 'Descargar PDF' }).click(),
   ]);
   expect(conFoto.suggestedFilename()).toMatch(/^rifa-\d+\.pdf$/);
+});
+
+test('8 · "Enviar por WhatsApp" en /imprimir/rifas descarga el PDF y abre el chat correcto', async ({
+  page,
+}) => {
+  await page.context().clearCookies();
+  await page.goto('/imprimir/rifas');
+  await expect(page.getByRole('button', { name: 'Enviar por WhatsApp' })).toBeVisible();
+
+  const [descarga, ventanaNueva] = await Promise.all([
+    page.waitForEvent('download'),
+    page.context().waitForEvent('page'),
+    page.getByRole('button', { name: 'Enviar por WhatsApp' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toMatch(/^rifa-\d+\.pdf$/);
+  // wa.me redirige a api.whatsapp.com/send al abrirse sin la app instalada: se comprueba
+  // el número, no el dominio exacto (mismo criterio que fase-8).
+  expect(ventanaNueva.url()).toContain('527445008175');
+  expect(decodeURIComponent(ventanaNueva.url().replace(/\+/g, ' '))).toContain(
+    'cree este documento en generador de loterias me gustaria imprimir',
+  );
+});
+
+test('8b · la herramienta interna no muestra "Enviar por WhatsApp"', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/rifas');
+  await expect(page.getByRole('button', { name: 'Descargar PDF' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Enviar por WhatsApp' })).toHaveCount(0);
 });
 
 test('7 · un nombre de evento con emoji genera el PDF sin tronar', async ({ page }) => {

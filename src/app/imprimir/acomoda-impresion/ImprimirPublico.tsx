@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import {
   CONFIG_POR_DEFECTO,
   paginaValida,
@@ -92,39 +93,15 @@ export function ImprimirPublico({
         })),
       );
       const bytes = await generarPdf(config, paraPdf);
-      const archivo = new File([bytes as BlobPart], 'impresion.pdf', { type: 'application/pdf' });
-
-      // Primero se intenta compartir el PDF ya adjunto (Web Share API): un toque, sin
-      // depender de que el cliente tenga guardado el número. Si el celular no lo soporta,
-      // cae al respaldo de abajo.
-      if (typeof navigator !== 'undefined' && navigator.canShare?.({ files: [archivo] })) {
-        try {
-          await navigator.share({
-            files: [archivo],
-            title: 'Impresión',
-            text: 'Hola, les mando este archivo para imprimir 🖨️',
-          });
-          return;
-        } catch (error) {
-          if ((error as { name?: string })?.name === 'AbortError') return; // el cliente canceló
-          // cualquier otro error cae al respaldo
-        }
-      }
-
-      // Respaldo universal: descarga el PDF y abre WhatsApp con el número correcto ya
-      // cargado, pidiendo que se adjunte lo que se acaba de descargar.
-      const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      const enlace = document.createElement('a');
-      enlace.href = url;
-      enlace.download = 'impresion.pdf';
-      enlace.click();
-      URL.revokeObjectURL(url);
-
-      const texto = encodeURIComponent(
-        'Hola, les mando mi archivo para imprimir 🖨️ (acabo de descargar el PDF, se los adjunto aquí).',
-      );
-      window.open(`https://wa.me/${whatsappNumber}?text=${texto}`, '_blank');
+      await compartirPdfPorWhatsapp({
+        bytes,
+        nombreArchivo: 'impresion.pdf',
+        whatsappNumber,
+        tituloCompartir: 'Impresión',
+        textoCompartir: 'Hola, les mando este archivo para imprimir 🖨️',
+        textoRespaldo:
+          'Hola, les mando mi archivo para imprimir 🖨️ (acabo de descargar el PDF, se los adjunto aquí).',
+      });
     } catch {
       setAviso('No se pudo generar el PDF. Revisa que las fotos sean JPG o PNG.');
     } finally {
