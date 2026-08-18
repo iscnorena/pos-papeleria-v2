@@ -327,3 +327,49 @@ test('7 · el ticket sale a 80mm y se ve completo', async ({ page }) => {
 
   await anonimo.close();
 });
+
+// Pedidas fuera de las 7 fases originales: folio de la terminal de tarjeta, y productos
+// de precio abierto (impresión a color, etc.).
+
+test('8 · el folio de la terminal se guarda en el pago con tarjeta y no sale en el ticket público', async ({
+  page,
+}) => {
+  await prepararProducto({
+    code: 'E2E-REF',
+    nombre: 'Prueba referencia',
+    precio: '50.00',
+    costo: '20.00',
+    stock: '10.00',
+  });
+
+  await abrirTurnoDe('cajera', '500.00');
+  await entrarComo(page, 'cajera');
+  await page.goto('/caja');
+  await agregarPorCodigo(page, 'E2E-REF');
+
+  await page.getByRole('button', { name: 'Cobrar (F12)' }).click();
+  const cobro = page.getByRole('dialog');
+
+  // En efectivo el campo de folio no existe.
+  await expect(cobro.getByPlaceholder('Folio de la terminal (opcional)')).toHaveCount(0);
+
+  await cobro.getByRole('button', { name: 'Tarjeta' }).click();
+  await cobro.getByPlaceholder('Folio de la terminal (opcional)').fill('MP-99887766');
+  await cobro.getByLabel('Importe').fill('50');
+  await cobro.getByRole('button', { name: 'Agregar' }).click();
+
+  await cobro.getByRole('button', { name: /Confirmar cobro/ }).click();
+  await expect(page.getByText('Venta cobrada')).toBeVisible();
+
+  const [venta] = await ventasRecientes(1);
+  expect(venta!.pagos).toHaveLength(1);
+  expect(venta!.pagos[0]!.method).toBe('card');
+  expect(venta!.pagos[0]!.reference).toBe('MP-99887766');
+
+  const token = await tokenDeVenta(venta!.id);
+  const anonimo = await page.context().browser()!.newContext();
+  const pagina = await anonimo.newPage();
+  await pagina.goto(`/ticket/${token}`);
+  await expect(pagina.getByText('MP-99887766')).toHaveCount(0);
+  await anonimo.close();
+});

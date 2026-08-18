@@ -160,9 +160,14 @@ export async function prepararProducto(opciones: {
   precio: string;
   costo: string;
   stock: string;
+  manejaInventario?: boolean;
+  precioAbierto?: boolean;
 }): Promise<number> {
   const sql = conectar();
   try {
+    const manejaInventario = opciones.manejaInventario ?? true;
+    const precioAbierto = opciones.precioAbierto ?? false;
+
     const [existente] = await sql<{ id: number }[]>`
       select id from products where code = ${opciones.code} limit 1`;
 
@@ -170,23 +175,26 @@ export async function prepararProducto(opciones: {
       existente?.id ??
       (
         await sql<{ id: number }[]>`
-          insert into products (name, code, sale_price, cost_price, manages_inventory)
-          values (${opciones.nombre}, ${opciones.code}, ${opciones.precio}, ${opciones.costo}, true)
+          insert into products (name, code, sale_price, cost_price, manages_inventory, open_price)
+          values (${opciones.nombre}, ${opciones.code}, ${opciones.precio}, ${opciones.costo}, true, false)
           returning id`
       )[0]!.id;
 
     await sql`
       update products
       set sale_price = ${opciones.precio}, cost_price = ${opciones.costo},
-          name = ${opciones.nombre}, is_active = true, manages_inventory = true
+          name = ${opciones.nombre}, is_active = true, manages_inventory = ${manejaInventario},
+          open_price = ${precioAbierto}
       where id = ${id}`;
 
-    const sucursales = await sql<{ id: number }[]>`select id from branches`;
-    for (const s of sucursales) {
-      await sql`
-        insert into inventories (product_id, branch_id, stock)
-        values (${id}, ${s.id}, ${opciones.stock})
-        on conflict (product_id, branch_id) do update set stock = ${opciones.stock}`;
+    if (manejaInventario) {
+      const sucursales = await sql<{ id: number }[]>`select id from branches`;
+      for (const s of sucursales) {
+        await sql`
+          insert into inventories (product_id, branch_id, stock)
+          values (${id}, ${s.id}, ${opciones.stock})
+          on conflict (product_id, branch_id) do update set stock = ${opciones.stock}`;
+      }
     }
     return id;
   } finally {
@@ -204,8 +212,8 @@ export async function ventasRecientes(limite = 10) {
 
     const conPagos = [];
     for (const venta of ventas) {
-      const pagos = await sql<{ method: string; amount: string }[]>`
-        select method, amount from sale_payments where sale_id = ${venta.id} order by id`;
+      const pagos = await sql<{ method: string; amount: string; reference: string | null }[]>`
+        select method, amount, reference from sale_payments where sale_id = ${venta.id} order by id`;
       conPagos.push({ ...venta, pagos });
     }
     return conPagos;

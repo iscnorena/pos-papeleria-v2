@@ -15,7 +15,7 @@ import { registrarVenta, type VentaRegistrada } from './acciones';
 
 const IMPORTES_RAPIDOS = [5000, 10000, 20000, 50000]; // centavos: $50, $100, $200, $500
 
-type PagoEnPantalla = { metodo: MetodoPago; monto: number };
+type PagoEnPantalla = { metodo: MetodoPago; monto: number; referencia?: string };
 
 export function ModalCobro({
   abierto,
@@ -31,6 +31,7 @@ export function ModalCobro({
   const [pagos, setPagos] = useState<PagoEnPantalla[]>([]);
   const [metodo, setMetodo] = useState<MetodoPago>('cash');
   const [montoTexto, setMontoTexto] = useState('');
+  const [referenciaTexto, setReferenciaTexto] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [guardando, iniciar] = useTransition();
 
@@ -51,14 +52,17 @@ export function ModalCobro({
       setPagos([]);
       setMetodo('cash');
       setMontoTexto('');
+      setReferenciaTexto('');
       setError(null);
     }
   }
 
   function agregarPago(monto: number) {
     if (monto <= 0) return;
-    setPagos((actuales) => [...actuales, { metodo, monto }]);
+    const referencia = referenciaTexto.trim();
+    setPagos((actuales) => [...actuales, { metodo, monto, ...(referencia ? { referencia } : {}) }]);
     setMontoTexto('');
+    setReferenciaTexto('');
     setError(null);
   }
 
@@ -70,9 +74,10 @@ export function ModalCobro({
           productId: r.productId,
           cantidad: r.cantidad,
           descuento: r.descuento,
+          ...(r.precioAbierto ? { precioUnitario: r.precioUnitario } : {}),
         })),
         descuentoGeneral,
-        pagos: pagos.map((p) => ({ metodo: p.metodo, monto: p.monto })),
+        pagos: pagos.map((p) => ({ metodo: p.metodo, monto: p.monto, referencia: p.referencia })),
       });
 
       if (resultado.ok) onCobrado(resultado.data);
@@ -105,7 +110,10 @@ export function ModalCobro({
             <button
               key={m}
               type="button"
-              onClick={() => setMetodo(m)}
+              onClick={() => {
+                setMetodo(m);
+                setReferenciaTexto('');
+              }}
               aria-pressed={metodo === m}
               className={
                 metodo === m
@@ -141,6 +149,22 @@ export function ModalCobro({
           </Boton>
         </div>
 
+        {(metodo === 'card' || metodo === 'transfer') && (
+          <div className="mt-2">
+            <label className="sr-only" htmlFor="referencia-pago">
+              Folio o referencia
+            </label>
+            <input
+              id="referencia-pago"
+              value={referenciaTexto}
+              onChange={(e) => setReferenciaTexto(e.target.value)}
+              maxLength={60}
+              placeholder="Folio de la terminal (opcional)"
+              className="min-h-[2.5rem] w-full border border-linea-fuerte bg-white px-3 text-base text-tinta"
+            />
+          </div>
+        )}
+
         <div className="mt-2 flex flex-wrap gap-2">
           {IMPORTES_RAPIDOS.map((importe) => (
             <button
@@ -166,7 +190,12 @@ export function ModalCobro({
           <ul className="mt-4 divide-y divide-linea border-y border-linea">
             {pagos.map((pago, i) => (
               <li key={i} className="flex items-center justify-between py-1.5">
-                <span className="text-base text-tinta">{POS.metodosPago[pago.metodo]}</span>
+                <span className="text-base text-tinta">
+                  {POS.metodosPago[pago.metodo]}
+                  {pago.referencia && (
+                    <span className="ml-1 text-fino text-grafito-claro">· {pago.referencia}</span>
+                  )}
+                </span>
                 <span className="tabular font-mono text-base text-tinta">
                   {formatear(pago.monto)}
                 </span>
