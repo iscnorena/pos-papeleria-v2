@@ -133,23 +133,14 @@ export function GeneradorRifas() {
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
         <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Boletos</h2>
-        <div className="grid grid-cols-2 gap-2">
-          <Campo
-            etiqueta="Cantidad de boletos"
-            type="number"
-            min={1}
-            max={RIFAS.cantidadMaxima}
-            value={config.quantity}
-            onChange={(e) => actualizar('quantity', Number(e.target.value) || 0)}
-          />
-          <Campo
-            etiqueta="Número inicial"
-            type="number"
-            min={0}
-            value={config.startNumber}
-            onChange={(e) => actualizar('startNumber', Number(e.target.value) || 0)}
-          />
-        </div>
+        <Campo
+          etiqueta="Cantidad de boletos"
+          type="number"
+          min={1}
+          max={RIFAS.cantidadMaxima}
+          value={config.quantity}
+          onChange={(e) => actualizar('quantity', Number(e.target.value) || 0)}
+        />
         <p className="mt-2 text-fino text-grafito">
           Salen {paginasTotales} {paginasTotales === 1 ? 'página' : 'páginas'}, de{' '}
           {TICKETS_PER_PAGE} boletos cada una.
