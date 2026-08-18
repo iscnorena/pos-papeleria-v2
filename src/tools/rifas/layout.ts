@@ -9,7 +9,6 @@ export const PAGE_HEIGHT = 792;
 export const MARGIN = 36;
 export const HEADER_HEIGHT = 90;
 export const TABLE_HEADER_ROW = 32;
-export const ROW_HEIGHT = 32;
 export const TABLE_W = PAGE_WIDTH - MARGIN * 2; // 540
 
 /** Fracciones del ancho de tabla. Deben sumar 1. */
@@ -18,12 +17,18 @@ export const COL_NOMBRE = 0.45;
 export const COL_CONTACTO = 0.35;
 
 export const AVAILABLE_HEIGHT = PAGE_HEIGHT - MARGIN * 2 - HEADER_HEIGHT - 8 - TABLE_HEADER_ROW;
+
 /**
- * Cuántos boletos caben como máximo en una página sin encoger la fila. El usuario SÍ puede
- * pedir menos (`RaffleConfig.ticketsPorPagina`), pero nunca más que esto: por decisión
- * explícita, la fila y la letra nunca se encogen para forzar más boletos por hoja.
+ * Cuántos boletos van por hoja: la fila SIEMPRE se estira o encoge para llenar exacto
+ * `AVAILABLE_HEIGHT` (ver `alturaFila`), así que estos son límites elegidos a mano, no
+ * "cuántos caben" — el usuario decide dentro de este rango.
+ * - Mínimo 18: para que la primera hoja siempre quede completamente cubierta (a menos
+ *   boletos que eso, la fila se vería exageradamente alta).
+ * - Máximo 35: más que eso, la fila queda demasiado angosta para leerse o escribir un
+ *   nombre a mano.
  */
-export const TICKETS_PER_PAGE = Math.floor(AVAILABLE_HEIGHT / ROW_HEIGHT);
+export const TICKETS_POR_PAGINA_MINIMO = 18;
+export const TICKETS_POR_PAGINA_MAXIMO = 35;
 
 export const COLOR_FILA_PAR = '#F8FAFC';
 export const COLOR_BORDE = '#CBD5E1';
@@ -31,10 +36,17 @@ export const COLOR_FONDO_DEFECTO = '#17212F'; // "tinta" de la paleta del proyec
 
 export const ENCABEZADOS_TABLA = ['No. Boleto', 'Nombre', 'Contacto'] as const;
 
+/** Tamaño máximo del logo y de la foto del premio dentro del header (mismo tope para
+ * los dos: van en extremos opuestos, simétricos). */
+export const ANCHO_MAX_IMAGEN_HEADER = 100;
+export const ALTO_MAX_IMAGEN_HEADER = HEADER_HEIGHT - 12;
+export const PADDING_HEADER = 16;
+export const GAP_IMAGEN_TEXTO = 16;
+
 export type RaffleConfig = {
   quantity: number;
   startNumber: number;
-  /** Cuántos boletos van por hoja. Tope: TICKETS_PER_PAGE (no se encoge la fila). */
+  /** Cuántos boletos van por hoja, entre TICKETS_POR_PAGINA_MINIMO y _MAXIMO. */
   ticketsPorPagina: number;
   eventName: string;
   prize: string;
@@ -42,17 +54,25 @@ export type RaffleConfig = {
   cost: string;
   organizer: string;
   phone: string;
-  /** Data URL de la imagen ya normalizada a PNG/JPEG. */
+  /** Data URL de la imagen ya normalizada a PNG/JPEG. Va en la esquina izquierda del header. */
   raffleImage?: string;
-  /** Foto opcional del premio, junto al texto "Premio: ..." del header. */
+  /** Foto opcional del premio. Va en la esquina derecha del header, en el extremo opuesto al logo. */
   prizeImage?: string;
   backgroundColor?: string;
 };
 
-/** `ticketsPorPagina` acotado a [1, TICKETS_PER_PAGE], por si llega vacío o fuera de rango. */
+/** `ticketsPorPagina` acotado a [MINIMO, MAXIMO], por si llega vacío o fuera de rango. */
 export function porPaginaValido(ticketsPorPagina: number): number {
-  const valor = Number.isFinite(ticketsPorPagina) ? Math.round(ticketsPorPagina) : TICKETS_PER_PAGE;
-  return Math.min(TICKETS_PER_PAGE, Math.max(1, valor));
+  const valor = Number.isFinite(ticketsPorPagina)
+    ? Math.round(ticketsPorPagina)
+    : TICKETS_POR_PAGINA_MINIMO;
+  return Math.min(TICKETS_POR_PAGINA_MAXIMO, Math.max(TICKETS_POR_PAGINA_MINIMO, valor));
+}
+
+/** Alto de cada fila para que, con `ticketsPorPagina` boletos, la tabla llene exacto
+ * `AVAILABLE_HEIGHT` — ni se queda corta ni se desborda, sin importar cuántos se pidan. */
+export function alturaFila(ticketsPorPagina: number): number {
+  return AVAILABLE_HEIGHT / porPaginaValido(ticketsPorPagina);
 }
 
 export type Rgb = { r: number; g: number; b: number };
@@ -116,14 +136,20 @@ export function colorTextoSecundario(colorHex: string): Rgb {
   return esFondoOscuro(colorHex) ? { r: 0.82, g: 0.85, b: 0.89 } : { r: 0.35, g: 0.39, b: 0.45 };
 }
 
-export type LineaHeader = {
-  texto: string;
-  tamano: number;
-  negrita: boolean;
-  secundario: boolean;
-  /** true solo en la línea "Premio: ...": ahí, si hay `prizeImage`, va un miniatura antes del texto. */
-  esPremio?: boolean;
-};
+/** Escala `anchoOriginal`×`altoOriginal` para que quepa dentro de `anchoMax`×`altoMax`,
+ * preservando la proporción — mismo cálculo para el logo y la foto del premio, en el PDF
+ * y en el <canvas>. */
+export function escalarDentroDe(
+  anchoOriginal: number,
+  altoOriginal: number,
+  anchoMax: number,
+  altoMax: number,
+): { ancho: number; alto: number } {
+  const escala = Math.min(anchoMax / anchoOriginal, altoMax / altoOriginal);
+  return { ancho: anchoOriginal * escala, alto: altoOriginal * escala };
+}
+
+export type LineaHeader = { texto: string; tamano: number; negrita: boolean; secundario: boolean };
 
 /**
  * Las líneas de texto del header, en orden, ya con las reglas de omisión aplicadas
@@ -139,13 +165,7 @@ export function lineasHeader(
     lineas.push({ texto: config.eventName, tamano: 18, negrita: true, secundario: false });
   }
   if (config.prize) {
-    lineas.push({
-      texto: `Premio: ${config.prize}`,
-      tamano: 11,
-      negrita: false,
-      secundario: true,
-      esPremio: true,
-    });
+    lineas.push({ texto: `Premio: ${config.prize}`, tamano: 11, negrita: false, secundario: true });
   }
 
   // El costo siempre lleva "$" al frente, lo haya tecleado el usuario o no (y sin

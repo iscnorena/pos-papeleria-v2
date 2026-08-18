@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 
 import {
   AVAILABLE_HEIGHT,
-  ROW_HEIGHT,
-  TICKETS_PER_PAGE,
+  TICKETS_POR_PAGINA_MAXIMO,
+  TICKETS_POR_PAGINA_MINIMO,
+  alturaFila,
   anchoNumero,
+  escalarDentroDe,
   esFondoOscuro,
   formatearNumero,
   lineasHeader,
@@ -13,13 +15,6 @@ import {
   sanearTexto,
   totalPaginas,
 } from './layout';
-
-describe('TICKETS_PER_PAGE', () => {
-  it('sale de la fórmula, no de un literal', () => {
-    expect(TICKETS_PER_PAGE).toBe(Math.floor(AVAILABLE_HEIGHT / ROW_HEIGHT));
-    expect(TICKETS_PER_PAGE).toBe(18);
-  });
-});
 
 describe('anchoNumero', () => {
   it('mínimo 3 dígitos aunque la cantidad sea chica', () => {
@@ -44,33 +39,56 @@ describe('formatearNumero', () => {
 });
 
 describe('porPaginaValido', () => {
-  it('acota entre 1 y TICKETS_PER_PAGE', () => {
-    expect(porPaginaValido(0)).toBe(1);
-    expect(porPaginaValido(-5)).toBe(1);
-    expect(porPaginaValido(TICKETS_PER_PAGE + 100)).toBe(TICKETS_PER_PAGE);
-    expect(porPaginaValido(10)).toBe(10);
+  it('acota entre TICKETS_POR_PAGINA_MINIMO y _MAXIMO', () => {
+    expect(porPaginaValido(0)).toBe(TICKETS_POR_PAGINA_MINIMO);
+    expect(porPaginaValido(-5)).toBe(TICKETS_POR_PAGINA_MINIMO);
+    expect(porPaginaValido(10)).toBe(TICKETS_POR_PAGINA_MINIMO); // 10 < 18
+    expect(porPaginaValido(TICKETS_POR_PAGINA_MAXIMO + 100)).toBe(TICKETS_POR_PAGINA_MAXIMO);
+    expect(porPaginaValido(25)).toBe(25); // dentro de rango, se respeta tal cual
   });
 
-  it('cae en TICKETS_PER_PAGE si viene vacío/NaN', () => {
-    expect(porPaginaValido(NaN)).toBe(TICKETS_PER_PAGE);
+  it('cae en el mínimo si viene vacío/NaN', () => {
+    expect(porPaginaValido(NaN)).toBe(TICKETS_POR_PAGINA_MINIMO);
+  });
+});
+
+describe('alturaFila', () => {
+  it('llena exacto AVAILABLE_HEIGHT sin importar cuántos boletos se pidan', () => {
+    for (const n of [TICKETS_POR_PAGINA_MINIMO, 25, TICKETS_POR_PAGINA_MAXIMO]) {
+      expect(alturaFila(n) * n).toBeCloseTo(AVAILABLE_HEIGHT, 6);
+    }
+  });
+
+  it('a más boletos por página, la fila es más angosta', () => {
+    expect(alturaFila(TICKETS_POR_PAGINA_MAXIMO)).toBeLessThan(
+      alturaFila(TICKETS_POR_PAGINA_MINIMO),
+    );
+  });
+});
+
+describe('escalarDentroDe', () => {
+  it('preserva la proporción y respeta el máximo que primero se alcanza', () => {
+    // 200×100 (2:1) dentro de 100×100 → limita el ancho, no el alto.
+    expect(escalarDentroDe(200, 100, 100, 100)).toEqual({ ancho: 100, alto: 50 });
+    // 100×200 (1:2) dentro de 100×100 → limita el alto, no el ancho.
+    expect(escalarDentroDe(100, 200, 100, 100)).toEqual({ ancho: 50, alto: 100 });
   });
 });
 
 describe('totalPaginas', () => {
   it('redondea hacia arriba con el máximo por página', () => {
-    expect(totalPaginas(18, TICKETS_PER_PAGE)).toBe(1);
-    expect(totalPaginas(19, TICKETS_PER_PAGE)).toBe(2);
-    expect(totalPaginas(100, TICKETS_PER_PAGE)).toBe(6); // 18*5=90, sobran 10
+    expect(totalPaginas(TICKETS_POR_PAGINA_MAXIMO, TICKETS_POR_PAGINA_MAXIMO)).toBe(1);
+    expect(totalPaginas(TICKETS_POR_PAGINA_MAXIMO + 1, TICKETS_POR_PAGINA_MAXIMO)).toBe(2);
   });
 
   it('con menos boletos por página salen más páginas', () => {
-    expect(totalPaginas(20, 10)).toBe(2);
-    expect(totalPaginas(30, 10)).toBe(3);
+    expect(totalPaginas(40, TICKETS_POR_PAGINA_MINIMO)).toBe(3); // 18*2=36, sobran 4
+    expect(totalPaginas(18, TICKETS_POR_PAGINA_MINIMO)).toBe(1);
   });
 
-  it('nunca deja pasar más de TICKETS_PER_PAGE aunque se pida más', () => {
-    expect(totalPaginas(TICKETS_PER_PAGE, TICKETS_PER_PAGE + 50)).toBe(1);
-    expect(totalPaginas(TICKETS_PER_PAGE + 1, TICKETS_PER_PAGE + 50)).toBe(2);
+  it('nunca deja pasar más de TICKETS_POR_PAGINA_MAXIMO aunque se pida más', () => {
+    expect(totalPaginas(TICKETS_POR_PAGINA_MAXIMO, TICKETS_POR_PAGINA_MAXIMO + 50)).toBe(1);
+    expect(totalPaginas(TICKETS_POR_PAGINA_MAXIMO + 1, TICKETS_POR_PAGINA_MAXIMO + 50)).toBe(2);
   });
 });
 
@@ -78,7 +96,7 @@ describe('numerosDePagina', () => {
   const base = {
     quantity: 50,
     startNumber: 1,
-    ticketsPorPagina: TICKETS_PER_PAGE,
+    ticketsPorPagina: TICKETS_POR_PAGINA_MINIMO,
     eventName: '',
     prize: '',
     date: '',
@@ -87,17 +105,17 @@ describe('numerosDePagina', () => {
     phone: '',
   };
 
-  it('la primera página trae TICKETS_PER_PAGE números empezando en startNumber', () => {
+  it('la primera página trae ticketsPorPagina números empezando en startNumber', () => {
     const numeros = numerosDePagina(base, 0);
-    expect(numeros).toHaveLength(TICKETS_PER_PAGE);
+    expect(numeros).toHaveLength(TICKETS_POR_PAGINA_MINIMO);
     expect(numeros[0]).toBe('001');
-    expect(numeros.at(-1)).toBe(String(TICKETS_PER_PAGE).padStart(3, '0'));
+    expect(numeros.at(-1)).toBe(String(TICKETS_POR_PAGINA_MINIMO).padStart(3, '0'));
   });
 
   it('la última página trae solo lo que sobra', () => {
     const totalPag = totalPaginas(base.quantity, base.ticketsPorPagina);
     const numeros = numerosDePagina(base, totalPag - 1);
-    const sobran = base.quantity - TICKETS_PER_PAGE * (totalPag - 1);
+    const sobran = base.quantity - TICKETS_POR_PAGINA_MINIMO * (totalPag - 1);
     expect(numeros).toHaveLength(sobran);
     expect(numeros.at(-1)).toBe('050');
   });
@@ -107,17 +125,21 @@ describe('numerosDePagina', () => {
     expect(numeros).toEqual(['100', '101', '102', '103', '104']);
   });
 
-  it('respeta un ticketsPorPagina menor al máximo', () => {
-    const config = { ...base, quantity: 25, ticketsPorPagina: 10 };
-    expect(numerosDePagina(config, 0)).toHaveLength(10);
-    expect(numerosDePagina(config, 1)).toHaveLength(10);
-    expect(numerosDePagina(config, 2)).toHaveLength(5);
-    expect(totalPaginas(config.quantity, config.ticketsPorPagina)).toBe(3);
+  it('respeta un ticketsPorPagina más alto, dentro del rango permitido', () => {
+    const config = { ...base, quantity: 60, ticketsPorPagina: 30 };
+    expect(numerosDePagina(config, 0)).toHaveLength(30);
+    expect(numerosDePagina(config, 1)).toHaveLength(30);
+    expect(totalPaginas(config.quantity, config.ticketsPorPagina)).toBe(2);
   });
 
-  it('nunca supera TICKETS_PER_PAGE aunque se pida más', () => {
+  it('nunca supera TICKETS_POR_PAGINA_MAXIMO aunque se pida más', () => {
     const config = { ...base, quantity: 40, ticketsPorPagina: 999 };
-    expect(numerosDePagina(config, 0)).toHaveLength(TICKETS_PER_PAGE);
+    expect(numerosDePagina(config, 0)).toHaveLength(TICKETS_POR_PAGINA_MAXIMO);
+  });
+
+  it('nunca baja de TICKETS_POR_PAGINA_MINIMO aunque se pida menos', () => {
+    const config = { ...base, quantity: 40, ticketsPorPagina: 5 };
+    expect(numerosDePagina(config, 0)).toHaveLength(TICKETS_POR_PAGINA_MINIMO);
   });
 });
 
@@ -200,10 +222,5 @@ describe('lineasHeader', () => {
       'Juan - 744...',
     ]);
     expect(lineas[0]).toMatchObject({ tamano: 18, negrita: true, secundario: false });
-  });
-
-  it('marca esPremio solo en la línea de premio, para saber dónde va la miniatura', () => {
-    const lineas = lineasHeader({ ...vacio, eventName: 'Rifa', prize: 'Una tele', date: '24 dic' });
-    expect(lineas.map((l) => l.esPremio ?? false)).toEqual([false, true, false]);
   });
 });

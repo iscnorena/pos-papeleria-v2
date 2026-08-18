@@ -42,17 +42,32 @@ test('4 · cambiar la cantidad o los boletos por página recalcula las páginas'
   await page.getByLabel('Cantidad de boletos').fill('19');
   await expect(page.getByText('Salen 2 páginas, de 18 boletos cada una.')).toBeVisible();
 
-  await page.getByLabel('Boletos por página').fill('10');
-  await expect(page.getByText('Salen 2 páginas, de 10 boletos cada una.')).toBeVisible();
+  await page.getByLabel('Boletos por página').fill('25');
+  await expect(page.getByText('Salen 1 página, de 25 boletos cada una.')).toBeVisible();
 });
 
-test('4b · pedir más de 18 por página se acota a 18 y avisa', async ({ page }) => {
+test('4b · fuera del rango 18-35, el texto muestra el valor acotado pero no deja generar', async ({
+  page,
+}) => {
   await page.context().clearCookies();
   await page.goto('/imprimir/rifas');
 
+  // El campo deja escribir libremente (no pelea con cada tecla)...
   await page.getByLabel('Boletos por página').fill('40');
-  await expect(page.getByLabel('Boletos por página')).toHaveValue('18');
-  await expect(page.getByText(/El máximo son 18 boletos por página/)).toBeVisible();
+  await expect(page.getByLabel('Boletos por página')).toHaveValue('40');
+  // ...pero el texto informativo usa el valor acotado, para no prometer algo que no es.
+  await expect(page.getByText(/de 35 boletos cada una\./)).toBeVisible();
+
+  let huboDescarga = false;
+  page.once('download', () => {
+    huboDescarga = true;
+  });
+  await page.getByRole('button', { name: 'Descargar PDF' }).click();
+  await expect(page.getByText(/Los boletos por página deben estar entre 18 y 35/)).toBeVisible();
+  expect(huboDescarga).toBe(false);
+
+  await page.getByLabel('Boletos por página').fill('5');
+  await expect(page.getByText(/de 18 boletos cada una\./)).toBeVisible();
 });
 
 test('5 · "Descargar PDF" dispara una descarga con el nombre esperado', async ({ page }) => {

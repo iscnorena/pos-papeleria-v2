@@ -2,6 +2,8 @@ import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb, type PDFFont } from 'pdf-lib';
 
 import {
+  ALTO_MAX_IMAGEN_HEADER,
+  ANCHO_MAX_IMAGEN_HEADER,
   COL_CONTACTO,
   COL_NOMBRE,
   COL_NUMERO,
@@ -9,15 +11,18 @@ import {
   COLOR_FILA_PAR,
   COLOR_FONDO_DEFECTO,
   ENCABEZADOS_TABLA,
+  GAP_IMAGEN_TEXTO,
   HEADER_HEIGHT,
   MARGIN,
+  PADDING_HEADER,
   PAGE_HEIGHT,
   PAGE_WIDTH,
-  ROW_HEIGHT,
   TABLE_HEADER_ROW,
   TABLE_W,
+  alturaFila,
   colorTextoPrincipal,
   colorTextoSecundario,
+  escalarDentroDe,
   hexARgb,
   lineasHeader,
   numerosDePagina,
@@ -36,11 +41,6 @@ import {
 // color — por eso cualquier texto se sanea contra el repertorio real de la fuente antes de
 // dibujarse: nunca se deja que la excepción de codificación tumbe la generación.
 
-const PADDING_HEADER = 16;
-const GAP_LOGO_TEXTO = 16;
-const GAP_PREMIO_TEXTO = 6;
-const ALTO_MINIATURA_PREMIO = 16;
-
 type ImagenEscalada = {
   imagen: Awaited<ReturnType<PDFDocument['embedPng']>>;
   ancho: number;
@@ -50,13 +50,16 @@ type ImagenEscalada = {
 async function cargarImagenEscalada(
   documento: PDFDocument,
   dataUrl: string,
-  altoMax: number,
-  anchoMax: number,
 ): Promise<ImagenEscalada> {
   const { bytes, esPng } = decodeDataUrl(dataUrl);
   const imagen = esPng ? await documento.embedPng(bytes) : await documento.embedJpg(bytes);
-  const escala = Math.min(anchoMax / imagen.width, altoMax / imagen.height);
-  return { imagen, ancho: imagen.width * escala, alto: imagen.height * escala };
+  const { ancho, alto } = escalarDentroDe(
+    imagen.width,
+    imagen.height,
+    ANCHO_MAX_IMAGEN_HEADER,
+    ALTO_MAX_IMAGEN_HEADER,
+  );
+  return { imagen, ancho, alto };
 }
 
 function color(c: Rgb) {
@@ -153,16 +156,13 @@ export async function generarPdfRifas(
   const colorFilaPar = color(hexARgb(COLOR_FILA_PAR));
   const colorBorde = color(hexARgb(COLOR_BORDE));
 
+  // Logo a la izquierda, foto del premio en el extremo opuesto (derecha) — mismo tamaño
+  // máximo para los dos, composición simétrica.
   const logo = config.raffleImage
-    ? await cargarImagenEscalada(documento, config.raffleImage, HEADER_HEIGHT - 12, 100)
+    ? await cargarImagenEscalada(documento, config.raffleImage)
     : null;
   const imagenPremio = config.prizeImage
-    ? await cargarImagenEscalada(
-        documento,
-        config.prizeImage,
-        ALTO_MINIATURA_PREMIO,
-        ALTO_MINIATURA_PREMIO,
-      )
+    ? await cargarImagenEscalada(documento, config.prizeImage)
     : null;
 
   const colNumeroX = MARGIN;
@@ -171,6 +171,8 @@ export async function generarPdfRifas(
   const colNombreW = TABLE_W * COL_NOMBRE;
   const colContactoX = colNombreX + colNombreW;
   const colContactoW = TABLE_W * COL_CONTACTO;
+
+  const filaAltura = alturaFila(config.ticketsPorPagina);
 
   /** Convierte "distancia desde arriba del área de contenido" a la Y (borde inferior) que
    * pide pdf-lib para dibujar un bloque de alto `alto` ahí. */
@@ -191,8 +193,8 @@ export async function generarPdfRifas(
       color: colorHeader,
     });
 
-    let textoX = MARGIN;
-    let textoAncho = TABLE_W;
+    let textoX = MARGIN + PADDING_HEADER;
+    let textoAncho = TABLE_W - PADDING_HEADER * 2;
     if (logo) {
       const logoY = yHeader + (HEADER_HEIGHT - logo.alto) / 2;
       pdfPagina.drawImage(logo.imagen, {
@@ -201,8 +203,18 @@ export async function generarPdfRifas(
         width: logo.ancho,
         height: logo.alto,
       });
-      textoX = MARGIN + PADDING_HEADER + logo.ancho + GAP_LOGO_TEXTO;
-      textoAncho = TABLE_W - PADDING_HEADER * 2 - logo.ancho - GAP_LOGO_TEXTO;
+      textoX += logo.ancho + GAP_IMAGEN_TEXTO;
+      textoAncho -= logo.ancho + GAP_IMAGEN_TEXTO;
+    }
+    if (imagenPremio) {
+      const premioY = yHeader + (HEADER_HEIGHT - imagenPremio.alto) / 2;
+      pdfPagina.drawImage(imagenPremio.imagen, {
+        x: MARGIN + TABLE_W - PADDING_HEADER - imagenPremio.ancho,
+        y: premioY,
+        width: imagenPremio.ancho,
+        height: imagenPremio.alto,
+      });
+      textoAncho -= imagenPremio.ancho + GAP_IMAGEN_TEXTO;
     }
 
     const lineas = lineasHeader({ eventName, prize, date, cost, organizer, phone });
@@ -215,37 +227,13 @@ export async function generarPdfRifas(
         ? anchoAjustado(fuente, linea.texto, textoAncho, linea.tamano)
         : linea.tamano;
       yLinea -= tamano * 1.1;
-      const colorLinea = linea.secundario ? colorSubtitulo : colorTexto;
-
-      if (linea.esPremio && imagenPremio) {
-        // Miniatura del premio + texto, como un solo bloque centrado (no el texto solo).
-        const anchoTexto = fuente.widthOfTextAtSize(linea.texto, tamano);
-        const anchoBloque = imagenPremio.ancho + GAP_PREMIO_TEXTO + anchoTexto;
-        const xBloque = textoX + Math.max(0, (textoAncho - anchoBloque) / 2);
-        // Ajuste visual, no una fórmula exacta: centra la miniatura con la caja del texto.
-        const yImagen = yLinea - (imagenPremio.alto - tamano) / 2;
-        pdfPagina.drawImage(imagenPremio.imagen, {
-          x: xBloque,
-          y: yImagen,
-          width: imagenPremio.ancho,
-          height: imagenPremio.alto,
-        });
-        pdfPagina.drawText(linea.texto, {
-          x: xBloque + imagenPremio.ancho + GAP_PREMIO_TEXTO,
-          y: yLinea,
-          size: tamano,
-          font: fuente,
-          color: colorLinea,
-        });
-      } else {
-        pdfPagina.drawText(linea.texto, {
-          x: centrarX(fuente, linea.texto, tamano, textoX, textoAncho),
-          y: yLinea,
-          size: tamano,
-          font: fuente,
-          color: colorLinea,
-        });
-      }
+      pdfPagina.drawText(linea.texto, {
+        x: centrarX(fuente, linea.texto, tamano, textoX, textoAncho),
+        y: yLinea,
+        size: tamano,
+        font: fuente,
+        color: linea.secundario ? colorSubtitulo : colorTexto,
+      });
       yLinea -= linea.tamano * 0.2;
     }
 
@@ -277,21 +265,21 @@ export async function generarPdfRifas(
     const numeros = numerosDePagina(config, pagina);
     numeros.forEach((numero, indice) => {
       const yFila = yDesdeArriba(
-        HEADER_HEIGHT + 8 + TABLE_HEADER_ROW + indice * ROW_HEIGHT,
-        ROW_HEIGHT,
+        HEADER_HEIGHT + 8 + TABLE_HEADER_ROW + indice * filaAltura,
+        filaAltura,
       );
       if (indice % 2 === 0) {
         pdfPagina.drawRectangle({
           x: MARGIN,
           y: yFila,
           width: TABLE_W,
-          height: ROW_HEIGHT,
+          height: filaAltura,
           color: colorFilaPar,
         });
       }
       pdfPagina.drawText(numero, {
         x: centrarX(bold, numero, 11, colNumeroX, colNumeroW),
-        y: centrarY(yFila, ROW_HEIGHT, 11),
+        y: centrarY(yFila, filaAltura, 11),
         size: 11,
         font: bold,
         color: rgb(0.1, 0.1, 0.1),
@@ -305,20 +293,20 @@ export async function generarPdfRifas(
       });
       pdfPagina.drawLine({
         start: { x: colNombreX, y: yFila },
-        end: { x: colNombreX, y: yFila + ROW_HEIGHT },
+        end: { x: colNombreX, y: yFila + filaAltura },
         thickness: 0.5,
         color: colorBorde,
       });
       pdfPagina.drawLine({
         start: { x: colContactoX, y: yFila },
-        end: { x: colContactoX, y: yFila + ROW_HEIGHT },
+        end: { x: colContactoX, y: yFila + filaAltura },
         thickness: 0.5,
         color: colorBorde,
       });
     });
 
     // --- Borde exterior de toda la tabla ---
-    const altoTabla = TABLE_HEADER_ROW + numeros.length * ROW_HEIGHT;
+    const altoTabla = TABLE_HEADER_ROW + numeros.length * filaAltura;
     pdfPagina.drawRectangle({
       x: MARGIN,
       y: yEncabezadoTabla - (altoTabla - TABLE_HEADER_ROW),

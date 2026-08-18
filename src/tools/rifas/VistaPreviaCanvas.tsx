@@ -3,6 +3,8 @@
 import { useEffect, useRef } from 'react';
 
 import {
+  ALTO_MAX_IMAGEN_HEADER,
+  ANCHO_MAX_IMAGEN_HEADER,
   COL_CONTACTO,
   COL_NOMBRE,
   COL_NUMERO,
@@ -10,15 +12,18 @@ import {
   COLOR_FILA_PAR,
   COLOR_FONDO_DEFECTO,
   ENCABEZADOS_TABLA,
+  GAP_IMAGEN_TEXTO,
   HEADER_HEIGHT,
   MARGIN,
+  PADDING_HEADER,
   PAGE_HEIGHT,
   PAGE_WIDTH,
-  ROW_HEIGHT,
   TABLE_HEADER_ROW,
   TABLE_W,
+  alturaFila,
   colorTextoPrincipal,
   colorTextoSecundario,
+  escalarDentroDe,
   lineasHeader,
   numerosDePagina,
   type RaffleConfig,
@@ -29,11 +34,6 @@ import {
 // recalcular nada aquí. El canvas usa Y hacia abajo desde arriba del área de contenido,
 // que es justo la convención en la que ya está expresado layout.ts (no hace falta el
 // volteo que sí necesita pdf-lib, cuyo origen está abajo-izquierda).
-
-const PADDING_HEADER = 16;
-const GAP_LOGO_TEXTO = 16;
-const GAP_PREMIO_TEXTO = 6;
-const ALTO_MINIATURA_PREMIO = 16;
 
 function rgbCss({ r, g, b }: Rgb): string {
   return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`;
@@ -74,29 +74,32 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
       ctx.fillStyle = colorFondo;
       ctx.fillRect(MARGIN, MARGIN, TABLE_W, HEADER_HEIGHT);
 
-      let textoX = MARGIN;
-      let textoAncho = TABLE_W;
+      let textoX = MARGIN + PADDING_HEADER;
+      let textoAncho = TABLE_W - PADDING_HEADER * 2;
 
       if (logo) {
-        const altoMax = HEADER_HEIGHT - 12;
-        const anchoMax = 100;
-        const escala = Math.min(anchoMax / logo.width, altoMax / logo.height);
-        const ancho = logo.width * escala;
-        const alto = logo.height * escala;
+        const { ancho, alto } = escalarDentroDe(
+          logo.width,
+          logo.height,
+          ANCHO_MAX_IMAGEN_HEADER,
+          ALTO_MAX_IMAGEN_HEADER,
+        );
         const y = MARGIN + (HEADER_HEIGHT - alto) / 2;
         ctx.drawImage(logo, MARGIN + PADDING_HEADER, y, ancho, alto);
-        textoX = MARGIN + PADDING_HEADER + ancho + GAP_LOGO_TEXTO;
-        textoAncho = TABLE_W - PADDING_HEADER * 2 - ancho - GAP_LOGO_TEXTO;
+        textoX += ancho + GAP_IMAGEN_TEXTO;
+        textoAncho -= ancho + GAP_IMAGEN_TEXTO;
       }
-
-      const escalaPremio = imagenPremio
-        ? Math.min(
-            ALTO_MINIATURA_PREMIO / imagenPremio.width,
-            ALTO_MINIATURA_PREMIO / imagenPremio.height,
-          )
-        : 0;
-      const anchoPremio = imagenPremio ? imagenPremio.width * escalaPremio : 0;
-      const altoPremio = imagenPremio ? imagenPremio.height * escalaPremio : 0;
+      if (imagenPremio) {
+        const { ancho, alto } = escalarDentroDe(
+          imagenPremio.width,
+          imagenPremio.height,
+          ANCHO_MAX_IMAGEN_HEADER,
+          ALTO_MAX_IMAGEN_HEADER,
+        );
+        const y = MARGIN + (HEADER_HEIGHT - alto) / 2;
+        ctx.drawImage(imagenPremio, MARGIN + TABLE_W - PADDING_HEADER - ancho, y, ancho, alto);
+        textoAncho -= ancho + GAP_IMAGEN_TEXTO;
+      }
 
       const lineas = lineasHeader(config);
       const alturaBloque = lineas.reduce((acc, l) => acc + l.tamano * 1.3, 0);
@@ -114,18 +117,7 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
         ctx.fillStyle = linea.secundario ? colorSub : colorTexto;
         ctx.textBaseline = 'alphabetic';
         const anchoTexto = ctx.measureText(linea.texto).width;
-
-        if (linea.esPremio && imagenPremio) {
-          // Miniatura del premio + texto, como un solo bloque centrado (mismo criterio que pdf.ts).
-          const anchoBloque = anchoPremio + GAP_PREMIO_TEXTO + anchoTexto;
-          const xBloque = textoX + Math.max(0, (textoAncho - anchoBloque) / 2);
-          // Ajuste visual, no una fórmula exacta: centra la miniatura con la línea de texto.
-          const yImagen = y - tamano - (altoPremio - tamano) / 2;
-          ctx.drawImage(imagenPremio, xBloque, yImagen, anchoPremio, altoPremio);
-          ctx.fillText(linea.texto, xBloque + anchoPremio + GAP_PREMIO_TEXTO, y);
-        } else {
-          ctx.fillText(linea.texto, textoX + Math.max(0, (textoAncho - anchoTexto) / 2), y);
-        }
+        ctx.fillText(linea.texto, textoX + Math.max(0, (textoAncho - anchoTexto) / 2), y);
         y += linea.tamano * 0.2;
       }
 
@@ -161,33 +153,34 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
       );
 
       // --- Filas de boletos ---
+      const filaAltura = alturaFila(config.ticketsPorPagina);
       const numeros = numerosDePagina(config, pagina);
       numeros.forEach((numero, indice) => {
-        const yFila = yEncabezadoTabla + TABLE_HEADER_ROW + indice * ROW_HEIGHT;
+        const yFila = yEncabezadoTabla + TABLE_HEADER_ROW + indice * filaAltura;
         if (indice % 2 === 0) {
           ctx.fillStyle = COLOR_FILA_PAR;
-          ctx.fillRect(MARGIN, yFila, TABLE_W, ROW_HEIGHT);
+          ctx.fillRect(MARGIN, yFila, TABLE_W, filaAltura);
         }
 
         ctx.fillStyle = '#1a1a1a';
         ctx.font = 'bold 11px sans-serif';
-        ctx.fillText(numero, colNumeroX + colNumeroW / 2, yFila + ROW_HEIGHT / 2 + 4);
+        ctx.fillText(numero, colNumeroX + colNumeroW / 2, yFila + filaAltura / 2 + 4);
 
         ctx.strokeStyle = COLOR_BORDE;
         ctx.lineWidth = 0.5;
         ctx.beginPath();
-        ctx.moveTo(MARGIN, yFila + ROW_HEIGHT);
-        ctx.lineTo(MARGIN + TABLE_W, yFila + ROW_HEIGHT);
+        ctx.moveTo(MARGIN, yFila + filaAltura);
+        ctx.lineTo(MARGIN + TABLE_W, yFila + filaAltura);
         ctx.moveTo(colNombreX, yFila);
-        ctx.lineTo(colNombreX, yFila + ROW_HEIGHT);
+        ctx.lineTo(colNombreX, yFila + filaAltura);
         ctx.moveTo(colContactoX, yFila);
-        ctx.lineTo(colContactoX, yFila + ROW_HEIGHT);
+        ctx.lineTo(colContactoX, yFila + filaAltura);
         ctx.stroke();
       });
       ctx.textAlign = 'left';
 
       // --- Borde exterior de la tabla ---
-      const altoTabla = TABLE_HEADER_ROW + numeros.length * ROW_HEIGHT;
+      const altoTabla = TABLE_HEADER_ROW + numeros.length * filaAltura;
       ctx.strokeStyle = colorFondo;
       ctx.lineWidth = 1;
       ctx.strokeRect(MARGIN, yEncabezadoTabla, TABLE_W, altoTabla);

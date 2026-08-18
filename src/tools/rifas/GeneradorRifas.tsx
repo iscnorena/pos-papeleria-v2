@@ -8,7 +8,8 @@ import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import {
   COLOR_FONDO_DEFECTO,
-  TICKETS_PER_PAGE,
+  TICKETS_POR_PAGINA_MAXIMO,
+  TICKETS_POR_PAGINA_MINIMO,
   porPaginaValido,
   totalPaginas,
   type RaffleConfig,
@@ -23,7 +24,7 @@ import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 const CONFIG_INICIAL: RaffleConfig = {
   quantity: 100,
   startNumber: 1,
-  ticketsPorPagina: TICKETS_PER_PAGE,
+  ticketsPorPagina: TICKETS_POR_PAGINA_MINIMO,
   eventName: '',
   prize: '',
   date: '',
@@ -75,6 +76,10 @@ export function GeneradorRifas() {
   const [progreso, setProgreso] = useState<{ actual: number; total: number } | null>(null);
   const [aviso, setAviso] = useState<{ texto: string; tono: 'error' | 'neutro' } | null>(null);
 
+  // El valor EFECTIVO (acotado a [MINIMO, MAXIMO]) es el que se usa para calcular
+  // páginas y para la vista previa — el campo de texto puede tener momentáneamente
+  // cualquier cosa mientras el usuario teclea, sin pelearse con cada tecla.
+  const porPaginaEfectivo = porPaginaValido(config.ticketsPorPagina);
   const paginasTotales = totalPaginas(config.quantity, config.ticketsPorPagina);
 
   function actualizar<K extends keyof RaffleConfig>(campo: K, valor: RaffleConfig[K]) {
@@ -85,16 +90,6 @@ export function GeneradorRifas() {
       }
       return nueva;
     });
-  }
-
-  function actualizarPorPagina(valorCrudo: number) {
-    if (valorCrudo > TICKETS_PER_PAGE) {
-      setAviso({
-        texto: `El máximo son ${TICKETS_PER_PAGE} boletos por página con este tamaño de hoja: la fila no se encoge más. Se dejó en ${TICKETS_PER_PAGE}.`,
-        tono: 'neutro',
-      });
-    }
-    actualizar('ticketsPorPagina', porPaginaValido(valorCrudo));
   }
 
   async function manejarLogo(archivo: File | undefined) {
@@ -126,6 +121,16 @@ export function GeneradorRifas() {
     if (config.quantity < 1 || config.quantity > RIFAS.cantidadMaxima) {
       setAviso({
         texto: `La cantidad de boletos debe estar entre 1 y ${RIFAS.cantidadMaxima}.`,
+        tono: 'error',
+      });
+      return;
+    }
+    if (
+      config.ticketsPorPagina < TICKETS_POR_PAGINA_MINIMO ||
+      config.ticketsPorPagina > TICKETS_POR_PAGINA_MAXIMO
+    ) {
+      setAviso({
+        texto: `Los boletos por página deben estar entre ${TICKETS_POR_PAGINA_MINIMO} y ${TICKETS_POR_PAGINA_MAXIMO}.`,
         tono: 'error',
       });
       return;
@@ -176,16 +181,16 @@ export function GeneradorRifas() {
           <Campo
             etiqueta="Boletos por página"
             type="number"
-            min={1}
-            max={TICKETS_PER_PAGE}
+            min={TICKETS_POR_PAGINA_MINIMO}
+            max={TICKETS_POR_PAGINA_MAXIMO}
             value={config.ticketsPorPagina}
-            onChange={(e) => actualizarPorPagina(Number(e.target.value) || 0)}
-            ayuda={`Máximo ${TICKETS_PER_PAGE}: la fila no se encoge más allá de eso.`}
+            onChange={(e) => actualizar('ticketsPorPagina', Number(e.target.value) || 0)}
+            ayuda={`Entre ${TICKETS_POR_PAGINA_MINIMO} y ${TICKETS_POR_PAGINA_MAXIMO}.`}
           />
         </div>
         <p className="mt-2 text-fino text-grafito">
           Salen {paginasTotales} {paginasTotales === 1 ? 'página' : 'páginas'}, de{' '}
-          {config.ticketsPorPagina} {config.ticketsPorPagina === 1 ? 'boleto' : 'boletos'} cada una.
+          {porPaginaEfectivo} {porPaginaEfectivo === 1 ? 'boleto' : 'boletos'} cada una.
         </p>
       </section>
 
