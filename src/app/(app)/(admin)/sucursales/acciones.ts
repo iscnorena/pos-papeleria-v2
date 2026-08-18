@@ -18,6 +18,7 @@ const esquema = z.object({
     .max(120, 'Nombre demasiado largo.'),
   address: z.string().trim().max(200, 'Dirección demasiado larga.').optional(),
   phone: z.string().trim().max(40, 'Teléfono demasiado largo.').optional(),
+  whatsappNumber: z.string().trim().max(20, 'Número demasiado largo.').optional(),
   isActive: z.boolean(),
 });
 
@@ -35,6 +36,7 @@ export async function guardarSucursal(
     name: datos.get('name'),
     address: datos.get('address') || undefined,
     phone: datos.get('phone') || undefined,
+    whatsappNumber: datos.get('whatsappNumber') || undefined,
     isActive: datos.get('isActive') === 'on',
   };
 

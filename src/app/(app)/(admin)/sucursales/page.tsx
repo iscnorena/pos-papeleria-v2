@@ -30,14 +30,15 @@ export default async function PantallaSucursales({
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-        <Tabla encabezados={['#', 'Nombre', 'Dirección', 'Teléfono', 'Estado', '']}>
-          {lista.length === 0 && <SinDatos columnas={6}>Todavía no hay sucursales.</SinDatos>}
+        <Tabla encabezados={['#', 'Nombre', 'Dirección', 'Teléfono', 'WhatsApp', 'Estado', '']}>
+          {lista.length === 0 && <SinDatos columnas={7}>Todavía no hay sucursales.</SinDatos>}
           {lista.map((s) => (
             <Fila key={s.id}>
               <Celda mono>{s.id}</Celda>
               <Celda>{s.name}</Celda>
               <Celda>{s.address ?? '—'}</Celda>
               <Celda mono>{s.phone ?? '—'}</Celda>
+              <Celda mono>{s.whatsappNumber ?? '—'}</Celda>
               <Celda>
                 {s.isActive ? (
                   <Distintivo tono="visto">Activa</Distintivo>
@@ -85,6 +86,13 @@ export default async function PantallaSucursales({
                 nombre: 'phone',
                 etiqueta: 'Teléfono',
                 valor: enEdicion?.phone ?? '',
+              },
+              {
+                tipo: 'texto',
+                nombre: 'whatsappNumber',
+                etiqueta: 'WhatsApp para /imprimir',
+                valor: enEdicion?.whatsappNumber ?? '',
+                ayuda: 'Formato internacional sin espacios ni signos, ej. 527445008175.',
               },
               {
                 tipo: 'casilla',
