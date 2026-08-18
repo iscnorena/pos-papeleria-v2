@@ -1,0 +1,137 @@
+import { expect, test } from '@playwright/test';
+
+import { archivoPdf } from './pdf';
+import { conectar, entrarComo } from './ayudas';
+
+// Herramientas de PDF (§ fuera de la spec original, como fase-9): primera sub-herramienta,
+// "Unir PDF", en /herramientas/pdf/unir (con sesión) y /imprimir/pdf/unir (pública, si el
+// admin prendió el interruptor). El grupo "Herramientas de PDF" ya no es `proxima` (ver
+// fix en fase-6-herramientas.spec.ts, prueba 3).
+//
+// El interruptor de "Disponible al público" (`tool_settings`) empieza apagado por defecto
+// para herramientas nuevas — cada prueba que lo prende lo deja apagado al terminar, para
+// no afectar corridas futuras ni al índice de /imprimir.
+
+async function apagarVisibilidad(id: string) {
+  const sql = conectar();
+  try {
+    await sql`update tool_settings set is_public = false where id = ${id}`;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
+test.afterEach(async () => {
+  await apagarVisibilidad('unir');
+});
+
+test('1 · /herramientas/pdf lista "Unir PDF" y ya no está atenuada', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  const respuesta = await page.goto('/herramientas/pdf');
+  expect(respuesta?.status()).toBe(200);
+
+  const tarjeta = page.locator('li').filter({ hasText: 'Unir PDF' });
+  await expect(tarjeta).toBeVisible();
+  await expect(tarjeta.locator('[aria-disabled="true"]')).toHaveCount(0);
+  await expect(tarjeta.getByRole('link')).toHaveCount(1);
+});
+
+test('2 · unir dos PDF descarga uno solo con la suma de páginas', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/unir');
+
+  await expect(page.getByRole('button', { name: 'Unir y descargar' })).toBeDisabled(); // sin archivos
+
+  await page
+    .locator('input[type="file"]')
+    .setInputFiles([await archivoPdf('a.pdf', 2), await archivoPdf('b.pdf', 3)]);
+
+  await expect(page.getByText('2 archivos, 5 páginas en total.')).toBeVisible();
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Unir y descargar' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toMatch(/^unido-\d+\.pdf$/);
+
+  const ruta = await descarga.path();
+  const { PDFDocument } = await import('pdf-lib');
+  const fs = await import('node:fs/promises');
+  const bytes = await fs.readFile(ruta!);
+  const documento = await PDFDocument.load(bytes);
+  expect(documento.getPageCount()).toBe(5);
+});
+
+test('3 · un solo archivo no se puede unir; quitarlo lo saca de la lista', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/unir');
+
+  await page.locator('input[type="file"]').setInputFiles([await archivoPdf('a.pdf', 1)]);
+  await expect(page.getByText('Agrega al menos otro PDF para poder unir.')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Unir y descargar' })).toBeDisabled();
+
+  await page.getByRole('button', { name: 'Quitar a.pdf' }).click();
+  await expect(page.getByText('a.pdf')).toHaveCount(0);
+});
+
+test('4 · un archivo que no es PDF de verdad avisa, sin tronar', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/unir');
+
+  const erroresDeConsola: string[] = [];
+  page.on('pageerror', (error) => erroresDeConsola.push(error.message));
+
+  await page.locator('input[type="file"]').setInputFiles({
+    name: 'no-es-pdf.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('esto no es un PDF'),
+  });
+
+  await expect(page.getByText(/no es un PDF válido/)).toBeVisible();
+  expect(erroresDeConsola).toEqual([]);
+});
+
+test('5 · el interruptor público controla /imprimir/pdf/unir y los dos índices, de punta a punta', async ({
+  page,
+  context,
+}) => {
+  // Apagado por defecto: bloquea del todo.
+  const publica1 = await context.newPage();
+  await publica1.goto('/imprimir/pdf/unir');
+  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await publica1.close();
+
+  await entrarComo(page, 'admin');
+  await page.goto('/herramientas/pdf/unir');
+  const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
+  await expect(interruptor).not.toBeChecked();
+  await interruptor.check();
+  // El checkbox se marca al toque (optimista), pero el server action + revalidatePath
+  // siguen en vuelo: hay que esperar a que la transición termine (vuelve a habilitarse)
+  // antes de asumir que la base y la caché ya reflejan el cambio.
+  await expect(interruptor).toBeEnabled();
+
+  // La URL pública responde de verdad, sin recargar nada a mano.
+  const publica2 = await context.newPage();
+  await publica2.goto('/imprimir/pdf/unir');
+  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await publica2.close();
+
+  // Aparece en el índice de PDF y, por consecuencia, en el índice principal.
+  const indice = await context.newPage();
+  await indice.goto('/imprimir/pdf');
+  await expect(indice.getByRole('link', { name: /Unir PDF/i })).toBeVisible();
+  await indice.goto('/imprimir');
+  await expect(indice.getByRole('link', { name: /Herramientas de PDF/i })).toBeVisible();
+  await indice.close();
+
+  // Se apaga otra vez: vuelve a bloquear, y desaparece de los índices.
+  await interruptor.uncheck();
+  await expect(interruptor).toBeEnabled();
+  const publica3 = await context.newPage();
+  await publica3.goto('/imprimir/pdf/unir');
+  await expect(publica3.getByText('no está disponible')).toBeVisible();
+  await publica3.goto('/imprimir');
+  await expect(publica3.getByRole('link', { name: /Herramientas de PDF/i })).toHaveCount(0);
+  await publica3.close();
+});

@@ -22,6 +22,11 @@ export const RIFAS = {
   cantidadMaxima: 5000,
 } as const;
 
+export const PDF = {
+  // Tope contra que el navegador se congele leyendo/uniendo demasiados PDF de golpe.
+  unirArchivosMaximo: 20,
+} as const;
+
 export type MetodoPago = keyof typeof POS.metodosPago;
 
 /** Zona de presentación y de corte de día (§2). Una sola constante para todo el sistema. */

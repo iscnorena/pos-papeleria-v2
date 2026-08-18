@@ -23,6 +23,13 @@ export function momento(fecha: Date | null | undefined): string {
   return fecha ? FECHA_HORA.format(fecha) : '—';
 }
 
+/** "1.2 MB", "340 KB" — para mostrar el tamaño de un archivo que el cliente subió. */
+export function tamanoArchivo(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
 export function fechaLarga(fecha: Date): string {
   return FECHA_LARGA.format(fecha);
 }

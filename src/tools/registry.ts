@@ -68,8 +68,9 @@ export const HERRAMIENTAS: Herramienta[] = [
     descripcion: 'Unir, dividir y convertir lo que trae el cliente en la USB.',
     icono: IconoPdf,
     ruta: '/herramientas/pdf',
+    rutaPublica: '/imprimir/pdf',
     roles: ['admin', 'cajera'],
-    estado: 'proxima',
+    estado: 'lista',
   },
 ];
 
@@ -82,7 +83,12 @@ export function herramientaPorId(id: string): Herramienta | undefined {
   return HERRAMIENTAS.find((h) => h.id === id);
 }
 
-/** Las herramientas con versión pública, para el índice sin sesión de /imprimir. */
-export function herramientasPublicas(): Herramienta[] {
+/**
+ * Herramientas que PODRÍAN aparecer en el índice sin sesión de /imprimir: tienen
+ * `rutaPublica` y no están en `proxima`. No es la lista final — cada una además necesita
+ * `is_public = true` en `tool_settings` (ver `src/lib/toolSettings.ts`), que el admin
+ * prende o apaga desde un interruptor en su propia pantalla de /herramientas.
+ */
+export function herramientasConVersionPublica(): Herramienta[] {
   return HERRAMIENTAS.filter((h) => h.rutaPublica && h.estado !== 'proxima');
 }

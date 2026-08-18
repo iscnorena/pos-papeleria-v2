@@ -72,12 +72,9 @@ test('3 · las tarjetas «próxima» se ven atenuadas y no son clicables', async
   await entrarComo(page, 'admin');
   await page.goto('/herramientas');
 
-  // Las cuatro registradas están en estado `proxima` hasta que la Fase 7 construya la suya.
-  const proximas = [
-    'Cotizador de trabajos',
-    'Herramientas de PDF',
-    'Etiquetas y códigos de barras',
-  ];
+  // Quedan en `proxima` las que ninguna fase posterior construyó todavía. "Herramientas de
+  // PDF" salió de esta lista el 18 de agosto: ya tiene su primera sub-herramienta (Unir).
+  const proximas = ['Cotizador de trabajos', 'Etiquetas y códigos de barras'];
 
   for (const nombre of proximas) {
     const tarjeta = page.locator('li').filter({ hasText: nombre });

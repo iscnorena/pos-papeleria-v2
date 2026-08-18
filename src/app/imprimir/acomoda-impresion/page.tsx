@@ -1,8 +1,10 @@
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
+import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { POS } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { esHerramientaPublica } from '@/lib/toolSettings';
 import { ImprimirPublico } from './ImprimirPublico';
 
 // Versión pública de Acomoda Impresión (Fase 7): sin cuenta, para que cualquier cliente
@@ -11,13 +13,17 @@ import { ImprimirPublico } from './ImprimirPublico';
 // la deja pasar (§ ver comentario ahí). La herramienta interna, con precios, no se toca.
 //
 // Cuelga de /imprimir, que es el índice de herramientas públicas (ver ../page.tsx) — esta
-// es una de las tarjetas, no la raíz.
+// es una de las tarjetas, no la raíz. Bloquea si el admin apagó el interruptor de
+// "Disponible al público" en la pantalla interna, o si ninguna sucursal tiene WhatsApp.
 
 export default async function AcomodaImpresionPublicoPage({
   searchParams,
 }: {
   searchParams: Promise<{ sucursal?: string }>;
 }) {
+  const publica = await esHerramientaPublica('acomoda-impresion');
+  if (!publica) return <HerramientaNoDisponible />;
+
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -31,15 +37,7 @@ export default async function AcomodaImpresionPublicoPage({
     .orderBy(asc(branches.id))
     .limit(1);
 
-  if (!destino?.whatsappNumber) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-papel p-6 text-center">
-        <p className="max-w-xs text-cuerpo text-grafito">
-          Esta herramienta no está disponible por el momento.
-        </p>
-      </main>
-    );
-  }
+  if (!destino?.whatsappNumber) return <HerramientaNoDisponible />;
 
   return (
     <ImprimirPublico nombreNegocio={POS.nombreNegocio} whatsappNumber={destino.whatsappNumber} />

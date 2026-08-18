@@ -78,6 +78,17 @@ export const loginAttempts = pgTable(
   (t) => [index('login_attempts_ip_time_idx').on(t.ip, t.kind, t.attemptedAt)],
 );
 
+// Qué herramientas del registro (`src/tools/registry.ts` y `src/tools/pdf/registro.ts`)
+// están visibles en /imprimir sin sesión. El `id` es el mismo que usa el registro (ej.
+// 'rifas', 'pdf-unir'); si una herramienta no tiene fila aquí, se trata como privada
+// (`isPublic` por defecto `false`) — el checkbox de cada pantalla la da de alta al
+// prenderla la primera vez.
+export const toolSettings = pgTable('tool_settings', {
+  id: text('id').primaryKey(),
+  isPublic: boolean('is_public').notNull().default(false),
+  ...timestamps,
+});
+
 export const productCategories = pgTable('product_categories', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
