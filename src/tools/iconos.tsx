@@ -39,6 +39,15 @@ export function IconoCalculadora() {
   );
 }
 
+export function IconoRifa() {
+  return (
+    <svg {...comunes}>
+      <path d="M3 6h18v3a2 2 0 0 0 0 4v3H3v-3a2 2 0 0 0 0-4V6z" />
+      <path d="M15 6v12" strokeDasharray="2 2" />
+    </svg>
+  );
+}
+
 export function IconoPdf() {
   return (
     <svg {...comunes}>

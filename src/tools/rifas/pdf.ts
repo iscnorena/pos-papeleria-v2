@@ -1,0 +1,293 @@
+import fontkit from '@pdf-lib/fontkit';
+import { PDFDocument, rgb, type PDFFont } from 'pdf-lib';
+
+import {
+  COL_CONTACTO,
+  COL_NOMBRE,
+  COL_NUMERO,
+  COLOR_BORDE,
+  COLOR_FILA_PAR,
+  COLOR_FONDO_DEFECTO,
+  ENCABEZADOS_TABLA,
+  HEADER_HEIGHT,
+  MARGIN,
+  PAGE_HEIGHT,
+  PAGE_WIDTH,
+  ROW_HEIGHT,
+  TABLE_HEADER_ROW,
+  TABLE_W,
+  colorTextoPrincipal,
+  colorTextoSecundario,
+  hexARgb,
+  lineasHeader,
+  numerosDePagina,
+  sanearTexto,
+  totalPaginas,
+  type RaffleConfig,
+  type Rgb,
+} from './layout';
+
+// El PDF se arma EN EL NAVEGADOR con pdf-lib, igual que el resto de las herramientas de
+// impresión del proyecto. Nada sube al servidor.
+//
+// pdf-lib (con o sin fontkit) solo dibuja glifos de CONTORNO de una fuente, nunca fuentes
+// a color (así están hechos los emoji reales). Embeber Noto Sans mejora mucho la
+// cobertura frente a Helvetica/WinAnsi (acentos, símbolos latinos), pero NO pinta emoji a
+// color — por eso cualquier texto se sanea contra el repertorio real de la fuente antes de
+// dibujarse: nunca se deja que la excepción de codificación tumbe la generación.
+
+const PADDING_HEADER = 16;
+const GAP_LOGO_TEXTO = 16;
+
+function color(c: Rgb) {
+  return rgb(c.r, c.g, c.b);
+}
+
+function decodeDataUrl(dataUrl: string): { bytes: Uint8Array; esPng: boolean } {
+  const [encabezado = '', base64 = ''] = dataUrl.split(',');
+  const esPng = encabezado.includes('image/png');
+  const binario = atob(base64);
+  const bytes = new Uint8Array(binario.length);
+  for (let i = 0; i < binario.length; i++) bytes[i] = binario.charCodeAt(i);
+  return { bytes, esPng };
+}
+
+async function cargarFuentes(documento: PDFDocument) {
+  documento.registerFontkit(fontkit);
+  const [regularBytes, boldBytes] = await Promise.all([
+    fetch('/fonts/NotoSans-Regular.ttf').then((r) => r.arrayBuffer()),
+    fetch('/fonts/NotoSans-Bold.ttf').then((r) => r.arrayBuffer()),
+  ]);
+  const regular = await documento.embedFont(regularBytes);
+  const bold = await documento.embedFont(boldBytes);
+  return { regular, bold };
+}
+
+/** Sanea un texto contra los glifos reales de `fuente`, y avisa (una vez por campo) si se
+ * le quitó algo, para que la UI pueda decir cuál campo tenía el carácter problemático. */
+function sanearCampo(
+  campo: string,
+  texto: string,
+  fuente: PDFFont,
+  camposModificados: Set<string>,
+): string {
+  const glifos = fuente.getCharacterSet();
+  const soportado = (codePoint: number) => glifos.includes(codePoint);
+  const limpio = sanearTexto(texto, soportado);
+  if (limpio !== texto) camposModificados.add(campo);
+  return limpio;
+}
+
+/** Centra `texto` horizontalmente en una franja de ancho `anchoDisponible`, encogiendo el
+ * tamaño de fuente si no cabe (nombres de evento largos). Devuelve el tamaño final usado. */
+function anchoAjustado(
+  fuente: PDFFont,
+  texto: string,
+  anchoDisponible: number,
+  tamanoInicial: number,
+) {
+  let tamano = tamanoInicial;
+  while (tamano > 8 && fuente.widthOfTextAtSize(texto, tamano) > anchoDisponible) tamano -= 1;
+  return tamano;
+}
+
+function centrarX(fuente: PDFFont, texto: string, tamano: number, x: number, ancho: number) {
+  const anchoTexto = fuente.widthOfTextAtSize(texto, tamano);
+  return x + Math.max(0, (ancho - anchoTexto) / 2);
+}
+
+/** Ajuste visual, no una fórmula exacta: acerca la línea base al centro óptico de la fila. */
+function centrarY(yInferior: number, alto: number, tamano: number) {
+  return yInferior + (alto - tamano * 0.7) / 2;
+}
+
+export type ResultadoPdfRifas = {
+  bytes: Uint8Array;
+  /** Nombres de campo (en español, listos para mostrar) a los que se les quitó algún
+   * carácter no soportado, para que la UI pueda avisar sin ser genérica. */
+  camposSaneados: string[];
+};
+
+export async function generarPdfRifas(
+  config: RaffleConfig,
+  onProgress?: (actual: number, total: number) => void,
+): Promise<ResultadoPdfRifas> {
+  const documento = await PDFDocument.create();
+  const { regular, bold } = await cargarFuentes(documento);
+
+  const camposModificados = new Set<string>();
+  const sanear = (campo: string, texto: string, fuente: PDFFont) =>
+    sanearCampo(campo, texto, fuente, camposModificados);
+
+  const eventName = sanear('Nombre del evento', config.eventName, bold);
+  const prize = sanear('Premio', config.prize, regular);
+  const date = sanear('Fecha', config.date, regular);
+  const cost = sanear('Costo', config.cost, regular);
+  const organizer = sanear('Organizador', config.organizer, regular);
+  const phone = sanear('Teléfono', config.phone, regular);
+
+  const colorFondo = config.backgroundColor || COLOR_FONDO_DEFECTO;
+  const colorTexto = color(colorTextoPrincipal(colorFondo));
+  const colorSubtitulo = color(colorTextoSecundario(colorFondo));
+  const colorHeader = color(hexARgb(colorFondo));
+  const colorFilaPar = color(hexARgb(COLOR_FILA_PAR));
+  const colorBorde = color(hexARgb(COLOR_BORDE));
+
+  let logo: {
+    imagen: Awaited<ReturnType<PDFDocument['embedPng']>>;
+    ancho: number;
+    alto: number;
+  } | null = null;
+  if (config.raffleImage) {
+    const { bytes, esPng } = decodeDataUrl(config.raffleImage);
+    const imagen = esPng ? await documento.embedPng(bytes) : await documento.embedJpg(bytes);
+    const altoMax = HEADER_HEIGHT - 12;
+    const anchoMax = 100;
+    const escala = Math.min(anchoMax / imagen.width, altoMax / imagen.height);
+    logo = { imagen, ancho: imagen.width * escala, alto: imagen.height * escala };
+  }
+
+  const colNumeroX = MARGIN;
+  const colNumeroW = TABLE_W * COL_NUMERO;
+  const colNombreX = colNumeroX + colNumeroW;
+  const colNombreW = TABLE_W * COL_NOMBRE;
+  const colContactoX = colNombreX + colNombreW;
+  const colContactoW = TABLE_W * COL_CONTACTO;
+
+  /** Convierte "distancia desde arriba del área de contenido" a la Y (borde inferior) que
+   * pide pdf-lib para dibujar un bloque de alto `alto` ahí. */
+  const yDesdeArriba = (distancia: number, alto: number) => PAGE_HEIGHT - MARGIN - distancia - alto;
+
+  const numeroDePaginas = totalPaginas(config.quantity);
+
+  for (let pagina = 0; pagina < numeroDePaginas; pagina++) {
+    const pdfPagina = documento.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
+
+    // --- Header ---
+    const yHeader = yDesdeArriba(0, HEADER_HEIGHT);
+    pdfPagina.drawRectangle({
+      x: MARGIN,
+      y: yHeader,
+      width: TABLE_W,
+      height: HEADER_HEIGHT,
+      color: colorHeader,
+    });
+
+    let textoX = MARGIN;
+    let textoAncho = TABLE_W;
+    if (logo) {
+      const logoY = yHeader + (HEADER_HEIGHT - logo.alto) / 2;
+      pdfPagina.drawImage(logo.imagen, {
+        x: MARGIN + PADDING_HEADER,
+        y: logoY,
+        width: logo.ancho,
+        height: logo.alto,
+      });
+      textoX = MARGIN + PADDING_HEADER + logo.ancho + GAP_LOGO_TEXTO;
+      textoAncho = TABLE_W - PADDING_HEADER * 2 - logo.ancho - GAP_LOGO_TEXTO;
+    }
+
+    const lineas = lineasHeader({ eventName, prize, date, cost, organizer, phone });
+
+    const alturaBloque = lineas.reduce((acc, l) => acc + l.tamano * 1.3, 0);
+    let yLinea = yHeader + HEADER_HEIGHT / 2 + alturaBloque / 2;
+    for (const linea of lineas) {
+      const fuente = linea.negrita ? bold : regular;
+      const tamano = linea.negrita
+        ? anchoAjustado(fuente, linea.texto, textoAncho, linea.tamano)
+        : linea.tamano;
+      yLinea -= tamano * 1.1;
+      pdfPagina.drawText(linea.texto, {
+        x: centrarX(fuente, linea.texto, tamano, textoX, textoAncho),
+        y: yLinea,
+        size: tamano,
+        font: fuente,
+        color: linea.secundario ? colorSubtitulo : colorTexto,
+      });
+      yLinea -= linea.tamano * 0.2;
+    }
+
+    // --- Fila de encabezado de la tabla ---
+    const yEncabezadoTabla = yDesdeArriba(HEADER_HEIGHT + 8, TABLE_HEADER_ROW);
+    pdfPagina.drawRectangle({
+      x: MARGIN,
+      y: yEncabezadoTabla,
+      width: TABLE_W,
+      height: TABLE_HEADER_ROW,
+      color: colorHeader,
+    });
+    const columnas = [
+      { x: colNumeroX, ancho: colNumeroW, texto: ENCABEZADOS_TABLA[0] },
+      { x: colNombreX, ancho: colNombreW, texto: ENCABEZADOS_TABLA[1] },
+      { x: colContactoX, ancho: colContactoW, texto: ENCABEZADOS_TABLA[2] },
+    ];
+    for (const col of columnas) {
+      pdfPagina.drawText(col.texto, {
+        x: centrarX(bold, col.texto, 10, col.x, col.ancho),
+        y: centrarY(yEncabezadoTabla, TABLE_HEADER_ROW, 10),
+        size: 10,
+        font: bold,
+        color: colorTexto,
+      });
+    }
+
+    // --- Filas de boletos ---
+    const numeros = numerosDePagina(config, pagina);
+    numeros.forEach((numero, indice) => {
+      const yFila = yDesdeArriba(
+        HEADER_HEIGHT + 8 + TABLE_HEADER_ROW + indice * ROW_HEIGHT,
+        ROW_HEIGHT,
+      );
+      if (indice % 2 === 0) {
+        pdfPagina.drawRectangle({
+          x: MARGIN,
+          y: yFila,
+          width: TABLE_W,
+          height: ROW_HEIGHT,
+          color: colorFilaPar,
+        });
+      }
+      pdfPagina.drawText(numero, {
+        x: centrarX(bold, numero, 11, colNumeroX, colNumeroW),
+        y: centrarY(yFila, ROW_HEIGHT, 11),
+        size: 11,
+        font: bold,
+        color: rgb(0.1, 0.1, 0.1),
+      });
+
+      pdfPagina.drawLine({
+        start: { x: MARGIN, y: yFila },
+        end: { x: MARGIN + TABLE_W, y: yFila },
+        thickness: 0.5,
+        color: colorBorde,
+      });
+      pdfPagina.drawLine({
+        start: { x: colNombreX, y: yFila },
+        end: { x: colNombreX, y: yFila + ROW_HEIGHT },
+        thickness: 0.5,
+        color: colorBorde,
+      });
+      pdfPagina.drawLine({
+        start: { x: colContactoX, y: yFila },
+        end: { x: colContactoX, y: yFila + ROW_HEIGHT },
+        thickness: 0.5,
+        color: colorBorde,
+      });
+    });
+
+    // --- Borde exterior de toda la tabla ---
+    const altoTabla = TABLE_HEADER_ROW + numeros.length * ROW_HEIGHT;
+    pdfPagina.drawRectangle({
+      x: MARGIN,
+      y: yEncabezadoTabla - (altoTabla - TABLE_HEADER_ROW),
+      width: TABLE_W,
+      height: altoTabla,
+      borderColor: colorHeader,
+      borderWidth: 1,
+    });
+
+    onProgress?.(pagina + 1, numeroDePaginas);
+  }
+
+  return { bytes: await documento.save(), camposSaneados: [...camposModificados] };
+}

@@ -1,7 +1,7 @@
 import type { ComponentType } from 'react';
 
 import type { Rol } from '@/db/schema';
-import { IconoCalculadora, IconoEtiqueta, IconoHojas, IconoPdf } from './iconos';
+import { IconoCalculadora, IconoEtiqueta, IconoHojas, IconoPdf, IconoRifa } from './iconos';
 
 // §Fase 6 — registro extensible. Una herramienta se declara AQUÍ y en ningún otro sitio:
 // la vitrina, la navegación y el control de acceso salen de este arreglo.
@@ -30,6 +30,16 @@ export const HERRAMIENTAS: Herramienta[] = [
     icono: IconoHojas,
     ruta: '/herramientas/acomoda-impresion',
     rutaPublica: '/imprimir/acomoda-impresion',
+    roles: ['admin', 'cajera'],
+    estado: 'lista',
+  },
+  {
+    id: 'rifas',
+    nombre: 'Números de rifa',
+    descripcion: 'Genera la hoja de control de una rifa: números, nombre y contacto por boleto.',
+    icono: IconoRifa,
+    ruta: '/herramientas/rifas',
+    rutaPublica: '/imprimir/rifas',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },

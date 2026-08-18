@@ -17,6 +17,11 @@ export const POS = {
   precioAbiertoMaximo: 200000, // $2,000.00
 } as const;
 
+export const RIFAS = {
+  // Tope contra que el navegador se congele armando un PDF gigantesco, no un límite de negocio.
+  cantidadMaxima: 5000,
+} as const;
+
 export type MetodoPago = keyof typeof POS.metodosPago;
 
 /** Zona de presentación y de corte de día (§2). Una sola constante para todo el sistema. */
