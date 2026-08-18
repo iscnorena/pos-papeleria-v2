@@ -38,6 +38,26 @@ import {
 
 const PADDING_HEADER = 16;
 const GAP_LOGO_TEXTO = 16;
+const GAP_PREMIO_TEXTO = 6;
+const ALTO_MINIATURA_PREMIO = 16;
+
+type ImagenEscalada = {
+  imagen: Awaited<ReturnType<PDFDocument['embedPng']>>;
+  ancho: number;
+  alto: number;
+};
+
+async function cargarImagenEscalada(
+  documento: PDFDocument,
+  dataUrl: string,
+  altoMax: number,
+  anchoMax: number,
+): Promise<ImagenEscalada> {
+  const { bytes, esPng } = decodeDataUrl(dataUrl);
+  const imagen = esPng ? await documento.embedPng(bytes) : await documento.embedJpg(bytes);
+  const escala = Math.min(anchoMax / imagen.width, altoMax / imagen.height);
+  return { imagen, ancho: imagen.width * escala, alto: imagen.height * escala };
+}
 
 function color(c: Rgb) {
   return rgb(c.r, c.g, c.b);
@@ -133,19 +153,17 @@ export async function generarPdfRifas(
   const colorFilaPar = color(hexARgb(COLOR_FILA_PAR));
   const colorBorde = color(hexARgb(COLOR_BORDE));
 
-  let logo: {
-    imagen: Awaited<ReturnType<PDFDocument['embedPng']>>;
-    ancho: number;
-    alto: number;
-  } | null = null;
-  if (config.raffleImage) {
-    const { bytes, esPng } = decodeDataUrl(config.raffleImage);
-    const imagen = esPng ? await documento.embedPng(bytes) : await documento.embedJpg(bytes);
-    const altoMax = HEADER_HEIGHT - 12;
-    const anchoMax = 100;
-    const escala = Math.min(anchoMax / imagen.width, altoMax / imagen.height);
-    logo = { imagen, ancho: imagen.width * escala, alto: imagen.height * escala };
-  }
+  const logo = config.raffleImage
+    ? await cargarImagenEscalada(documento, config.raffleImage, HEADER_HEIGHT - 12, 100)
+    : null;
+  const imagenPremio = config.prizeImage
+    ? await cargarImagenEscalada(
+        documento,
+        config.prizeImage,
+        ALTO_MINIATURA_PREMIO,
+        ALTO_MINIATURA_PREMIO,
+      )
+    : null;
 
   const colNumeroX = MARGIN;
   const colNumeroW = TABLE_W * COL_NUMERO;
@@ -158,7 +176,7 @@ export async function generarPdfRifas(
    * pide pdf-lib para dibujar un bloque de alto `alto` ahí. */
   const yDesdeArriba = (distancia: number, alto: number) => PAGE_HEIGHT - MARGIN - distancia - alto;
 
-  const numeroDePaginas = totalPaginas(config.quantity);
+  const numeroDePaginas = totalPaginas(config.quantity, config.ticketsPorPagina);
 
   for (let pagina = 0; pagina < numeroDePaginas; pagina++) {
     const pdfPagina = documento.addPage([PAGE_WIDTH, PAGE_HEIGHT]);
@@ -197,13 +215,37 @@ export async function generarPdfRifas(
         ? anchoAjustado(fuente, linea.texto, textoAncho, linea.tamano)
         : linea.tamano;
       yLinea -= tamano * 1.1;
-      pdfPagina.drawText(linea.texto, {
-        x: centrarX(fuente, linea.texto, tamano, textoX, textoAncho),
-        y: yLinea,
-        size: tamano,
-        font: fuente,
-        color: linea.secundario ? colorSubtitulo : colorTexto,
-      });
+      const colorLinea = linea.secundario ? colorSubtitulo : colorTexto;
+
+      if (linea.esPremio && imagenPremio) {
+        // Miniatura del premio + texto, como un solo bloque centrado (no el texto solo).
+        const anchoTexto = fuente.widthOfTextAtSize(linea.texto, tamano);
+        const anchoBloque = imagenPremio.ancho + GAP_PREMIO_TEXTO + anchoTexto;
+        const xBloque = textoX + Math.max(0, (textoAncho - anchoBloque) / 2);
+        // Ajuste visual, no una fórmula exacta: centra la miniatura con la caja del texto.
+        const yImagen = yLinea - (imagenPremio.alto - tamano) / 2;
+        pdfPagina.drawImage(imagenPremio.imagen, {
+          x: xBloque,
+          y: yImagen,
+          width: imagenPremio.ancho,
+          height: imagenPremio.alto,
+        });
+        pdfPagina.drawText(linea.texto, {
+          x: xBloque + imagenPremio.ancho + GAP_PREMIO_TEXTO,
+          y: yLinea,
+          size: tamano,
+          font: fuente,
+          color: colorLinea,
+        });
+      } else {
+        pdfPagina.drawText(linea.texto, {
+          x: centrarX(fuente, linea.texto, tamano, textoX, textoAncho),
+          y: yLinea,
+          size: tamano,
+          font: fuente,
+          color: colorLinea,
+        });
+      }
       yLinea -= linea.tamano * 0.2;
     }
 

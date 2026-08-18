@@ -30,8 +30,23 @@ import {
 // que es justo la convención en la que ya está expresado layout.ts (no hace falta el
 // volteo que sí necesita pdf-lib, cuyo origen está abajo-izquierda).
 
+const PADDING_HEADER = 16;
+const GAP_LOGO_TEXTO = 16;
+const GAP_PREMIO_TEXTO = 6;
+const ALTO_MINIATURA_PREMIO = 16;
+
 function rgbCss({ r, g, b }: Rgb): string {
   return `rgb(${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)})`;
+}
+
+function cargarImagenSiHay(src: string | undefined): Promise<HTMLImageElement | null> {
+  if (!src) return Promise.resolve(null);
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
 }
 
 export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pagina: number }) {
@@ -45,7 +60,7 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
     canvas.width = PAGE_WIDTH;
     canvas.height = PAGE_HEIGHT;
 
-    function dibujar(logo: HTMLImageElement | null) {
+    function dibujar(logo: HTMLImageElement | null, imagenPremio: HTMLImageElement | null) {
       if (!ctx || !canvas) return;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = '#ffffff';
@@ -61,8 +76,6 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
 
       let textoX = MARGIN;
       let textoAncho = TABLE_W;
-      const PADDING_HEADER = 16;
-      const GAP_LOGO_TEXTO = 16;
 
       if (logo) {
         const altoMax = HEADER_HEIGHT - 12;
@@ -75,6 +88,15 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
         textoX = MARGIN + PADDING_HEADER + ancho + GAP_LOGO_TEXTO;
         textoAncho = TABLE_W - PADDING_HEADER * 2 - ancho - GAP_LOGO_TEXTO;
       }
+
+      const escalaPremio = imagenPremio
+        ? Math.min(
+            ALTO_MINIATURA_PREMIO / imagenPremio.width,
+            ALTO_MINIATURA_PREMIO / imagenPremio.height,
+          )
+        : 0;
+      const anchoPremio = imagenPremio ? imagenPremio.width * escalaPremio : 0;
+      const altoPremio = imagenPremio ? imagenPremio.height * escalaPremio : 0;
 
       const lineas = lineasHeader(config);
       const alturaBloque = lineas.reduce((acc, l) => acc + l.tamano * 1.3, 0);
@@ -92,7 +114,18 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
         ctx.fillStyle = linea.secundario ? colorSub : colorTexto;
         ctx.textBaseline = 'alphabetic';
         const anchoTexto = ctx.measureText(linea.texto).width;
-        ctx.fillText(linea.texto, textoX + Math.max(0, (textoAncho - anchoTexto) / 2), y);
+
+        if (linea.esPremio && imagenPremio) {
+          // Miniatura del premio + texto, como un solo bloque centrado (mismo criterio que pdf.ts).
+          const anchoBloque = anchoPremio + GAP_PREMIO_TEXTO + anchoTexto;
+          const xBloque = textoX + Math.max(0, (textoAncho - anchoBloque) / 2);
+          // Ajuste visual, no una fórmula exacta: centra la miniatura con la línea de texto.
+          const yImagen = y - tamano - (altoPremio - tamano) / 2;
+          ctx.drawImage(imagenPremio, xBloque, yImagen, anchoPremio, altoPremio);
+          ctx.fillText(linea.texto, xBloque + anchoPremio + GAP_PREMIO_TEXTO, y);
+        } else {
+          ctx.fillText(linea.texto, textoX + Math.max(0, (textoAncho - anchoTexto) / 2), y);
+        }
         y += linea.tamano * 0.2;
       }
 
@@ -160,13 +193,10 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
       ctx.strokeRect(MARGIN, yEncabezadoTabla, TABLE_W, altoTabla);
     }
 
-    if (config.raffleImage) {
-      const img = new Image();
-      img.onload = () => dibujar(img);
-      img.src = config.raffleImage;
-    } else {
-      dibujar(null);
-    }
+    void Promise.all([
+      cargarImagenSiHay(config.raffleImage),
+      cargarImagenSiHay(config.prizeImage),
+    ]).then(([logo, imagenPremio]) => dibujar(logo, imagenPremio));
   }, [config, pagina]);
 
   return (

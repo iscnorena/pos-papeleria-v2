@@ -6,7 +6,13 @@ import { RIFAS } from '@/config/pos';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
-import { COLOR_FONDO_DEFECTO, TICKETS_PER_PAGE, totalPaginas, type RaffleConfig } from './layout';
+import {
+  COLOR_FONDO_DEFECTO,
+  TICKETS_PER_PAGE,
+  porPaginaValido,
+  totalPaginas,
+  type RaffleConfig,
+} from './layout';
 import { generarPdfRifas } from './pdf';
 import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 
@@ -17,6 +23,7 @@ import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 const CONFIG_INICIAL: RaffleConfig = {
   quantity: 100,
   startNumber: 1,
+  ticketsPorPagina: TICKETS_PER_PAGE,
   eventName: '',
   prize: '',
   date: '',
@@ -45,8 +52,9 @@ function cargarImagenHtml(src: string): Promise<HTMLImageElement> {
 }
 
 /** El tipo real del archivo (no el contenido del data URL) decide si hace falta
- * convertir: pdf-lib solo puede incrustar PNG o JPEG. */
-async function normalizarLogo(archivo: File): Promise<string> {
+ * convertir: pdf-lib solo puede incrustar PNG o JPEG. Sirve tanto para el logo como para
+ * la foto del premio: misma normalización, dos campos distintos de RaffleConfig. */
+async function normalizarImagen(archivo: File): Promise<string> {
   const dataUrl = await leerComoDataUrl(archivo);
   if (archivo.type === 'image/png' || archivo.type === 'image/jpeg') return dataUrl;
 
@@ -67,25 +75,48 @@ export function GeneradorRifas() {
   const [progreso, setProgreso] = useState<{ actual: number; total: number } | null>(null);
   const [aviso, setAviso] = useState<{ texto: string; tono: 'error' | 'neutro' } | null>(null);
 
-  const paginasTotales = totalPaginas(config.quantity);
+  const paginasTotales = totalPaginas(config.quantity, config.ticketsPorPagina);
 
   function actualizar<K extends keyof RaffleConfig>(campo: K, valor: RaffleConfig[K]) {
     setConfig((actual) => {
       const nueva = { ...actual, [campo]: valor };
-      if (campo === 'quantity') {
-        setPagina((p) => Math.min(p, totalPaginas(nueva.quantity) - 1));
+      if (campo === 'quantity' || campo === 'ticketsPorPagina') {
+        setPagina((p) => Math.min(p, totalPaginas(nueva.quantity, nueva.ticketsPorPagina) - 1));
       }
       return nueva;
     });
   }
 
+  function actualizarPorPagina(valorCrudo: number) {
+    if (valorCrudo > TICKETS_PER_PAGE) {
+      setAviso({
+        texto: `El máximo son ${TICKETS_PER_PAGE} boletos por página con este tamaño de hoja: la fila no se encoge más. Se dejó en ${TICKETS_PER_PAGE}.`,
+        tono: 'neutro',
+      });
+    }
+    actualizar('ticketsPorPagina', porPaginaValido(valorCrudo));
+  }
+
   async function manejarLogo(archivo: File | undefined) {
     if (!archivo) return;
     try {
-      const dataUrl = await normalizarLogo(archivo);
+      const dataUrl = await normalizarImagen(archivo);
       actualizar('raffleImage', dataUrl);
     } catch {
       setAviso({ texto: 'No se pudo cargar el logotipo. Intenta con otra imagen.', tono: 'error' });
+    }
+  }
+
+  async function manejarImagenPremio(archivo: File | undefined) {
+    if (!archivo) return;
+    try {
+      const dataUrl = await normalizarImagen(archivo);
+      actualizar('prizeImage', dataUrl);
+    } catch {
+      setAviso({
+        texto: 'No se pudo cargar la foto del premio. Intenta con otra imagen.',
+        tono: 'error',
+      });
     }
   }
 
@@ -133,17 +164,28 @@ export function GeneradorRifas() {
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
         <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Boletos</h2>
-        <Campo
-          etiqueta="Cantidad de boletos"
-          type="number"
-          min={1}
-          max={RIFAS.cantidadMaxima}
-          value={config.quantity}
-          onChange={(e) => actualizar('quantity', Number(e.target.value) || 0)}
-        />
+        <div className="grid grid-cols-2 gap-2">
+          <Campo
+            etiqueta="Cantidad de boletos"
+            type="number"
+            min={1}
+            max={RIFAS.cantidadMaxima}
+            value={config.quantity}
+            onChange={(e) => actualizar('quantity', Number(e.target.value) || 0)}
+          />
+          <Campo
+            etiqueta="Boletos por página"
+            type="number"
+            min={1}
+            max={TICKETS_PER_PAGE}
+            value={config.ticketsPorPagina}
+            onChange={(e) => actualizarPorPagina(Number(e.target.value) || 0)}
+            ayuda={`Máximo ${TICKETS_PER_PAGE}: la fila no se encoge más allá de eso.`}
+          />
+        </div>
         <p className="mt-2 text-fino text-grafito">
           Salen {paginasTotales} {paginasTotales === 1 ? 'página' : 'páginas'}, de{' '}
-          {TICKETS_PER_PAGE} boletos cada una.
+          {config.ticketsPorPagina} {config.ticketsPorPagina === 1 ? 'boleto' : 'boletos'} cada una.
         </p>
       </section>
 
@@ -155,11 +197,25 @@ export function GeneradorRifas() {
             value={config.eventName}
             onChange={(e) => actualizar('eventName', e.target.value)}
           />
-          <Campo
-            etiqueta="Premio"
-            value={config.prize}
-            onChange={(e) => actualizar('prize', e.target.value)}
-          />
+          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <Campo
+              etiqueta="Premio"
+              value={config.prize}
+              onChange={(e) => actualizar('prize', e.target.value)}
+            />
+            <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-linea-fuerte bg-white px-3 text-center text-base text-tinta shadow-impresa">
+              {config.prizeImage ? 'Cambiar foto' : 'Foto (opcional)'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  void manejarImagenPremio(e.target.files?.[0]);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <Campo
               etiqueta="Fecha"
@@ -169,7 +225,7 @@ export function GeneradorRifas() {
             />
             <Campo
               etiqueta="Costo por boleto"
-              placeholder="Ej. $50"
+              placeholder="Ej. 50"
               value={config.cost}
               onChange={(e) => actualizar('cost', e.target.value)}
             />

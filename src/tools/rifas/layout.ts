@@ -18,7 +18,11 @@ export const COL_NOMBRE = 0.45;
 export const COL_CONTACTO = 0.35;
 
 export const AVAILABLE_HEIGHT = PAGE_HEIGHT - MARGIN * 2 - HEADER_HEIGHT - 8 - TABLE_HEADER_ROW;
-/** Cuántos boletos caben en una página. No es elegible por el usuario: sale de la fórmula. */
+/**
+ * Cuántos boletos caben como máximo en una página sin encoger la fila. El usuario SÍ puede
+ * pedir menos (`RaffleConfig.ticketsPorPagina`), pero nunca más que esto: por decisión
+ * explícita, la fila y la letra nunca se encogen para forzar más boletos por hoja.
+ */
 export const TICKETS_PER_PAGE = Math.floor(AVAILABLE_HEIGHT / ROW_HEIGHT);
 
 export const COLOR_FILA_PAR = '#F8FAFC';
@@ -30,6 +34,8 @@ export const ENCABEZADOS_TABLA = ['No. Boleto', 'Nombre', 'Contacto'] as const;
 export type RaffleConfig = {
   quantity: number;
   startNumber: number;
+  /** Cuántos boletos van por hoja. Tope: TICKETS_PER_PAGE (no se encoge la fila). */
+  ticketsPorPagina: number;
   eventName: string;
   prize: string;
   date: string;
@@ -38,8 +44,16 @@ export type RaffleConfig = {
   phone: string;
   /** Data URL de la imagen ya normalizada a PNG/JPEG. */
   raffleImage?: string;
+  /** Foto opcional del premio, junto al texto "Premio: ..." del header. */
+  prizeImage?: string;
   backgroundColor?: string;
 };
+
+/** `ticketsPorPagina` acotado a [1, TICKETS_PER_PAGE], por si llega vacío o fuera de rango. */
+export function porPaginaValido(ticketsPorPagina: number): number {
+  const valor = Number.isFinite(ticketsPorPagina) ? Math.round(ticketsPorPagina) : TICKETS_PER_PAGE;
+  return Math.min(TICKETS_PER_PAGE, Math.max(1, valor));
+}
 
 export type Rgb = { r: number; g: number; b: number };
 
@@ -52,17 +66,18 @@ export function formatearNumero(n: number, ancho: number): string {
   return String(n).padStart(ancho, '0');
 }
 
-export function totalPaginas(quantity: number): number {
-  return Math.max(1, Math.ceil(Math.max(1, quantity) / TICKETS_PER_PAGE));
+export function totalPaginas(quantity: number, ticketsPorPagina: number): number {
+  return Math.max(1, Math.ceil(Math.max(1, quantity) / porPaginaValido(ticketsPorPagina)));
 }
 
 /** Los números de UNA página (0-indexada), ya formateados. Simple `slice`: la tabla es de
  * una sola columna hacia abajo, no una cuadrícula 2D. */
 export function numerosDePagina(config: RaffleConfig, pagina: number): string[] {
   const cantidad = Math.max(1, config.quantity);
+  const porPagina = porPaginaValido(config.ticketsPorPagina);
   const ancho = anchoNumero(config);
-  const inicio = config.startNumber + pagina * TICKETS_PER_PAGE;
-  const fin = Math.min(config.startNumber + cantidad, inicio + TICKETS_PER_PAGE);
+  const inicio = config.startNumber + pagina * porPagina;
+  const fin = Math.min(config.startNumber + cantidad, inicio + porPagina);
 
   const numeros: string[] = [];
   for (let n = inicio; n < fin; n++) numeros.push(formatearNumero(n, ancho));
@@ -101,7 +116,14 @@ export function colorTextoSecundario(colorHex: string): Rgb {
   return esFondoOscuro(colorHex) ? { r: 0.82, g: 0.85, b: 0.89 } : { r: 0.35, g: 0.39, b: 0.45 };
 }
 
-export type LineaHeader = { texto: string; tamano: number; negrita: boolean; secundario: boolean };
+export type LineaHeader = {
+  texto: string;
+  tamano: number;
+  negrita: boolean;
+  secundario: boolean;
+  /** true solo en la línea "Premio: ...": ahí, si hay `prizeImage`, va un miniatura antes del texto. */
+  esPremio?: boolean;
+};
 
 /**
  * Las líneas de texto del header, en orden, ya con las reglas de omisión aplicadas
@@ -117,16 +139,25 @@ export function lineasHeader(
     lineas.push({ texto: config.eventName, tamano: 18, negrita: true, secundario: false });
   }
   if (config.prize) {
-    lineas.push({ texto: `Premio: ${config.prize}`, tamano: 11, negrita: false, secundario: true });
+    lineas.push({
+      texto: `Premio: ${config.prize}`,
+      tamano: 11,
+      negrita: false,
+      secundario: true,
+      esPremio: true,
+    });
   }
 
+  // El costo siempre lleva "$" al frente, lo haya tecleado el usuario o no (y sin
+  // duplicarlo si sí lo tecleó).
+  const costoConSigno = config.cost ? `$${config.cost.replace(/^\$+\s*/, '')}` : '';
   const fechaCosto =
-    config.date && config.cost
-      ? `Fecha: ${config.date}  |  Costo: ${config.cost}`
+    config.date && costoConSigno
+      ? `Fecha: ${config.date}  |  Costo: ${costoConSigno}`
       : config.date
         ? `Fecha: ${config.date}`
-        : config.cost
-          ? `Costo: ${config.cost}`
+        : costoConSigno
+          ? `Costo: ${costoConSigno}`
           : '';
   if (fechaCosto) lineas.push({ texto: fechaCosto, tamano: 9, negrita: false, secundario: true });
 

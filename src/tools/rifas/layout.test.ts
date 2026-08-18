@@ -9,6 +9,7 @@ import {
   formatearNumero,
   lineasHeader,
   numerosDePagina,
+  porPaginaValido,
   sanearTexto,
   totalPaginas,
 } from './layout';
@@ -42,11 +43,34 @@ describe('formatearNumero', () => {
   });
 });
 
+describe('porPaginaValido', () => {
+  it('acota entre 1 y TICKETS_PER_PAGE', () => {
+    expect(porPaginaValido(0)).toBe(1);
+    expect(porPaginaValido(-5)).toBe(1);
+    expect(porPaginaValido(TICKETS_PER_PAGE + 100)).toBe(TICKETS_PER_PAGE);
+    expect(porPaginaValido(10)).toBe(10);
+  });
+
+  it('cae en TICKETS_PER_PAGE si viene vacío/NaN', () => {
+    expect(porPaginaValido(NaN)).toBe(TICKETS_PER_PAGE);
+  });
+});
+
 describe('totalPaginas', () => {
-  it('redondea hacia arriba', () => {
-    expect(totalPaginas(18)).toBe(1);
-    expect(totalPaginas(19)).toBe(2);
-    expect(totalPaginas(100)).toBe(6); // 18*5=90, sobran 10
+  it('redondea hacia arriba con el máximo por página', () => {
+    expect(totalPaginas(18, TICKETS_PER_PAGE)).toBe(1);
+    expect(totalPaginas(19, TICKETS_PER_PAGE)).toBe(2);
+    expect(totalPaginas(100, TICKETS_PER_PAGE)).toBe(6); // 18*5=90, sobran 10
+  });
+
+  it('con menos boletos por página salen más páginas', () => {
+    expect(totalPaginas(20, 10)).toBe(2);
+    expect(totalPaginas(30, 10)).toBe(3);
+  });
+
+  it('nunca deja pasar más de TICKETS_PER_PAGE aunque se pida más', () => {
+    expect(totalPaginas(TICKETS_PER_PAGE, TICKETS_PER_PAGE + 50)).toBe(1);
+    expect(totalPaginas(TICKETS_PER_PAGE + 1, TICKETS_PER_PAGE + 50)).toBe(2);
   });
 });
 
@@ -54,6 +78,7 @@ describe('numerosDePagina', () => {
   const base = {
     quantity: 50,
     startNumber: 1,
+    ticketsPorPagina: TICKETS_PER_PAGE,
     eventName: '',
     prize: '',
     date: '',
@@ -70,7 +95,7 @@ describe('numerosDePagina', () => {
   });
 
   it('la última página trae solo lo que sobra', () => {
-    const totalPag = totalPaginas(base.quantity);
+    const totalPag = totalPaginas(base.quantity, base.ticketsPorPagina);
     const numeros = numerosDePagina(base, totalPag - 1);
     const sobran = base.quantity - TICKETS_PER_PAGE * (totalPag - 1);
     expect(numeros).toHaveLength(sobran);
@@ -80,6 +105,19 @@ describe('numerosDePagina', () => {
   it('respeta un startNumber distinto de 1', () => {
     const numeros = numerosDePagina({ ...base, startNumber: 100, quantity: 5 }, 0);
     expect(numeros).toEqual(['100', '101', '102', '103', '104']);
+  });
+
+  it('respeta un ticketsPorPagina menor al máximo', () => {
+    const config = { ...base, quantity: 25, ticketsPorPagina: 10 };
+    expect(numerosDePagina(config, 0)).toHaveLength(10);
+    expect(numerosDePagina(config, 1)).toHaveLength(10);
+    expect(numerosDePagina(config, 2)).toHaveLength(5);
+    expect(totalPaginas(config.quantity, config.ticketsPorPagina)).toBe(3);
+  });
+
+  it('nunca supera TICKETS_PER_PAGE aunque se pida más', () => {
+    const config = { ...base, quantity: 40, ticketsPorPagina: 999 };
+    expect(numerosDePagina(config, 0)).toHaveLength(TICKETS_PER_PAGE);
   });
 });
 
@@ -123,10 +161,16 @@ describe('lineasHeader', () => {
     expect(lineasHeader({ ...vacio, date: '15 dic' }).map((l) => l.texto)).toEqual([
       'Fecha: 15 dic',
     ]);
-    expect(lineasHeader({ ...vacio, cost: '$50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
-    expect(lineasHeader({ ...vacio, date: '15 dic', cost: '$50' }).map((l) => l.texto)).toEqual([
+    expect(lineasHeader({ ...vacio, cost: '50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
+    expect(lineasHeader({ ...vacio, date: '15 dic', cost: '50' }).map((l) => l.texto)).toEqual([
       'Fecha: 15 dic  |  Costo: $50',
     ]);
+  });
+
+  it('el costo siempre lleva "$" al frente, lo haya tecleado el usuario o no', () => {
+    expect(lineasHeader({ ...vacio, cost: '50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
+    expect(lineasHeader({ ...vacio, cost: '$50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
+    expect(lineasHeader({ ...vacio, cost: '$ 50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
   });
 
   it('omite la línea de contacto si no hay organizador ni teléfono', () => {
@@ -156,5 +200,10 @@ describe('lineasHeader', () => {
       'Juan - 744...',
     ]);
     expect(lineas[0]).toMatchObject({ tamano: 18, negrita: true, secundario: false });
+  });
+
+  it('marca esPremio solo en la línea de premio, para saber dónde va la miniatura', () => {
+    const lineas = lineasHeader({ ...vacio, eventName: 'Rifa', prize: 'Una tele', date: '24 dic' });
+    expect(lineas.map((l) => l.esPremio ?? false)).toEqual([false, true, false]);
   });
 });
