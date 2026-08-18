@@ -16,6 +16,8 @@ export type Herramienta = {
   descripcion: string; // una línea, la que se lee en la tarjeta
   icono: ComponentType; // SVG a trazo, no emoji
   ruta: string; // '/herramientas/acomoda-impresion'
+  /** Solo si la herramienta también tiene versión pública, sin sesión, colgando de /imprimir. */
+  rutaPublica?: string; // '/imprimir/acomoda-impresion'
   roles: Rol[]; // ['admin', 'cajera']
   estado: EstadoHerramienta;
 };
@@ -27,6 +29,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     descripcion: 'Acomoda varias imágenes en hojas, arma el PDF y calcula cuánto cobrar.',
     icono: IconoHojas,
     ruta: '/herramientas/acomoda-impresion',
+    rutaPublica: '/imprimir/acomoda-impresion',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },
@@ -67,4 +70,9 @@ export function herramientasDe(rol: Rol): Herramienta[] {
 
 export function herramientaPorId(id: string): Herramienta | undefined {
   return HERRAMIENTAS.find((h) => h.id === id);
+}
+
+/** Las herramientas con versión pública, para el índice sin sesión de /imprimir. */
+export function herramientasPublicas(): Herramienta[] {
+  return HERRAMIENTAS.filter((h) => h.rutaPublica && h.estado !== 'proxima');
 }

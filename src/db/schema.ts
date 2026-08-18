@@ -35,7 +35,7 @@ export const branches = pgTable('branches', {
   name: text('name').notNull(),
   address: text('address'),
   phone: text('phone'),
-  // Adónde llegan los pedidos de /imprimir (Acomoda Impresión pública). Sin signos ni
+  // Adónde llegan los pedidos de /imprimir/acomoda-impresion (Acomoda Impresión pública). Sin signos ni
   // espacios: es el número que arma el link `wa.me`.
   whatsappNumber: text('whatsapp_number'),
   isActive: boolean('is_active').notNull().default(true),

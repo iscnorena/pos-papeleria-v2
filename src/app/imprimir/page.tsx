@@ -1,44 +1,44 @@
-import { and, asc, eq, isNotNull } from 'drizzle-orm';
+import Link from 'next/link';
 
 import { POS } from '@/config/pos';
-import { db } from '@/db';
-import { branches } from '@/db/schema';
-import { ImprimirPublico } from './ImprimirPublico';
+import { herramientasPublicas } from '@/tools/registry';
 
-// Versión pública de Acomoda Impresión (Fase 7): sin cuenta, para que cualquier cliente
-// arme su PDF desde el celular y lo mande por WhatsApp a la papelería. Fuera del grupo
-// (app) a propósito, igual que el ticket: sin sesión ni navegación de admin, y el `proxy`
-// la deja pasar (§ ver comentario ahí). La herramienta interna, con precios, no se toca.
+// Índice de herramientas gratuitas, sin sesión. Crece según se agreguen `rutaPublica` al
+// registro (§Fase 6 extendido) — no hay nada que tocar aquí al sumar una herramienta más.
 
-export default async function ImprimirPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ sucursal?: string }>;
-}) {
-  const { sucursal } = await searchParams;
-  const idSucursal = Number(sucursal);
-
-  const condiciones = [eq(branches.isActive, true), isNotNull(branches.whatsappNumber)];
-  if (Number.isInteger(idSucursal)) condiciones.push(eq(branches.id, idSucursal));
-
-  const [destino] = await db
-    .select({ whatsappNumber: branches.whatsappNumber })
-    .from(branches)
-    .where(and(...condiciones))
-    .orderBy(asc(branches.id))
-    .limit(1);
-
-  if (!destino?.whatsappNumber) {
-    return (
-      <main className="flex min-h-dvh items-center justify-center bg-papel p-6 text-center">
-        <p className="max-w-xs text-cuerpo text-grafito">
-          Esta herramienta no está disponible por el momento.
-        </p>
-      </main>
-    );
-  }
+export default function ImprimirPage() {
+  const herramientas = herramientasPublicas();
 
   return (
-    <ImprimirPublico nombreNegocio={POS.nombreNegocio} whatsappNumber={destino.whatsappNumber} />
+    <main className="min-h-dvh bg-papel pb-10">
+      <header className="border-b border-linea-fuerte bg-white px-4 py-3">
+        <h1 className="font-display text-cuerpo font-semibold text-tinta">{POS.nombreNegocio}</h1>
+        <p className="text-fino text-grafito">Herramientas gratis, sin necesidad de cuenta</p>
+      </header>
+
+      <ul className="mx-auto flex max-w-md flex-col gap-3 px-4 py-5">
+        {herramientas.map((h) => {
+          const Icono = h.icono;
+          return (
+            <li key={h.id}>
+              <Link
+                href={h.rutaPublica!}
+                className="flex items-center gap-3 border border-linea-fuerte bg-white p-4 shadow-impresa transition-colors duration-avance hover:bg-papel-hondo"
+              >
+                <span className="text-tinta">
+                  <Icono />
+                </span>
+                <span>
+                  <span className="block font-display text-cuerpo font-semibold text-tinta">
+                    {h.nombre}
+                  </span>
+                  <span className="block text-fino text-grafito">{h.descripcion}</span>
+                </span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </main>
   );
 }

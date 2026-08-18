@@ -7,7 +7,7 @@ import { db } from '@/db';
 import { loginAttempts } from '@/db/schema';
 
 // Límite de intentos por IP, genérico: lo usa el PIN del login (§5) y la búsqueda pública
-// de bancos de imágenes de /imprimir. Los intentos van a la base y no a memoria porque
+// de bancos de imágenes de /imprimir/acomoda-impresion. Los intentos van a la base y no a memoria porque
 // cada request puede caer en una instancia distinta (§1.1). `kind` es la columna que
 // distingue un límite de otro dentro de la misma tabla `login_attempts`.
 

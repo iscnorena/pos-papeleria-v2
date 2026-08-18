@@ -17,9 +17,11 @@ import { auth } from '@/auth';
  * tiene cuenta. Lo que la protege no es la sesión sino el token opaco de 32 bytes, que no
  * se puede adivinar ni recorrer — por eso la URL lleva el token y nunca el id de la venta.
  *
- * `/imprimir` es la versión pública de Acomoda Impresión: cualquiera arma su PDF desde el
- * celular sin cuenta. `/api/imprimir/…` son sus rutas de apoyo (búsqueda en bancos de
- * imágenes), con su propio límite por IP en vez de sesión — ver `src/lib/limiteIntentos.ts`.
+ * `/imprimir` es el índice de herramientas públicas, sin cuenta (hoy: Acomoda Impresión en
+ * `/imprimir/acomoda-impresion`, e irá creciendo). Como el filtro es por prefijo, cualquier
+ * subruta nueva bajo `/imprimir/` queda pública sin tocar esta función. `/api/imprimir/…`
+ * son las rutas de apoyo de Acomoda Impresión pública (búsqueda en bancos de imágenes), con
+ * su propio límite por IP en vez de sesión — ver `src/lib/limiteIntentos.ts`.
  */
 function esPublica(pathname: string): boolean {
   return (
