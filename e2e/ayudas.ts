@@ -310,3 +310,13 @@ export async function limpiarIntentos(): Promise<void> {
     await sql.end({ timeout: 5 });
   }
 }
+
+/** Limpia el límite por IP de la búsqueda pública de /imprimir, sin tocar el del PIN. */
+export async function limpiarIntentosBusquedaPublica(): Promise<void> {
+  const sql = conectar();
+  try {
+    await sql`delete from login_attempts where kind = 'busqueda_imagenes_publica'`;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}

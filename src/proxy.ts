@@ -16,9 +16,19 @@ import { auth } from '@/auth';
  * `/ticket/…` está aquí a propósito (§6): el cliente abre su ticket desde el teléfono y no
  * tiene cuenta. Lo que la protege no es la sesión sino el token opaco de 32 bytes, que no
  * se puede adivinar ni recorrer — por eso la URL lleva el token y nunca el id de la venta.
+ *
+ * `/imprimir` es la versión pública de Acomoda Impresión: cualquiera arma su PDF desde el
+ * celular sin cuenta. `/api/imprimir/…` son sus rutas de apoyo (búsqueda en bancos de
+ * imágenes), con su propio límite por IP en vez de sesión — ver `src/lib/limiteIntentos.ts`.
  */
 function esPublica(pathname: string): boolean {
-  return pathname === '/login' || pathname.startsWith('/ticket/');
+  return (
+    pathname === '/login' ||
+    pathname.startsWith('/ticket/') ||
+    pathname === '/imprimir' ||
+    pathname.startsWith('/imprimir/') ||
+    pathname.startsWith('/api/imprimir/')
+  );
 }
 
 export const proxy = auth((req) => {
