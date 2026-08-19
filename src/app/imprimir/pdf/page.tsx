@@ -7,6 +7,10 @@ import { HERRAMIENTAS_PDF, subHerramientasPdfListas } from '@/tools/pdf/registro
 // Índice público de "Herramientas de PDF", sin sesión — cuelga de /imprimir. Mismo
 // criterio que el índice principal: cada sub-herramienta aparece solo si su interruptor
 // en `tool_settings` está prendido.
+//
+// `force-dynamic`: ver el comentario en ../page.tsx — sin esto, `revalidatePath` no
+// siempre gana la carrera contra el Full Route Cache de Vercel.
+export const dynamic = 'force-dynamic';
 
 export default async function ImprimirPdfPage() {
   const listas = subHerramientasPdfListas();

@@ -16,6 +16,10 @@ import { GeneradorRifas } from '@/tools/rifas/GeneradorRifas';
 // diferencia de /imprimir/acomoda-impresion, que SOLO tiene WhatsApp y por eso sí bloquea
 // del todo sin número). Lo que SÍ bloquea del todo es el interruptor de "Disponible al
 // público" — si el admin lo apagó, ni la URL directa sirve.
+//
+// `force-dynamic`: sin esto, Vercel puede servir esta página desde el Full Route Cache y
+// `revalidatePath` (en la Server Action del interruptor) no siempre la invalida a tiempo.
+export const dynamic = 'force-dynamic';
 
 export default async function RifasPublicoPage({
   searchParams,

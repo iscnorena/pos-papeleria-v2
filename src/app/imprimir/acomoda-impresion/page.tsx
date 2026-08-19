@@ -15,6 +15,10 @@ import { ImprimirPublico } from './ImprimirPublico';
 // Cuelga de /imprimir, que es el índice de herramientas públicas (ver ../page.tsx) — esta
 // es una de las tarjetas, no la raíz. Bloquea si el admin apagó el interruptor de
 // "Disponible al público" en la pantalla interna, o si ninguna sucursal tiene WhatsApp.
+//
+// `force-dynamic`: sin esto, Vercel puede servir esta página desde el Full Route Cache y
+// `revalidatePath` (en la Server Action del interruptor) no siempre la invalida a tiempo.
+export const dynamic = 'force-dynamic';
 
 export default async function AcomodaImpresionPublicoPage({
   searchParams,

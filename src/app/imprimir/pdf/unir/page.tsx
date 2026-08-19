@@ -10,6 +10,10 @@ import { UnirPdf } from '@/tools/pdf/UnirPdf';
 // colgando de /imprimir/pdf. Mismo criterio que Rifas: el interruptor de "Disponible al
 // público" bloquea del todo si está apagado; el WhatsApp es un extra, no bloquea si no
 // hay sucursal con número configurado (a diferencia de Acomoda Impresión pública).
+//
+// `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
+// siempre gana la carrera contra el Full Route Cache de Vercel.
+export const dynamic = 'force-dynamic';
 
 export default async function ImprimirPdfUnirPage({
   searchParams,

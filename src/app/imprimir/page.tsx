@@ -12,6 +12,13 @@ import { herramientasConVersionPublica } from '@/tools/registry';
 //
 // El grupo "pdf" es especial: no tiene su propio interruptor, aparece si al menos una
 // sub-herramienta de PDF (Unir, etc.) está pública.
+//
+// `force-dynamic`: sin esto, Vercel puede servir esta página desde el Full Route Cache y
+// `revalidatePath` (en la Server Action del interruptor) no siempre la invalida a tiempo
+// — se vio en producción que el checkbox cambiaba en la base pero el índice seguía
+// mostrando la lista vieja. Es una pantalla de bajo tráfico; la corrección importa más
+// que el ahorro de cachearla.
+export const dynamic = 'force-dynamic';
 
 export default async function ImprimirPage() {
   const candidatas = herramientasConVersionPublica();
