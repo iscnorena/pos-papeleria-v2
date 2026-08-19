@@ -68,3 +68,14 @@ export function IconoUnirPdf() {
     </svg>
   );
 }
+
+export function IconoDividirPdf() {
+  return (
+    <svg {...comunes}>
+      <path d="M6 2h8l4 4v6H6z" />
+      <path d="M14 2v4h4" />
+      <path d="M6 12h16l-4 4v6H10v-6z" />
+      <path d="M18 12v4h4" />
+    </svg>
+  );
+}

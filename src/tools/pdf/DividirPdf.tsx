@@ -1,0 +1,204 @@
+'use client';
+
+import { useState } from 'react';
+
+import { PDF } from '@/config/pos';
+import { Aviso } from '@/components/ui/Aviso';
+import { Boton } from '@/components/ui/Boton';
+import { Campo } from '@/components/ui/Campo';
+import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
+import { tamanoArchivo } from '@/lib/formato';
+import { analizarRangos, dividirPdf, textoUnaPorPagina } from './dividir';
+import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
+
+// Componente único, compartido por la ruta interna (/herramientas/pdf/dividir, con
+// sesión) y la pública (/imprimir/pdf/dividir, sin sesión) — mismo patrón que UnirPdf: el
+// botón de WhatsApp solo aparece si se recibe `whatsappNumber`.
+
+const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya dividido.';
+
+function nombreBase(nombre: string): string {
+  return nombre.replace(/\.pdf$/i, '');
+}
+
+/** Descarga varios archivos en secuencia, con una pausa corta entre cada uno: varias
+ * descargas disparadas de golpe se topan con el bloqueo de pop-ups de algunos navegadores. */
+async function descargarVarios(archivos: { bytes: Uint8Array; nombreArchivo: string }[]) {
+  for (const { bytes, nombreArchivo } of archivos) {
+    const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = nombreArchivo;
+    enlace.click();
+    URL.revokeObjectURL(url);
+    if (archivos.length > 1) await new Promise((resolve) => setTimeout(resolve, 300));
+  }
+}
+
+export function DividirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
+  const [archivo, setArchivo] = useState<ArchivoPdf | null>(null);
+  const [rangosTexto, setRangosTexto] = useState('');
+  const [generando, setGenerando] = useState(false);
+  const [enviando, setEnviando] = useState(false);
+  const [aviso, setAviso] = useState<{ texto: string; tono: 'error' | 'neutro' } | null>(null);
+
+  async function cargarArchivo(lista: FileList | null) {
+    const elegido = lista?.[0];
+    if (!elegido) return;
+    setAviso(null);
+    try {
+      const cargado = await cargarPdf(elegido);
+      setArchivo(cargado);
+      setRangosTexto('');
+    } catch {
+      setAviso({
+        texto: 'Ese archivo no es un PDF válido (o está dañado). Intenta con otro.',
+        tono: 'error',
+      });
+    }
+  }
+
+  /** Valida los rangos escritos contra `archivo`; si algo falla, deja el aviso puesto y
+   * devuelve `null` — quien llama simplemente no continúa. */
+  function validarRangos() {
+    if (!archivo) return null;
+    try {
+      const rangos = analizarRangos(rangosTexto, archivo.paginas);
+      if (rangos.length > PDF.dividirPartesMaximo) {
+        setAviso({
+          texto: `Son demasiadas partes: el máximo es ${PDF.dividirPartesMaximo}.`,
+          tono: 'error',
+        });
+        return null;
+      }
+      return rangos;
+    } catch (error) {
+      setAviso({ texto: (error as Error).message, tono: 'error' });
+      return null;
+    }
+  }
+
+  async function dividirYDescargar() {
+    setAviso(null);
+    const rangos = validarRangos();
+    if (!rangos || !archivo) return;
+
+    setGenerando(true);
+    try {
+      const partes = await dividirPdf(archivo.bytes, rangos);
+      const base = nombreBase(archivo.nombre);
+      await descargarVarios(
+        partes.map((bytes, i) => ({ bytes, nombreArchivo: `${base}-parte-${i + 1}.pdf` })),
+      );
+    } catch {
+      setAviso({ texto: 'No se pudo dividir el PDF. Intenta de nuevo.', tono: 'error' });
+    } finally {
+      setGenerando(false);
+    }
+  }
+
+  async function dividirYEnviarPorWhatsapp() {
+    if (!whatsappNumber) return;
+    setAviso(null);
+    const rangos = validarRangos();
+    if (!rangos || !archivo) return;
+
+    setEnviando(true);
+    try {
+      const partes = await dividirPdf(archivo.bytes, rangos);
+      const base = nombreBase(archivo.nombre);
+      await compartirPdfPorWhatsapp({
+        archivos: partes.map((bytes, i) => ({
+          bytes,
+          nombreArchivo: `${base}-parte-${i + 1}.pdf`,
+        })),
+        whatsappNumber,
+        tituloCompartir: 'PDF dividido',
+        textoCompartir: TEXTO_WHATSAPP,
+        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+      });
+    } catch {
+      setAviso({ texto: 'No se pudo dividir el PDF. Intenta de nuevo.', tono: 'error' });
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  const listo = archivo !== null && rangosTexto.trim().length > 0;
+
+  return (
+    <div className="mx-auto flex max-w-md flex-col gap-5">
+      <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
+        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Tu PDF</h2>
+
+        <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
+          {archivo ? 'Cambiar PDF' : 'Agregar PDF'}
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            className="sr-only"
+            onChange={(e) => {
+              void cargarArchivo(e.target.files);
+              e.target.value = '';
+            }}
+          />
+        </label>
+
+        {archivo && (
+          <p className="mt-3 text-fino text-tinta">
+            {archivo.nombre}
+            <span className="block text-micro text-grafito-claro">
+              {archivo.paginas} {archivo.paginas === 1 ? 'página' : 'páginas'} ·{' '}
+              {tamanoArchivo(archivo.bytes.byteLength)}
+            </span>
+          </p>
+        )}
+      </section>
+
+      {archivo && (
+        <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
+          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Cómo dividirlo</h2>
+          <Campo
+            etiqueta="Rangos de páginas"
+            placeholder="Ej. 1-3, 4-6"
+            ayuda={`Un archivo por rango. El PDF tiene ${archivo.paginas} ${archivo.paginas === 1 ? 'página' : 'páginas'}.`}
+            value={rangosTexto}
+            onChange={(e) => setRangosTexto(e.target.value)}
+          />
+          <Boton
+            variante="secundaria"
+            className="mt-2"
+            onClick={() => setRangosTexto(textoUnaPorPagina(archivo.paginas))}
+          >
+            Una página por archivo
+          </Boton>
+        </section>
+      )}
+
+      {aviso && <Aviso tono={aviso.tono}>{aviso.texto}</Aviso>}
+
+      <div className={whatsappNumber ? 'grid grid-cols-2 gap-2' : ''}>
+        <Boton
+          tamano="tecla"
+          variante={whatsappNumber ? 'secundaria' : 'primaria'}
+          className="w-full"
+          disabled={!listo || generando || enviando}
+          onClick={() => void dividirYDescargar()}
+        >
+          {generando ? 'Dividiendo…' : 'Dividir y descargar'}
+        </Boton>
+        {whatsappNumber && (
+          <Boton
+            tamano="tecla"
+            className="w-full"
+            disabled={!listo || generando || enviando}
+            onClick={() => void dividirYEnviarPorWhatsapp()}
+          >
+            {enviando ? 'Dividiendo…' : 'Enviar por WhatsApp'}
+          </Boton>
+        )}
+      </div>
+    </div>
+  );
+}

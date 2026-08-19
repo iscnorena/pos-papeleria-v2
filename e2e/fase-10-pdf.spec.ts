@@ -3,10 +3,10 @@ import { expect, test } from '@playwright/test';
 import { archivoPdf } from './pdf';
 import { conectar, entrarComo } from './ayudas';
 
-// Herramientas de PDF (§ fuera de la spec original, como fase-9): primera sub-herramienta,
-// "Unir PDF", en /herramientas/pdf/unir (con sesión) y /imprimir/pdf/unir (pública, si el
-// admin prendió el interruptor). El grupo "Herramientas de PDF" ya no es `proxima` (ver
-// fix en fase-6-herramientas.spec.ts, prueba 3).
+// Herramientas de PDF (§ fuera de la spec original, como fase-9): "Unir PDF" y "Dividir
+// PDF", cada una en /herramientas/pdf/<id> (con sesión) y /imprimir/pdf/<id> (pública, si
+// el admin prendió el interruptor). El grupo "Herramientas de PDF" ya no es `proxima`
+// (ver fix en fase-6-herramientas.spec.ts, prueba 3).
 //
 // El interruptor de "Disponible al público" (`tool_settings`) empieza apagado por defecto
 // para herramientas nuevas — cada prueba que lo prende lo deja apagado al terminar, para
@@ -23,6 +23,7 @@ async function apagarVisibilidad(id: string) {
 
 test.afterEach(async () => {
   await apagarVisibilidad('unir');
+  await apagarVisibilidad('dividir');
 });
 
 test('1 · /herramientas/pdf lista "Unir PDF" y ya no está atenuada', async ({ page }) => {
@@ -134,4 +135,93 @@ test('5 · el interruptor público controla /imprimir/pdf/unir y los dos índice
   await publica3.goto('/imprimir');
   await expect(publica3.getByRole('link', { name: /Herramientas de PDF/i })).toHaveCount(0);
   await publica3.close();
+});
+
+test('6 · /herramientas/pdf lista "Dividir PDF" y ya no está atenuada', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  const respuesta = await page.goto('/herramientas/pdf');
+  expect(respuesta?.status()).toBe(200);
+
+  const tarjeta = page.locator('li').filter({ hasText: 'Dividir PDF' });
+  await expect(tarjeta).toBeVisible();
+  await expect(tarjeta.locator('[aria-disabled="true"]')).toHaveCount(0);
+  await expect(tarjeta.getByRole('link')).toHaveCount(1);
+});
+
+test('7 · dividir por rangos produce un archivo por rango, con las páginas correctas', async ({
+  page,
+}) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/dividir');
+
+  await expect(page.getByRole('button', { name: 'Dividir y descargar' })).toBeDisabled();
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 5));
+  await expect(page.getByText('reporte.pdf')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Dividir y descargar' })).toBeDisabled(); // sin rangos aún
+
+  await page.getByLabel('Rangos de páginas').fill('1-2, 3-5');
+
+  const descargas: import('@playwright/test').Download[] = [];
+  page.on('download', (d) => descargas.push(d));
+  await page.getByRole('button', { name: 'Dividir y descargar' }).click();
+  await expect.poll(() => descargas.length).toBe(2);
+
+  const { PDFDocument } = await import('pdf-lib');
+  const fs = await import('node:fs/promises');
+  const esperadoPorNombre: Record<string, number> = {
+    'reporte-parte-1.pdf': 2,
+    'reporte-parte-2.pdf': 3,
+  };
+  for (const descarga of descargas) {
+    const bytes = await fs.readFile((await descarga.path())!);
+    const documento = await PDFDocument.load(bytes);
+    expect(documento.getPageCount()).toBe(esperadoPorNombre[descarga.suggestedFilename()]);
+  }
+});
+
+test('8 · "Una página por archivo" arma el rango automáticamente', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/dividir');
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 4));
+  await page.getByRole('button', { name: 'Una página por archivo' }).click();
+  await expect(page.getByLabel('Rangos de páginas')).toHaveValue('1, 2, 3, 4');
+});
+
+test('9 · un rango fuera de las páginas del PDF avisa, sin tronar', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/dividir');
+
+  const erroresDeConsola: string[] = [];
+  page.on('pageerror', (error) => erroresDeConsola.push(error.message));
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 3));
+  await page.getByLabel('Rangos de páginas').fill('1-9');
+  await page.getByRole('button', { name: 'Dividir y descargar' }).click();
+
+  await expect(page.getByText(/solo tiene 3 páginas/)).toBeVisible();
+  expect(erroresDeConsola).toEqual([]);
+});
+
+test('10 · el interruptor público controla /imprimir/pdf/dividir', async ({ page, context }) => {
+  const publica1 = await context.newPage();
+  await publica1.goto('/imprimir/pdf/dividir');
+  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await publica1.close();
+
+  await entrarComo(page, 'admin');
+  await page.goto('/herramientas/pdf/dividir');
+  const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
+  await expect(interruptor).not.toBeChecked();
+  await interruptor.check();
+  await expect(interruptor).toBeEnabled();
+
+  const publica2 = await context.newPage();
+  await publica2.goto('/imprimir/pdf/dividir');
+  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await publica2.close();
+
+  await interruptor.uncheck();
+  await expect(interruptor).toBeEnabled();
 });

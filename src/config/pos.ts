@@ -25,6 +25,9 @@ export const RIFAS = {
 export const PDF = {
   // Tope contra que el navegador se congele leyendo/uniendo demasiados PDF de golpe.
   unirArchivosMaximo: 20,
+  // Tope contra que el navegador se congele armando demasiadas partes de golpe (ej. un
+  // PDF de 500 páginas dividido "una por archivo" dispararía 500 descargas).
+  dividirPartesMaximo: 40,
 } as const;
 
 export type MetodoPago = keyof typeof POS.metodosPago;

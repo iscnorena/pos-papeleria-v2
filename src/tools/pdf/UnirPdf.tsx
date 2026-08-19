@@ -93,8 +93,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
     try {
       const bytes = await unirPdfs(archivos);
       await compartirPdfPorWhatsapp({
-        bytes,
-        nombreArchivo: `unido-${Date.now()}.pdf`,
+        archivos: [{ bytes, nombreArchivo: `unido-${Date.now()}.pdf` }],
         whatsappNumber,
         tituloCompartir: 'PDF unido',
         textoCompartir: TEXTO_WHATSAPP,

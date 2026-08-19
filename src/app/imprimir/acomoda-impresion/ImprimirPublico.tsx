@@ -94,8 +94,7 @@ export function ImprimirPublico({
       );
       const bytes = await generarPdf(config, paraPdf);
       await compartirPdfPorWhatsapp({
-        bytes,
-        nombreArchivo: 'impresion.pdf',
+        archivos: [{ bytes, nombreArchivo: 'impresion.pdf' }],
         whatsappNumber,
         tituloCompartir: 'Impresión',
         textoCompartir: 'Hola, les mando este archivo para imprimir 🖨️',

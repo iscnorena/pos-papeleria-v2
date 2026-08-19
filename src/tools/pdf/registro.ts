@@ -1,12 +1,13 @@
 import type { ComponentType } from 'react';
 
-import { IconoPdf, IconoUnirPdf } from '../iconos';
+import { IconoDividirPdf, IconoPdf, IconoUnirPdf } from '../iconos';
 
 // Sub-registro de "Herramientas de PDF" (id 'pdf' en src/tools/registry.ts), mismo
 // espíritu que ese archivo pero un nivel más abajo: cada entrada es una pantalla propia
 // en /herramientas/pdf/<id> (y, si `tieneVersionPublica`, en /imprimir/pdf/<id>).
 //
-// Vamos agregándolas una por una, como el resto del registro — empezamos con "Unir PDF".
+// Vamos agregándolas una por una, como el resto del registro — "Unir PDF" y "Dividir PDF"
+// ya están, "Convertir PDF" sigue de próxima.
 
 export type EstadoSubHerramienta = 'lista' | 'proxima';
 
@@ -34,10 +35,10 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     id: 'dividir',
     nombre: 'Dividir PDF',
     descripcion: 'Separa un PDF en archivos más chicos, por rango de páginas.',
-    icono: IconoPdf,
+    icono: IconoDividirPdf,
     ruta: '/herramientas/pdf/dividir',
     rutaPublica: '/imprimir/pdf/dividir',
-    estado: 'proxima',
+    estado: 'lista',
   },
   {
     id: 'convertir',

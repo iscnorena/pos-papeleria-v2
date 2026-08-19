@@ -187,8 +187,7 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
         setProgreso({ actual, total }),
       );
       await compartirPdfPorWhatsapp({
-        bytes: resultado.bytes,
-        nombreArchivo: `rifa-${Date.now()}.pdf`,
+        archivos: [{ bytes: resultado.bytes, nombreArchivo: `rifa-${Date.now()}.pdf` }],
         whatsappNumber,
         tituloCompartir: 'Rifa',
         textoCompartir: TEXTO_WHATSAPP,
