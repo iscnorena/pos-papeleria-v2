@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  ALTO_ENCABEZADO,
   CONTENT_HEIGHT,
+  CONTENT_WIDTH,
   ESPACIO_RAYA_MM,
+  MARGIN,
   MM,
+  PAGE_WIDTH,
   alturaEncabezado,
+  alturaRenglonEncabezado,
   areaDibujo,
   areaRayado,
   hexARgb,
@@ -14,45 +17,58 @@ import {
   posicionesDobleRaya,
   posicionesRaya,
   sanearTexto,
+  xParaPosicion,
 } from './layout';
 
 describe('lineasEncabezado', () => {
-  const vacio = { nombre: '', materia: '', fecha: '', gradoGrupo: '' };
+  const vacio = {
+    nombre: '',
+    nombrePosicion: 'izquierda' as const,
+    materia: '',
+    materiaPosicion: 'izquierda' as const,
+    fecha: '',
+    fechaPosicion: 'izquierda' as const,
+    gradoGrupo: '',
+    gradoGrupoPosicion: 'izquierda' as const,
+  };
 
   it('sin ningún campo, no hay encabezado', () => {
     expect(lineasEncabezado(vacio)).toEqual([]);
   });
 
-  it('solo el nombre: una línea, en negrita', () => {
-    const lineas = lineasEncabezado({ ...vacio, nombre: 'Juan Pérez' });
-    expect(lineas).toEqual([{ texto: 'Juan Pérez', tamano: 15, negrita: true }]);
+  it('solo el nombre: un renglón, en negrita, con su propia posición', () => {
+    const lineas = lineasEncabezado({ ...vacio, nombre: 'Juan Pérez', nombrePosicion: 'derecha' });
+    expect(lineas).toEqual([
+      { texto: 'Juan Pérez', tamano: 15, negrita: true, posicion: 'derecha' },
+    ]);
   });
 
-  it('solo un dato secundario (sin nombre): una sola línea, sin negrita', () => {
-    const lineas = lineasEncabezado({ ...vacio, materia: 'Matemáticas' });
-    expect(lineas).toEqual([{ texto: 'Matemáticas', tamano: 10, negrita: false }]);
-  });
-
-  it('junta los datos secundarios presentes con "·", en orden materia/grado/fecha', () => {
+  it('cada dato presente es SU PROPIO renglón (nunca se juntan en una línea)', () => {
     const lineas = lineasEncabezado({
       ...vacio,
       materia: 'Español',
       fecha: '24 de agosto',
       gradoGrupo: '3° B',
     });
-    expect(lineas.at(-1)?.texto).toBe('Español   ·   3° B   ·   24 de agosto');
+    expect(lineas.map((l) => l.texto)).toEqual(['Español', '24 de agosto', '3° B']);
   });
 
-  it('con todos los campos, salen las dos líneas en orden nombre / resto', () => {
+  it('con los cuatro campos, salen los cuatro renglones en orden fijo: nombre, materia, fecha, grado y grupo', () => {
     const lineas = lineasEncabezado({
       nombre: 'Ana',
+      nombrePosicion: 'centro',
       materia: 'Historia',
+      materiaPosicion: 'izquierda',
       fecha: '1 de septiembre',
+      fechaPosicion: 'derecha',
       gradoGrupo: '5° A',
+      gradoGrupoPosicion: 'izquierda',
     });
-    expect(lineas.map((l) => l.texto)).toEqual([
-      'Ana',
-      'Historia   ·   5° A   ·   1 de septiembre',
+    expect(lineas.map((l) => ({ texto: l.texto, posicion: l.posicion }))).toEqual([
+      { texto: 'Ana', posicion: 'centro' },
+      { texto: 'Historia', posicion: 'izquierda' },
+      { texto: '1 de septiembre', posicion: 'derecha' },
+      { texto: '5° A', posicion: 'izquierda' },
     ]);
   });
 
@@ -67,12 +83,61 @@ describe('alturaEncabezado / areaRayado', () => {
     expect(areaRayado([])).toEqual({ y: 0, alto: CONTENT_HEIGHT });
   });
 
-  it('con líneas, se reserva la banda fija más el espacio tras el encabezado', () => {
-    const lineas = lineasEncabezado({ nombre: 'X', materia: '', fecha: '', gradoGrupo: '' });
+  it('con líneas, se reserva la suma de cada renglón más el espacio tras el encabezado', () => {
+    const lineas = lineasEncabezado({
+      nombre: 'X',
+      nombrePosicion: 'izquierda' as const,
+      materia: '',
+      materiaPosicion: 'izquierda' as const,
+      fecha: '',
+      fechaPosicion: 'izquierda' as const,
+      gradoGrupo: '',
+      gradoGrupoPosicion: 'izquierda' as const,
+    });
     const { y, alto } = areaRayado(lineas);
     expect(y).toBeGreaterThan(0);
     expect(y + alto).toBe(CONTENT_HEIGHT);
-    expect(alturaEncabezado(lineas)).toBe(ALTO_ENCABEZADO);
+    expect(alturaEncabezado(lineas)).toBeGreaterThan(alturaRenglonEncabezado(lineas[0]!.tamano));
+  });
+
+  it('más renglones ocupan más alto de encabezado', () => {
+    const unSolo = lineasEncabezado({
+      nombre: 'X',
+      nombrePosicion: 'izquierda' as const,
+      materia: '',
+      materiaPosicion: 'izquierda' as const,
+      fecha: '',
+      fechaPosicion: 'izquierda' as const,
+      gradoGrupo: '',
+      gradoGrupoPosicion: 'izquierda' as const,
+    });
+    const cuatro = lineasEncabezado({
+      nombre: 'X',
+      nombrePosicion: 'izquierda' as const,
+      materia: 'Y',
+      materiaPosicion: 'izquierda' as const,
+      fecha: 'Z',
+      fechaPosicion: 'izquierda' as const,
+      gradoGrupo: 'W',
+      gradoGrupoPosicion: 'izquierda' as const,
+    });
+    expect(alturaEncabezado(cuatro)).toBeGreaterThan(alturaEncabezado(unSolo));
+  });
+});
+
+describe('xParaPosicion', () => {
+  it('izquierda queda pegado al margen', () => {
+    expect(xParaPosicion('izquierda', 100)).toBe(MARGIN);
+  });
+
+  it('derecha deja el borde derecho del texto pegado al margen derecho', () => {
+    const anchoTexto = 100;
+    expect(xParaPosicion('derecha', anchoTexto)).toBe(PAGE_WIDTH - MARGIN - anchoTexto);
+  });
+
+  it('centro reparte el espacio sobrante en partes iguales', () => {
+    const anchoTexto = 100;
+    expect(xParaPosicion('centro', anchoTexto)).toBe(MARGIN + (CONTENT_WIDTH - anchoTexto) / 2);
   });
 });
 

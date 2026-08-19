@@ -3,7 +3,6 @@ import { PDFDocument, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
 import { numerarPdf } from '@/tools/pdf/numerar';
 import {
-  ALTO_ENCABEZADO,
   CONTENT_WIDTH,
   COLOR_CAJA_DIBUJO,
   COLOR_CUADRICULA,
@@ -17,6 +16,8 @@ import {
   PAGE_WIDTH,
   TAMANO_CUADRO_ALEMAN_MM,
   TAMANO_CUADRO_C7_MM,
+  alturaEncabezado,
+  alturaRenglonEncabezado,
   areaDibujo,
   areaRayado,
   hexARgb,
@@ -25,6 +26,7 @@ import {
   posicionesDobleRaya,
   posicionesRaya,
   sanearTexto,
+  xParaPosicion,
   type EstiloHoja,
   type HojaLibretaConfig,
   type Rgb,
@@ -197,7 +199,16 @@ export async function generarHojaLibreta(
   const fecha = sanear('Fecha', config.fecha, regular);
   const gradoGrupo = sanear('Grado y grupo', config.gradoGrupo, regular);
 
-  const lineas = lineasEncabezado({ nombre, materia, fecha, gradoGrupo });
+  const lineas = lineasEncabezado({
+    nombre,
+    nombrePosicion: config.nombrePosicion,
+    materia,
+    materiaPosicion: config.materiaPosicion,
+    fecha,
+    fechaPosicion: config.fechaPosicion,
+    gradoGrupo,
+    gradoGrupoPosicion: config.gradoGrupoPosicion,
+  });
   const { y: yRayado, alto: altoRayado } = areaRayado(lineas);
 
   /** "distancia desde arriba del contenido" (+ alto opcional, para el borde inferior de
@@ -212,20 +223,24 @@ export async function generarHojaLibreta(
     if (lineas.length > 0) {
       let distancia = 0;
       for (const linea of lineas) {
-        distancia += linea.tamano * 0.9;
+        distancia += alturaRenglonEncabezado(linea.tamano);
         const fuente = linea.negrita ? bold : regular;
+        const anchoTexto = fuente.widthOfTextAtSize(linea.texto, linea.tamano);
+        // La línea base queda cerca del borde inferior de su propio renglón, nunca del
+        // siguiente: cada campo tiene su franja de alto fijo, así que un campo a la
+        // izquierda y otro a la derecha jamás comparten la misma altura de página.
         pagina.drawText(linea.texto, {
-          x: MARGIN,
-          y: y(distancia),
+          x: xParaPosicion(linea.posicion, anchoTexto),
+          y: y(distancia - linea.tamano * 0.25),
           size: linea.tamano,
           font: fuente,
           color: color(linea.negrita ? COLOR_TEXTO_ENCABEZADO : COLOR_TEXTO_SECUNDARIO),
         });
-        distancia += linea.tamano * 0.35;
       }
+      const alturaHeader = alturaEncabezado(lineas);
       pagina.drawLine({
-        start: { x: MARGIN, y: y(ALTO_ENCABEZADO) },
-        end: { x: PAGE_WIDTH - MARGIN, y: y(ALTO_ENCABEZADO) },
+        start: { x: MARGIN, y: y(alturaHeader) },
+        end: { x: PAGE_WIDTH - MARGIN, y: y(alturaHeader) },
         thickness: 0.75,
         color: color(COLOR_LINEA),
       });

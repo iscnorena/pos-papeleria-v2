@@ -8,7 +8,7 @@ import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
-import { ESTILOS_HOJA, type HojaLibretaConfig } from './layout';
+import { ESTILOS_HOJA, OPCIONES_POSICION_TEXTO, type HojaLibretaConfig } from './layout';
 import { generarHojaLibreta } from './pdf';
 import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 
@@ -20,9 +20,13 @@ const TEXTO_WHATSAPP = 'Hola, les mando esta hoja para imprimir 🖨️';
 
 const CONFIG_INICIAL: HojaLibretaConfig = {
   nombre: '',
+  nombrePosicion: 'izquierda',
   materia: '',
+  materiaPosicion: 'izquierda',
   fecha: '',
+  fechaPosicion: 'izquierda',
   gradoGrupo: '',
+  gradoGrupoPosicion: 'izquierda',
   estilo: 'raya',
   cantidad: 1,
   numerarPaginas: false,
@@ -121,32 +125,83 @@ export function GeneradorLibreta({ whatsappNumber }: { whatsappNumber?: string }
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
         <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Datos del alumno</h2>
-        <div className="grid grid-cols-2 gap-2">
-          <Campo
-            etiqueta="Nombre del alumno"
-            value={config.nombre}
-            onChange={(e) => actualizar('nombre', e.target.value)}
-          />
-          <Campo
-            etiqueta="Materia"
-            value={config.materia}
-            onChange={(e) => actualizar('materia', e.target.value)}
-          />
-          <Campo
-            etiqueta="Fecha"
-            placeholder="Ej. 24 de agosto"
-            value={config.fecha}
-            onChange={(e) => actualizar('fecha', e.target.value)}
-          />
-          <Campo
-            etiqueta="Grado y grupo"
-            placeholder="Ej. 3° B"
-            value={config.gradoGrupo}
-            onChange={(e) => actualizar('gradoGrupo', e.target.value)}
-          />
+        <div className="flex flex-col gap-2">
+          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <Campo
+              etiqueta="Nombre del alumno"
+              value={config.nombre}
+              onChange={(e) => actualizar('nombre', e.target.value)}
+            />
+            <Selector
+              etiqueta="Posición del nombre"
+              opciones={OPCIONES_POSICION_TEXTO}
+              value={config.nombrePosicion}
+              onChange={(e) =>
+                actualizar('nombrePosicion', e.target.value as HojaLibretaConfig['nombrePosicion'])
+              }
+              className="w-32"
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <Campo
+              etiqueta="Materia"
+              value={config.materia}
+              onChange={(e) => actualizar('materia', e.target.value)}
+            />
+            <Selector
+              etiqueta="Posición de la materia"
+              opciones={OPCIONES_POSICION_TEXTO}
+              value={config.materiaPosicion}
+              onChange={(e) =>
+                actualizar(
+                  'materiaPosicion',
+                  e.target.value as HojaLibretaConfig['materiaPosicion'],
+                )
+              }
+              className="w-32"
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <Campo
+              etiqueta="Fecha"
+              placeholder="Ej. 24 de agosto"
+              value={config.fecha}
+              onChange={(e) => actualizar('fecha', e.target.value)}
+            />
+            <Selector
+              etiqueta="Posición de la fecha"
+              opciones={OPCIONES_POSICION_TEXTO}
+              value={config.fechaPosicion}
+              onChange={(e) =>
+                actualizar('fechaPosicion', e.target.value as HojaLibretaConfig['fechaPosicion'])
+              }
+              className="w-32"
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+            <Campo
+              etiqueta="Grado y grupo"
+              placeholder="Ej. 3° B"
+              value={config.gradoGrupo}
+              onChange={(e) => actualizar('gradoGrupo', e.target.value)}
+            />
+            <Selector
+              etiqueta="Posición del grado y grupo"
+              opciones={OPCIONES_POSICION_TEXTO}
+              value={config.gradoGrupoPosicion}
+              onChange={(e) =>
+                actualizar(
+                  'gradoGrupoPosicion',
+                  e.target.value as HojaLibretaConfig['gradoGrupoPosicion'],
+                )
+              }
+              className="w-32"
+            />
+          </div>
         </div>
         <p className="mt-2 text-fino text-grafito">
-          Cada dato aparece solo si lo llenas. Si dejas todo en blanco, la hoja sale sin encabezado.
+          Cada dato aparece solo si lo llenas, en su propio renglón — así nunca se pisan aunque
+          elijas posiciones distintas. Si dejas todo en blanco, la hoja sale sin encabezado.
         </p>
       </section>
 

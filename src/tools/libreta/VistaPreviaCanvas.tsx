@@ -3,7 +3,6 @@
 import { useEffect, useRef } from 'react';
 
 import {
-  ALTO_ENCABEZADO,
   CONTENT_WIDTH,
   COLOR_CAJA_DIBUJO,
   COLOR_CUADRICULA,
@@ -17,12 +16,15 @@ import {
   PAGE_WIDTH,
   TAMANO_CUADRO_ALEMAN_MM,
   TAMANO_CUADRO_C7_MM,
+  alturaEncabezado,
+  alturaRenglonEncabezado,
   areaDibujo,
   areaRayado,
   lineasEncabezado,
   posicionesCuadricula,
   posicionesDobleRaya,
   posicionesRaya,
+  xParaPosicion,
   type HojaLibretaConfig,
 } from './layout';
 
@@ -65,20 +67,25 @@ export function VistaPreviaCanvas({ config }: { config: HojaLibretaConfig }) {
     const lineas = lineasEncabezado(config);
 
     if (lineas.length > 0) {
-      let y = MARGIN;
+      let distancia = 0;
+      ctx.textBaseline = 'alphabetic';
       for (const linea of lineas) {
-        y += linea.tamano * 0.9;
+        distancia += alturaRenglonEncabezado(linea.tamano);
         ctx.font = `${linea.negrita ? 'bold' : ''} ${linea.tamano}px sans-serif`.trim();
         ctx.fillStyle = linea.negrita ? COLOR_TEXTO_ENCABEZADO : COLOR_TEXTO_SECUNDARIO;
-        ctx.textBaseline = 'alphabetic';
-        ctx.fillText(linea.texto, MARGIN, y);
-        y += linea.tamano * 0.35;
+        const anchoTexto = ctx.measureText(linea.texto).width;
+        ctx.fillText(
+          linea.texto,
+          xParaPosicion(linea.posicion, anchoTexto),
+          MARGIN + distancia - linea.tamano * 0.25,
+        );
       }
+      const alturaHeader = alturaEncabezado(lineas);
       ctx.strokeStyle = COLOR_LINEA;
       ctx.lineWidth = 0.75;
       ctx.beginPath();
-      ctx.moveTo(MARGIN, MARGIN + ALTO_ENCABEZADO);
-      ctx.lineTo(PAGE_WIDTH - MARGIN, MARGIN + ALTO_ENCABEZADO);
+      ctx.moveTo(MARGIN, MARGIN + alturaHeader);
+      ctx.lineTo(PAGE_WIDTH - MARGIN, MARGIN + alturaHeader);
       ctx.stroke();
     }
 

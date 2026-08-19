@@ -21,7 +21,9 @@ export const ESPACIO_RAYA_MM = 8;
 export const ESPACIO_DOBLE_RAYA_PAR_MM = 2;
 export const ESPACIO_DOBLE_RAYA_RENGLON_MM = 12;
 export const TAMANO_CUADRO_C7_MM = 7;
-export const TAMANO_CUADRO_ALEMAN_MM = 10;
+/** "Cuadro alemán" = cuadrícula C-14 (14mm), tamaño real de papelería — confirmado por
+ * el usuario, no una estimación. */
+export const TAMANO_CUADRO_ALEMAN_MM = 14;
 /** Distancia del margen rojo, medida desde el borde IZQUIERDO DEL PAPEL (no desde
  * MARGIN) — así se mide en un cuaderno real. Cae dentro del área de contenido porque
  * MARGIN (36pt ≈ 12.7mm) es menor que esto. */
@@ -32,9 +34,6 @@ export const MARGEN_ROJO_X = MARGEN_ROJO_DESDE_BORDE_MM * MM;
  * resto lleva renglones (Raya) para un título/descripción. */
 export const DIBUJO_FRACCION_CAJA = 0.65;
 
-/** Alto fijo de la banda de encabezado cuando hay al menos una línea que mostrar (0 si
- * no se llenó ningún campo — la hoja sale sin encabezado, lista para imprimir en blanco). */
-export const ALTO_ENCABEZADO = 46;
 export const ESPACIO_TRAS_ENCABEZADO = 12;
 
 export const COLOR_MARGEN_ROJO = '#BE3A2E'; // mismo tono "sello" del sistema
@@ -54,43 +53,96 @@ export const ESTILOS_HOJA: { valor: EstiloHoja; texto: string }[] = [
   { valor: 'dibujo', texto: 'Dibujo' },
 ];
 
+export type PosicionTexto = 'izquierda' | 'centro' | 'derecha';
+
+export const OPCIONES_POSICION_TEXTO: { valor: PosicionTexto; texto: string }[] = [
+  { valor: 'izquierda', texto: 'Izquierda' },
+  { valor: 'centro', texto: 'Centro' },
+  { valor: 'derecha', texto: 'Derecha' },
+];
+
 export type HojaLibretaConfig = {
   nombre: string;
+  nombrePosicion: PosicionTexto;
   materia: string;
+  materiaPosicion: PosicionTexto;
   fecha: string;
+  fechaPosicion: PosicionTexto;
   gradoGrupo: string;
+  gradoGrupoPosicion: PosicionTexto;
   estilo: EstiloHoja;
   cantidad: number;
   numerarPaginas: boolean;
 };
 
-export type LineaEncabezado = { texto: string; tamano: number; negrita: boolean };
+export type LineaEncabezado = {
+  texto: string;
+  tamano: number;
+  negrita: boolean;
+  posicion: PosicionTexto;
+};
+
+/** Alto de UN renglón del encabezado, según el tamaño de su texto — con aire suficiente
+ * para que nunca se pise con el siguiente renglón. */
+export function alturaRenglonEncabezado(tamano: number): number {
+  return tamano * 1.6;
+}
 
 /**
- * Las líneas de texto del encabezado, en orden, ya con las reglas de omisión
- * aplicadas: cada dato aparece solo si se llenó. Si no se llenó ninguno, no hay
- * encabezado — la hoja sale lista para imprimir en blanco. Fuente única para el PDF y
- * la vista previa: ninguna de las dos rearma este texto por su cuenta.
+ * Las líneas de texto del encabezado, en orden fijo (nombre, materia, fecha, grado y
+ * grupo), ya con las reglas de omisión aplicadas: cada dato aparece solo si se llenó.
+ * CADA dato va en su PROPIO renglón — es lo que garantiza que dos campos con
+ * posiciones distintas (uno a la izquierda, otro a la derecha) nunca se encimen: nunca
+ * comparten la misma altura de página, sin importar qué posición elija cada uno. Si no
+ * se llenó ningún campo, no hay encabezado — la hoja sale lista para imprimir en
+ * blanco. Fuente única para el PDF y la vista previa: ninguna de las dos rearma este
+ * texto por su cuenta.
  */
 export function lineasEncabezado(
-  config: Pick<HojaLibretaConfig, 'nombre' | 'materia' | 'fecha' | 'gradoGrupo'>,
+  config: Pick<
+    HojaLibretaConfig,
+    | 'nombre'
+    | 'nombrePosicion'
+    | 'materia'
+    | 'materiaPosicion'
+    | 'fecha'
+    | 'fechaPosicion'
+    | 'gradoGrupo'
+    | 'gradoGrupoPosicion'
+  >,
 ): LineaEncabezado[] {
   const lineas: LineaEncabezado[] = [];
+  const agregar = (texto: string, posicion: PosicionTexto, tamano: number, negrita: boolean) => {
+    const limpio = texto.trim();
+    if (limpio) lineas.push({ texto: limpio, tamano, negrita, posicion });
+  };
 
-  const nombre = config.nombre.trim();
-  if (nombre) lineas.push({ texto: nombre, tamano: 15, negrita: true });
-
-  const partes = [config.materia.trim(), config.gradoGrupo.trim(), config.fecha.trim()].filter(
-    (parte) => parte.length > 0,
-  );
-  if (partes.length > 0) lineas.push({ texto: partes.join('   ·   '), tamano: 10, negrita: false });
+  agregar(config.nombre, config.nombrePosicion, 15, true);
+  agregar(config.materia, config.materiaPosicion, 10, false);
+  agregar(config.fecha, config.fechaPosicion, 10, false);
+  agregar(config.gradoGrupo, config.gradoGrupoPosicion, 10, false);
 
   return lineas;
 }
 
-/** 0 si no hay ninguna línea de encabezado (hoja en blanco), si no la banda fija. */
+/** 0 si no hay ninguna línea de encabezado (hoja en blanco); si no, la suma del alto de
+ * cada renglón presente más un respiro final. */
 export function alturaEncabezado(lineas: LineaEncabezado[]): number {
-  return lineas.length > 0 ? ALTO_ENCABEZADO : 0;
+  if (lineas.length === 0) return 0;
+  return (
+    lineas.reduce((acc, linea) => acc + alturaRenglonEncabezado(linea.tamano), 0) +
+    ESPACIO_TRAS_ENCABEZADO
+  );
+}
+
+/** X para dibujar un texto de `anchoTexto` puntos según su `posicion` — mismo criterio
+ * que `xParaPosicion` de src/tools/pdf/numerar.ts, centralizado aquí porque tanto
+ * pdf.ts como VistaPreviaCanvas.tsx lo necesitan (a diferencia de numerar.ts, que solo
+ * tiene un consumidor). */
+export function xParaPosicion(posicion: PosicionTexto, anchoTexto: number): number {
+  if (posicion === 'izquierda') return MARGIN;
+  if (posicion === 'derecha') return PAGE_WIDTH - MARGIN - anchoTexto;
+  return MARGIN + (CONTENT_WIDTH - anchoTexto) / 2; // centro
 }
 
 /** Dónde empieza el área rayada (distancia desde arriba del contenido) y cuánto alto
