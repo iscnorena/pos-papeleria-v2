@@ -30,6 +30,11 @@ export const PDF = {
   dividirPartesMaximo: 40,
 } as const;
 
+export const LIBRETA = {
+  // Tope contra que el navegador se congele armando demasiadas hojas repetidas de golpe.
+  hojasMaximo: 300,
+} as const;
+
 export type MetodoPago = keyof typeof POS.metodosPago;
 
 /** Zona de presentación y de corte de día (§2). Una sola constante para todo el sistema. */

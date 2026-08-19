@@ -101,6 +101,16 @@ export function IconoReordenarPdf() {
   );
 }
 
+export function IconoLibreta() {
+  return (
+    <svg {...comunes}>
+      <rect x="7" y="3" width="14" height="18" />
+      <path d="M3 5v2M3 9v2M3 13v2M3 17v2" />
+      <path d="M10 8h8M10 12h8M10 16h5" />
+    </svg>
+  );
+}
+
 export function IconoNumerarPdf() {
   return (
     <svg {...comunes}>

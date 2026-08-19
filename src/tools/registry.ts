@@ -1,7 +1,14 @@
 import type { ComponentType } from 'react';
 
 import type { Rol } from '@/db/schema';
-import { IconoCalculadora, IconoEtiqueta, IconoHojas, IconoPdf, IconoRifa } from './iconos';
+import {
+  IconoCalculadora,
+  IconoEtiqueta,
+  IconoHojas,
+  IconoLibreta,
+  IconoPdf,
+  IconoRifa,
+} from './iconos';
 
 // §Fase 6 — registro extensible. Una herramienta se declara AQUÍ y en ningún otro sitio:
 // la vitrina, la navegación y el control de acceso salen de este arreglo.
@@ -40,6 +47,16 @@ export const HERRAMIENTAS: Herramienta[] = [
     icono: IconoRifa,
     ruta: '/herramientas/rifas',
     rutaPublica: '/imprimir/rifas',
+    roles: ['admin', 'cajera'],
+    estado: 'lista',
+  },
+  {
+    id: 'libreta',
+    nombre: 'Hoja de libreta',
+    descripcion: 'Genera hojas con rayado o cuadrícula, con los datos del alumno.',
+    icono: IconoLibreta,
+    ruta: '/herramientas/libreta',
+    rutaPublica: '/imprimir/libreta',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },
