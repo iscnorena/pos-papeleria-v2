@@ -64,7 +64,7 @@ test('4 · sin ningún dato del alumno, la hoja sale sin encabezado (1 página)'
 
 test('5 · cada estilo de rayado genera un PDF válido, de una sola página', async ({ page }) => {
   await page.goto('/imprimir/libreta');
-  await page.getByLabel('Nombre del alumno').fill('Ana García');
+  await page.getByLabel('Nombre del alumno', { exact: true }).fill('Ana García');
 
   for (const estilo of ['raya', 'doble-raya', 'cuadro-c7', 'cuadro-aleman', 'dibujo']) {
     await page.getByLabel('Estilo').selectOption(estilo);
@@ -123,7 +123,7 @@ test('8 · un nombre con emoji genera el PDF sin tronar', async ({ page }) => {
   page.on('pageerror', (error) => erroresDeConsola.push(error.message));
 
   await page.goto('/imprimir/libreta');
-  await page.getByLabel('Nombre del alumno').fill('🎉 Ana 🎁');
+  await page.getByLabel('Nombre del alumno', { exact: true }).fill('🎉 Ana 🎁');
 
   const [descarga] = await Promise.all([
     page.waitForEvent('download'),
@@ -158,7 +158,7 @@ test('10 · la herramienta interna no muestra "Enviar por WhatsApp"', async ({ p
 test('11 · el interruptor público controla /imprimir/libreta', async ({ page, context }) => {
   const publica1 = await context.newPage();
   await publica1.goto('/imprimir/libreta');
-  await expect(publica1.getByLabel('Nombre del alumno')).toBeVisible();
+  await expect(publica1.getByLabel('Nombre del alumno', { exact: true })).toBeVisible();
   await publica1.close();
 
   await entrarComo(page, 'admin');

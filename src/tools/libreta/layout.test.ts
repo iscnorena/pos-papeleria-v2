@@ -24,6 +24,8 @@ describe('lineasEncabezado', () => {
   const vacio = {
     nombre: '',
     nombrePosicion: 'izquierda' as const,
+    maestro: '',
+    maestroPosicion: 'izquierda' as const,
     materia: '',
     materiaPosicion: 'izquierda' as const,
     fecha: '',
@@ -46,17 +48,20 @@ describe('lineasEncabezado', () => {
   it('cada dato presente es SU PROPIO renglón (nunca se juntan en una línea)', () => {
     const lineas = lineasEncabezado({
       ...vacio,
+      maestro: 'Profr. Luis',
       materia: 'Español',
       fecha: '24 de agosto',
       gradoGrupo: '3° B',
     });
-    expect(lineas.map((l) => l.texto)).toEqual(['Español', '24 de agosto', '3° B']);
+    expect(lineas.map((l) => l.texto)).toEqual(['Profr. Luis', 'Español', '24 de agosto', '3° B']);
   });
 
-  it('con los cuatro campos, salen los cuatro renglones en orden fijo: nombre, materia, fecha, grado y grupo', () => {
+  it('con los cinco campos, salen los cinco renglones en orden fijo: nombre, maestro, materia, fecha, grado y grupo', () => {
     const lineas = lineasEncabezado({
       nombre: 'Ana',
       nombrePosicion: 'centro',
+      maestro: 'Profra. López',
+      maestroPosicion: 'derecha',
       materia: 'Historia',
       materiaPosicion: 'izquierda',
       fecha: '1 de septiembre',
@@ -66,6 +71,7 @@ describe('lineasEncabezado', () => {
     });
     expect(lineas.map((l) => ({ texto: l.texto, posicion: l.posicion }))).toEqual([
       { texto: 'Ana', posicion: 'centro' },
+      { texto: 'Profra. López', posicion: 'derecha' },
       { texto: 'Historia', posicion: 'izquierda' },
       { texto: '1 de septiembre', posicion: 'derecha' },
       { texto: '5° A', posicion: 'izquierda' },
@@ -78,22 +84,26 @@ describe('lineasEncabezado', () => {
 });
 
 describe('alturaEncabezado / areaRayado', () => {
+  const vacio = {
+    nombre: '',
+    nombrePosicion: 'izquierda' as const,
+    maestro: '',
+    maestroPosicion: 'izquierda' as const,
+    materia: '',
+    materiaPosicion: 'izquierda' as const,
+    fecha: '',
+    fechaPosicion: 'izquierda' as const,
+    gradoGrupo: '',
+    gradoGrupoPosicion: 'izquierda' as const,
+  };
+
   it('sin líneas, el área rayada ocupa todo el contenido', () => {
     expect(alturaEncabezado([])).toBe(0);
     expect(areaRayado([])).toEqual({ y: 0, alto: CONTENT_HEIGHT });
   });
 
   it('con líneas, se reserva la suma de cada renglón más el espacio tras el encabezado', () => {
-    const lineas = lineasEncabezado({
-      nombre: 'X',
-      nombrePosicion: 'izquierda' as const,
-      materia: '',
-      materiaPosicion: 'izquierda' as const,
-      fecha: '',
-      fechaPosicion: 'izquierda' as const,
-      gradoGrupo: '',
-      gradoGrupoPosicion: 'izquierda' as const,
-    });
+    const lineas = lineasEncabezado({ ...vacio, nombre: 'X' });
     const { y, alto } = areaRayado(lineas);
     expect(y).toBeGreaterThan(0);
     expect(y + alto).toBe(CONTENT_HEIGHT);
@@ -101,27 +111,16 @@ describe('alturaEncabezado / areaRayado', () => {
   });
 
   it('más renglones ocupan más alto de encabezado', () => {
-    const unSolo = lineasEncabezado({
+    const unSolo = lineasEncabezado({ ...vacio, nombre: 'X' });
+    const cinco = lineasEncabezado({
+      ...vacio,
       nombre: 'X',
-      nombrePosicion: 'izquierda' as const,
-      materia: '',
-      materiaPosicion: 'izquierda' as const,
-      fecha: '',
-      fechaPosicion: 'izquierda' as const,
-      gradoGrupo: '',
-      gradoGrupoPosicion: 'izquierda' as const,
+      maestro: 'Y',
+      materia: 'Z',
+      fecha: 'W',
+      gradoGrupo: 'V',
     });
-    const cuatro = lineasEncabezado({
-      nombre: 'X',
-      nombrePosicion: 'izquierda' as const,
-      materia: 'Y',
-      materiaPosicion: 'izquierda' as const,
-      fecha: 'Z',
-      fechaPosicion: 'izquierda' as const,
-      gradoGrupo: 'W',
-      gradoGrupoPosicion: 'izquierda' as const,
-    });
-    expect(alturaEncabezado(cuatro)).toBeGreaterThan(alturaEncabezado(unSolo));
+    expect(alturaEncabezado(cinco)).toBeGreaterThan(alturaEncabezado(unSolo));
   });
 });
 

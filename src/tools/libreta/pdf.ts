@@ -195,6 +195,7 @@ export async function generarHojaLibreta(
     sanearCampo(campo, texto, fuente, camposModificados);
 
   const nombre = sanear('Nombre del alumno', config.nombre, bold);
+  const maestro = sanear('Nombre del maestro', config.maestro, regular);
   const materia = sanear('Materia', config.materia, regular);
   const fecha = sanear('Fecha', config.fecha, regular);
   const gradoGrupo = sanear('Grado y grupo', config.gradoGrupo, regular);
@@ -202,6 +203,8 @@ export async function generarHojaLibreta(
   const lineas = lineasEncabezado({
     nombre,
     nombrePosicion: config.nombrePosicion,
+    maestro,
+    maestroPosicion: config.maestroPosicion,
     materia,
     materiaPosicion: config.materiaPosicion,
     fecha,

@@ -21,6 +21,8 @@ const TEXTO_WHATSAPP = 'Hola, les mando esta hoja para imprimir 🖨️';
 const CONFIG_INICIAL: HojaLibretaConfig = {
   nombre: '',
   nombrePosicion: 'izquierda',
+  maestro: '',
+  maestroPosicion: 'izquierda',
   materia: '',
   materiaPosicion: 'izquierda',
   fecha: '',
@@ -126,23 +128,40 @@ export function GeneradorLibreta({ whatsappNumber }: { whatsappNumber?: string }
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
         <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Datos del alumno</h2>
         <div className="flex flex-col gap-2">
-          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <div className="grid grid-cols-[1fr_8rem] items-end gap-2">
             <Campo
               etiqueta="Nombre del alumno"
               value={config.nombre}
               onChange={(e) => actualizar('nombre', e.target.value)}
             />
             <Selector
-              etiqueta="Posición del nombre"
+              etiqueta="Posición del nombre del alumno"
               opciones={OPCIONES_POSICION_TEXTO}
               value={config.nombrePosicion}
               onChange={(e) =>
                 actualizar('nombrePosicion', e.target.value as HojaLibretaConfig['nombrePosicion'])
               }
-              className="w-32"
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <div className="grid grid-cols-[1fr_8rem] items-end gap-2">
+            <Campo
+              etiqueta="Nombre del maestro"
+              value={config.maestro}
+              onChange={(e) => actualizar('maestro', e.target.value)}
+            />
+            <Selector
+              etiqueta="Posición del nombre del maestro"
+              opciones={OPCIONES_POSICION_TEXTO}
+              value={config.maestroPosicion}
+              onChange={(e) =>
+                actualizar(
+                  'maestroPosicion',
+                  e.target.value as HojaLibretaConfig['maestroPosicion'],
+                )
+              }
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_8rem] items-end gap-2">
             <Campo
               etiqueta="Materia"
               value={config.materia}
@@ -158,10 +177,9 @@ export function GeneradorLibreta({ whatsappNumber }: { whatsappNumber?: string }
                   e.target.value as HojaLibretaConfig['materiaPosicion'],
                 )
               }
-              className="w-32"
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <div className="grid grid-cols-[1fr_8rem] items-end gap-2">
             <Campo
               etiqueta="Fecha"
               placeholder="Ej. 24 de agosto"
@@ -175,10 +193,9 @@ export function GeneradorLibreta({ whatsappNumber }: { whatsappNumber?: string }
               onChange={(e) =>
                 actualizar('fechaPosicion', e.target.value as HojaLibretaConfig['fechaPosicion'])
               }
-              className="w-32"
             />
           </div>
-          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <div className="grid grid-cols-[1fr_8rem] items-end gap-2">
             <Campo
               etiqueta="Grado y grupo"
               placeholder="Ej. 3° B"
@@ -195,7 +212,6 @@ export function GeneradorLibreta({ whatsappNumber }: { whatsappNumber?: string }
                   e.target.value as HojaLibretaConfig['gradoGrupoPosicion'],
                 )
               }
-              className="w-32"
             />
           </div>
         </div>

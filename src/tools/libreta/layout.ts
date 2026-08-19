@@ -64,6 +64,8 @@ export const OPCIONES_POSICION_TEXTO: { valor: PosicionTexto; texto: string }[] 
 export type HojaLibretaConfig = {
   nombre: string;
   nombrePosicion: PosicionTexto;
+  maestro: string;
+  maestroPosicion: PosicionTexto;
   materia: string;
   materiaPosicion: PosicionTexto;
   fecha: string;
@@ -89,20 +91,22 @@ export function alturaRenglonEncabezado(tamano: number): number {
 }
 
 /**
- * Las líneas de texto del encabezado, en orden fijo (nombre, materia, fecha, grado y
- * grupo), ya con las reglas de omisión aplicadas: cada dato aparece solo si se llenó.
- * CADA dato va en su PROPIO renglón — es lo que garantiza que dos campos con
- * posiciones distintas (uno a la izquierda, otro a la derecha) nunca se encimen: nunca
- * comparten la misma altura de página, sin importar qué posición elija cada uno. Si no
- * se llenó ningún campo, no hay encabezado — la hoja sale lista para imprimir en
- * blanco. Fuente única para el PDF y la vista previa: ninguna de las dos rearma este
- * texto por su cuenta.
+ * Las líneas de texto del encabezado, en orden fijo (nombre del alumno, nombre del
+ * maestro, materia, fecha, grado y grupo), ya con las reglas de omisión aplicadas:
+ * cada dato aparece solo si se llenó. CADA dato va en su PROPIO renglón — es lo que
+ * garantiza que dos campos con posiciones distintas (uno a la izquierda, otro a la
+ * derecha) nunca se encimen: nunca comparten la misma altura de página, sin importar
+ * qué posición elija cada uno. Si no se llenó ningún campo, no hay encabezado — la
+ * hoja sale lista para imprimir en blanco. Fuente única para el PDF y la vista previa:
+ * ninguna de las dos rearma este texto por su cuenta.
  */
 export function lineasEncabezado(
   config: Pick<
     HojaLibretaConfig,
     | 'nombre'
     | 'nombrePosicion'
+    | 'maestro'
+    | 'maestroPosicion'
     | 'materia'
     | 'materiaPosicion'
     | 'fecha'
@@ -118,6 +122,7 @@ export function lineasEncabezado(
   };
 
   agregar(config.nombre, config.nombrePosicion, 15, true);
+  agregar(config.maestro, config.maestroPosicion, 10, false);
   agregar(config.materia, config.materiaPosicion, 10, false);
   agregar(config.fecha, config.fechaPosicion, 10, false);
   agregar(config.gradoGrupo, config.gradoGrupoPosicion, 10, false);
