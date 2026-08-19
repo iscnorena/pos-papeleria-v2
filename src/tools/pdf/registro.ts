@@ -7,7 +7,10 @@ import { IconoDividirPdf, IconoPdf, IconoUnirPdf } from '../iconos';
 // en /herramientas/pdf/<id> (y, si `tieneVersionPublica`, en /imprimir/pdf/<id>).
 //
 // Vamos agregándolas una por una, como el resto del registro — "Unir PDF" y "Dividir PDF"
-// ya están, "Convertir PDF" sigue de próxima.
+// ya están. "Convertir PDF" y "Comprimir PDF" quedaron anotadas, pero no arrancan hasta
+// que se decida el alcance: pdf-lib no soporta PDF cifrados (no hay "Desbloquear PDF" por
+// ahora) y no trae una función lista para recomprimir imágenes incrustadas — cualquiera de
+// las dos necesitaría traer otra librería (ej. pdf.js) antes de poder construirse.
 
 export type EstadoSubHerramienta = 'lista' | 'proxima';
 
@@ -47,6 +50,15 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     icono: IconoPdf,
     ruta: '/herramientas/pdf/convertir',
     rutaPublica: '/imprimir/pdf/convertir',
+    estado: 'proxima',
+  },
+  {
+    id: 'comprimir',
+    nombre: 'Comprimir PDF',
+    descripcion: 'Reduce el tamaño del archivo.',
+    icono: IconoPdf,
+    ruta: '/herramientas/pdf/comprimir',
+    rutaPublica: '/imprimir/pdf/comprimir',
     estado: 'proxima',
   },
 ];
