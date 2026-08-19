@@ -5,29 +5,32 @@ import { conectar, entrarComo } from './ayudas';
 
 // Herramientas de PDF (§ fuera de la spec original, como fase-9): "Unir", "Dividir",
 // "Rotar", "Reordenar" y "Numerar", cada una en /herramientas/pdf/<id> (con sesión) y
-// /imprimir/pdf/<id> (pública, si el admin prendió el interruptor). El grupo
-// "Herramientas de PDF" ya no es `proxima` (ver fix en fase-6-herramientas.spec.ts,
-// prueba 3).
+// /imprimir/pdf/<id> (pública salvo que el admin la apague). El grupo "Herramientas de
+// PDF" ya no es `proxima` (ver fix en fase-6-herramientas.spec.ts, prueba 3).
 //
-// El interruptor de "Disponible al público" (`tool_settings`) empieza apagado por defecto
-// para herramientas nuevas — cada prueba que lo prende lo deja apagado al terminar, para
-// no afectar corridas futuras ni al índice de /imprimir.
+// El interruptor de "Disponible al público" (`tool_settings`) es PÚBLICA por defecto
+// desde el 19 de agosto de 2026 (antes era al revés) — sin fila en la tabla, ya es
+// pública. Cada prueba borra la fila antes y después, para arrancar siempre del estado
+// por defecto real y no dejar sucia la base para otras corridas ni para producción
+// (comparten la misma base — ver memoria del proyecto).
 
-async function apagarVisibilidad(id: string) {
+async function restablecerVisibilidad(id: string) {
   const sql = conectar();
   try {
-    await sql`update tool_settings set is_public = false where id = ${id}`;
+    await sql`delete from tool_settings where id = ${id}`;
   } finally {
     await sql.end({ timeout: 5 });
   }
 }
 
+const IDS_PDF = ['unir', 'dividir', 'rotar', 'reordenar', 'numerar'];
+
+test.beforeEach(async () => {
+  for (const id of IDS_PDF) await restablecerVisibilidad(id);
+});
+
 test.afterEach(async () => {
-  await apagarVisibilidad('unir');
-  await apagarVisibilidad('dividir');
-  await apagarVisibilidad('rotar');
-  await apagarVisibilidad('reordenar');
-  await apagarVisibilidad('numerar');
+  for (const id of IDS_PDF) await restablecerVisibilidad(id);
 });
 
 test('1 · /herramientas/pdf lista "Unir PDF" y ya no está atenuada', async ({ page }) => {
@@ -100,44 +103,42 @@ test('5 · el interruptor público controla /imprimir/pdf/unir y los dos índice
   page,
   context,
 }) => {
-  // Apagado por defecto: bloquea del todo.
+  // Pública por defecto: sin fila en tool_settings, ya responde.
   const publica1 = await context.newPage();
   await publica1.goto('/imprimir/pdf/unir');
-  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
   await entrarComo(page, 'admin');
   await page.goto('/herramientas/pdf/unir');
   const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
-  await expect(interruptor).not.toBeChecked();
-  await interruptor.check();
+  await expect(interruptor).toBeChecked();
+
+  // Se apaga: bloquea la URL pública y desaparece de los índices.
+  await interruptor.uncheck();
   // El checkbox se marca al toque (optimista), pero el server action + revalidatePath
   // siguen en vuelo: hay que esperar a que la transición termine (vuelve a habilitarse)
   // antes de asumir que la base y la caché ya reflejan el cambio.
   await expect(interruptor).toBeEnabled();
 
-  // La URL pública responde de verdad, sin recargar nada a mano.
   const publica2 = await context.newPage();
   await publica2.goto('/imprimir/pdf/unir');
-  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
-  // Aparece en el índice de PDF y, por consecuencia, en el índice principal.
   const indice = await context.newPage();
   await indice.goto('/imprimir/pdf');
-  await expect(indice.getByRole('link', { name: /Unir PDF/i })).toBeVisible();
-  await indice.goto('/imprimir');
-  await expect(indice.getByRole('link', { name: /Herramientas de PDF/i })).toBeVisible();
+  await expect(indice.getByRole('link', { name: /Unir PDF/i })).toHaveCount(0);
   await indice.close();
 
-  // Se apaga otra vez: vuelve a bloquear, y desaparece de los índices.
-  await interruptor.uncheck();
+  // Se prende otra vez: vuelve a responder y reaparece en los índices.
+  await interruptor.check();
   await expect(interruptor).toBeEnabled();
   const publica3 = await context.newPage();
   await publica3.goto('/imprimir/pdf/unir');
-  await expect(publica3.getByText('no está disponible')).toBeVisible();
+  await expect(publica3.getByText('Agregar PDF')).toBeVisible();
   await publica3.goto('/imprimir');
-  await expect(publica3.getByRole('link', { name: /Herramientas de PDF/i })).toHaveCount(0);
+  await expect(publica3.getByRole('link', { name: /Herramientas de PDF/i })).toBeVisible();
   await publica3.close();
 });
 
@@ -211,22 +212,22 @@ test('9 · un rango fuera de las páginas del PDF avisa, sin tronar', async ({ p
 test('10 · el interruptor público controla /imprimir/pdf/dividir', async ({ page, context }) => {
   const publica1 = await context.newPage();
   await publica1.goto('/imprimir/pdf/dividir');
-  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
   await entrarComo(page, 'admin');
   await page.goto('/herramientas/pdf/dividir');
   const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
-  await expect(interruptor).not.toBeChecked();
-  await interruptor.check();
+  await expect(interruptor).toBeChecked();
+  await interruptor.uncheck();
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
   await publica2.goto('/imprimir/pdf/dividir');
-  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
-  await interruptor.uncheck();
+  await interruptor.check();
   await expect(interruptor).toBeEnabled();
 });
 
@@ -285,21 +286,22 @@ test('13 · rotar solo un rango deja las demás páginas sin girar', async ({ pa
 test('14 · el interruptor público controla /imprimir/pdf/rotar', async ({ page, context }) => {
   const publica1 = await context.newPage();
   await publica1.goto('/imprimir/pdf/rotar');
-  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
   await entrarComo(page, 'admin');
   await page.goto('/herramientas/pdf/rotar');
   const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
-  await interruptor.check();
+  await expect(interruptor).toBeChecked();
+  await interruptor.uncheck();
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
   await publica2.goto('/imprimir/pdf/rotar');
-  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
-  await interruptor.uncheck();
+  await interruptor.check();
   await expect(interruptor).toBeEnabled();
 });
 
@@ -340,21 +342,22 @@ test('16 · un orden con páginas repetidas o faltantes avisa, sin tronar', asyn
 test('17 · el interruptor público controla /imprimir/pdf/reordenar', async ({ page, context }) => {
   const publica1 = await context.newPage();
   await publica1.goto('/imprimir/pdf/reordenar');
-  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
   await entrarComo(page, 'admin');
   await page.goto('/herramientas/pdf/reordenar');
   const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
-  await interruptor.check();
+  await expect(interruptor).toBeChecked();
+  await interruptor.uncheck();
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
   await publica2.goto('/imprimir/pdf/reordenar');
-  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
-  await interruptor.uncheck();
+  await interruptor.check();
   await expect(interruptor).toBeEnabled();
 });
 
@@ -380,20 +383,21 @@ test('18 · numerar arranca en 1 por defecto y respeta un número inicial distin
 test('19 · el interruptor público controla /imprimir/pdf/numerar', async ({ page, context }) => {
   const publica1 = await context.newPage();
   await publica1.goto('/imprimir/pdf/numerar');
-  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
   await entrarComo(page, 'admin');
   await page.goto('/herramientas/pdf/numerar');
   const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
-  await interruptor.check();
+  await expect(interruptor).toBeChecked();
+  await interruptor.uncheck();
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
   await publica2.goto('/imprimir/pdf/numerar');
-  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
-  await interruptor.uncheck();
+  await interruptor.check();
   await expect(interruptor).toBeEnabled();
 });

@@ -1,12 +1,12 @@
 import Link from 'next/link';
 
 import { POS } from '@/config/pos';
-import { idsPublicosEntre } from '@/lib/toolSettings';
-import { HERRAMIENTAS_PDF, subHerramientasPdfListas } from '@/tools/pdf/registro';
+import { idsPrivadosEntre } from '@/lib/toolSettings';
+import { subHerramientasPdfListas } from '@/tools/pdf/registro';
 
 // Índice público de "Herramientas de PDF", sin sesión — cuelga de /imprimir. Mismo
-// criterio que el índice principal: cada sub-herramienta aparece solo si su interruptor
-// en `tool_settings` está prendido.
+// criterio que el índice principal: pública por defecto, cada sub-herramienta desaparece
+// solo si su interruptor en `tool_settings` se apagó a mano.
 //
 // `force-dynamic`: ver el comentario en ../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
@@ -14,8 +14,8 @@ export const dynamic = 'force-dynamic';
 
 export default async function ImprimirPdfPage() {
   const listas = subHerramientasPdfListas();
-  const idsPublicos = await idsPublicosEntre(listas.map((s) => s.id));
-  const disponibles = HERRAMIENTAS_PDF.filter((s) => idsPublicos.has(s.id));
+  const idsPrivados = await idsPrivadosEntre(listas.map((s) => s.id));
+  const disponibles = listas.filter((s) => !idsPrivados.has(s.id));
 
   return (
     <main className="min-h-dvh bg-papel pb-10">

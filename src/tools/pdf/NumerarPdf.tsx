@@ -5,22 +5,29 @@ import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { Selector } from '@/components/ui/Selector';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import { tamanoArchivo } from '@/lib/formato';
-import { inicioValido, numerarPdf } from './numerar';
+import { inicioValido, numerarPdf, type PosicionNumero } from './numerar';
 import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/numerar, con
 // sesión) y la pública (/imprimir/pdf/numerar, sin sesión) — mismo patrón que las demás
-// herramientas de PDF. Sin selector de posición ni de formato: el número va centrado
-// abajo en cada página, que es lo que casi siempre se pide — si hace falta algo más, se
-// agrega después.
+// herramientas de PDF. El número siempre va abajo; lo único elegible es la posición
+// horizontal (izquierda/centro/derecha) — sin selector de "arriba", que nadie pidió.
+
+const OPCIONES_POSICION: { valor: PosicionNumero; texto: string }[] = [
+  { valor: 'izquierda', texto: 'Abajo a la izquierda' },
+  { valor: 'centro', texto: 'Abajo al centro' },
+  { valor: 'derecha', texto: 'Abajo a la derecha' },
+];
 
 const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya numerado.';
 
 export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
   const [archivo, setArchivo] = useState<ArchivoPdf | null>(null);
   const [inicioEn, setInicioEn] = useState(1);
+  const [posicion, setPosicion] = useState<PosicionNumero>('centro');
   const [generando, setGenerando] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const [aviso, setAviso] = useState<{ texto: string; tono: 'error' | 'neutro' } | null>(null);
@@ -33,6 +40,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
       const cargado = await cargarPdf(elegido);
       setArchivo(cargado);
       setInicioEn(1);
+      setPosicion('centro');
     } catch {
       setAviso({
         texto: 'Ese archivo no es un PDF válido (o está dañado). Intenta con otro.',
@@ -46,7 +54,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
     setAviso(null);
     setGenerando(true);
     try {
-      const bytes = await numerarPdf(archivo.bytes, inicioValido(inicioEn));
+      const bytes = await numerarPdf(archivo.bytes, inicioValido(inicioEn), posicion);
       const blob = new Blob([bytes as BlobPart], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const enlace = document.createElement('a');
@@ -66,7 +74,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
     setAviso(null);
     setEnviando(true);
     try {
-      const bytes = await numerarPdf(archivo.bytes, inicioValido(inicioEn));
+      const bytes = await numerarPdf(archivo.bytes, inicioValido(inicioEn), posicion);
       await compartirPdfPorWhatsapp({
         archivos: [
           { bytes, nombreArchivo: `${archivo.nombre.replace(/\.pdf$/i, '')}-numerado.pdf` },
@@ -117,14 +125,24 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
       {archivo && (
         <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
           <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Numeración</h2>
-          <Campo
-            etiqueta="Empezar en"
-            type="number"
-            min={1}
-            value={inicioEn}
-            onChange={(e) => setInicioEn(Number(e.target.value) || 1)}
-            ayuda={`La última hoja quedará con el ${inicioValido(inicioEn) + archivo.paginas - 1}.`}
-          />
+          <div className="grid grid-cols-2 gap-2">
+            <Campo
+              etiqueta="Empezar en"
+              type="number"
+              min={1}
+              value={inicioEn}
+              onChange={(e) => setInicioEn(Number(e.target.value) || 1)}
+            />
+            <Selector
+              etiqueta="Posición"
+              opciones={OPCIONES_POSICION.map((o) => ({ valor: o.valor, texto: o.texto }))}
+              value={posicion}
+              onChange={(e) => setPosicion(e.target.value as PosicionNumero)}
+            />
+          </div>
+          <p className="mt-2 text-fino text-grafito">
+            La última hoja quedará con el {inicioValido(inicioEn) + archivo.paginas - 1}.
+          </p>
         </section>
       )}
 

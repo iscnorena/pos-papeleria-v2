@@ -50,4 +50,25 @@ describe('numerarPdf', () => {
     expect(numerado.byteLength).toBeGreaterThan(bytes.byteLength);
     expect(despues.getPageCount()).toBe(antes.getPageCount());
   });
+
+  it('cada posición produce un PDF distinto (el número se dibuja en otro lado)', async () => {
+    const bytes = await crearPdf(1);
+    const izquierda = await numerarPdf(bytes, 1, 'izquierda');
+    const centro = await numerarPdf(bytes, 1, 'centro');
+    const derecha = await numerarPdf(bytes, 1, 'derecha');
+
+    // Mismo contenido salvo la coordenada X del texto: los tres bytes deben diferir entre
+    // sí (misma idea que la prueba anterior, indirecta porque pdf-lib no expone la
+    // posición dibujada; se confirma visualmente con Playwright).
+    expect(Buffer.from(izquierda).equals(Buffer.from(centro))).toBe(false);
+    expect(Buffer.from(centro).equals(Buffer.from(derecha))).toBe(false);
+    expect(Buffer.from(izquierda).equals(Buffer.from(derecha))).toBe(false);
+  });
+
+  it('sin indicar posición, usa centro por defecto', async () => {
+    const bytes = await crearPdf(1);
+    const sinIndicar = await numerarPdf(bytes, 1);
+    const centro = await numerarPdf(bytes, 1, 'centro');
+    expect(Buffer.from(sinIndicar).equals(Buffer.from(centro))).toBe(true);
+  });
 });

@@ -8,6 +8,9 @@ import { PDFDocument, StandardFonts } from 'pdf-lib';
 
 const TAMANO = 10;
 const MARGEN_INFERIOR = 24;
+const MARGEN_LATERAL = 24;
+
+export type PosicionNumero = 'izquierda' | 'centro' | 'derecha';
 
 /** Número inicial válido: entero positivo. */
 export function inicioValido(inicioEn: number): number {
@@ -15,8 +18,19 @@ export function inicioValido(inicioEn: number): number {
   return Number.isFinite(entero) && entero > 0 ? entero : 1;
 }
 
-/** Numera cada página, centrado abajo, empezando en `inicioEn`. */
-export async function numerarPdf(bytes: Uint8Array, inicioEn: number): Promise<Uint8Array> {
+function xParaPosicion(posicion: PosicionNumero, anchoPagina: number, anchoTexto: number): number {
+  if (posicion === 'izquierda') return MARGEN_LATERAL;
+  if (posicion === 'derecha') return anchoPagina - MARGEN_LATERAL - anchoTexto;
+  return (anchoPagina - anchoTexto) / 2; // centro
+}
+
+/** Numera cada página, abajo, empezando en `inicioEn`. `posicion` es horizontal:
+ * izquierda, centro (por defecto) o derecha. */
+export async function numerarPdf(
+  bytes: Uint8Array,
+  inicioEn: number,
+  posicion: PosicionNumero = 'centro',
+): Promise<Uint8Array> {
   const documento = await PDFDocument.load(bytes, { ignoreEncryption: true });
   const fuente = await documento.embedFont(StandardFonts.Helvetica);
   const inicio = inicioValido(inicioEn);
@@ -26,7 +40,7 @@ export async function numerarPdf(bytes: Uint8Array, inicioEn: number): Promise<U
     const anchoTexto = fuente.widthOfTextAtSize(numero, TAMANO);
     const { width } = pagina.getSize();
     pagina.drawText(numero, {
-      x: (width - anchoTexto) / 2,
+      x: xParaPosicion(posicion, width, anchoTexto),
       y: MARGEN_INFERIOR,
       size: TAMANO,
       font: fuente,
