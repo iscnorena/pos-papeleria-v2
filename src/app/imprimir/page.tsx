@@ -1,6 +1,8 @@
-import Link from 'next/link';
-
-import { POS } from '@/config/pos';
+import { CabeceraPublica } from '@/components/CabeceraPublica';
+import {
+  IndiceHerramientasPublico,
+  type ItemIndicePublico,
+} from '@/components/IndiceHerramientasPublico';
 import { idsPrivadosEntre } from '@/lib/toolSettings';
 import { subHerramientasPdfListas } from '@/tools/pdf/registro';
 import { herramientasConVersionPublica } from '@/tools/registry';
@@ -32,42 +34,21 @@ export default async function ImprimirPage() {
     h.id === 'pdf' ? subsPdfListas.some((s) => !idsPdfPrivados.has(s.id)) : !idsPrivados.has(h.id),
   );
 
+  const items: ItemIndicePublico[] = herramientas.map((h) => ({
+    id: h.id,
+    nombre: h.nombre,
+    descripcion: h.descripcion,
+    icono: h.icono,
+    rutaPublica: h.rutaPublica!,
+  }));
+
   return (
-    <main className="min-h-dvh bg-papel pb-10">
-      <header className="border-b border-linea-fuerte bg-white px-4 py-3">
-        <h1 className="font-display text-cuerpo font-semibold text-tinta">{POS.nombreNegocio}</h1>
-        <p className="text-fino text-grafito">Herramientas gratis, sin necesidad de cuenta</p>
-      </header>
-
-      <ul className="mx-auto flex max-w-md flex-col gap-3 px-4 py-5">
-        {herramientas.map((h) => {
-          const Icono = h.icono;
-          return (
-            <li key={h.id}>
-              <Link
-                href={h.rutaPublica!}
-                className="flex items-center gap-3 border border-linea-fuerte bg-white p-4 shadow-impresa transition-colors duration-avance hover:bg-papel-hondo"
-              >
-                <span className="text-tinta">
-                  <Icono />
-                </span>
-                <span>
-                  <span className="block font-display text-cuerpo font-semibold text-tinta">
-                    {h.nombre}
-                  </span>
-                  <span className="block text-fino text-grafito">{h.descripcion}</span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-
-      {herramientas.length === 0 && (
-        <p className="mx-auto max-w-md px-4 text-center text-base text-grafito">
-          Por el momento no hay herramientas disponibles.
-        </p>
-      )}
-    </main>
+    <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
+      <CabeceraPublica titulo="Herramientas gratis, sin necesidad de cuenta" />
+      <IndiceHerramientasPublico
+        items={items}
+        mensajeVacio="Por el momento no hay herramientas disponibles."
+      />
+    </div>
   );
 }

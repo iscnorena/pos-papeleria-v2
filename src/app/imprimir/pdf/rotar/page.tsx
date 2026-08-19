@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
+import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
@@ -14,6 +16,8 @@ import { RotarPdf } from '@/tools/pdf/RotarPdf';
 // `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Rotar páginas' };
 
 export default async function ImprimirPdfRotarPage({
   searchParams,
@@ -37,8 +41,13 @@ export default async function ImprimirPdfRotarPage({
     .limit(1);
 
   return (
-    <main className="min-h-dvh bg-papel px-4 py-6">
+    <div className="mx-auto w-full max-w-md px-4 py-6">
+      <CabeceraPublica
+        titulo="Rotar páginas"
+        descripcion="Gira las páginas de un PDF, todas o solo algunas."
+        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+      />
       <RotarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
-    </main>
+    </div>
   );
 }

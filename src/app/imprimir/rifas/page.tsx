@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
+import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
@@ -20,6 +22,8 @@ import { GeneradorRifas } from '@/tools/rifas/GeneradorRifas';
 // `force-dynamic`: sin esto, Vercel puede servir esta página desde el Full Route Cache y
 // `revalidatePath` (en la Server Action del interruptor) no siempre la invalida a tiempo.
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Números de rifa' };
 
 export default async function RifasPublicoPage({
   searchParams,
@@ -43,8 +47,13 @@ export default async function RifasPublicoPage({
     .limit(1);
 
   return (
-    <main className="min-h-dvh bg-papel px-4 py-6">
+    <div className="mx-auto w-full max-w-md px-4 py-6">
+      <CabeceraPublica
+        titulo="Números de rifa"
+        descripcion="Genera la hoja de control de una rifa: números, nombre y contacto por boleto."
+        volver={{ href: '/imprimir', texto: 'Herramientas' }}
+      />
       <GeneradorRifas whatsappNumber={destino?.whatsappNumber ?? undefined} />
-    </main>
+    </div>
   );
 }

@@ -1,5 +1,7 @@
+import type { Metadata } from 'next';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
+import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
@@ -14,6 +16,8 @@ import { UnirPdf } from '@/tools/pdf/UnirPdf';
 // `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Unir PDF' };
 
 export default async function ImprimirPdfUnirPage({
   searchParams,
@@ -37,8 +41,13 @@ export default async function ImprimirPdfUnirPage({
     .limit(1);
 
   return (
-    <main className="min-h-dvh bg-papel px-4 py-6">
+    <div className="mx-auto w-full max-w-md px-4 py-6">
+      <CabeceraPublica
+        titulo="Unir PDF"
+        descripcion="Junta varios PDF en uno solo, en el orden que quieras."
+        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+      />
       <UnirPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
-    </main>
+    </div>
   );
 }

@@ -1,6 +1,10 @@
-import Link from 'next/link';
+import type { Metadata } from 'next';
 
-import { POS } from '@/config/pos';
+import { CabeceraPublica } from '@/components/CabeceraPublica';
+import {
+  IndiceHerramientasPublico,
+  type ItemIndicePublico,
+} from '@/components/IndiceHerramientasPublico';
 import { idsPrivadosEntre } from '@/lib/toolSettings';
 import { subHerramientasPdfListas } from '@/tools/pdf/registro';
 
@@ -12,47 +16,31 @@ import { subHerramientasPdfListas } from '@/tools/pdf/registro';
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
 
+export const metadata: Metadata = { title: 'Herramientas de PDF' };
+
 export default async function ImprimirPdfPage() {
   const listas = subHerramientasPdfListas();
   const idsPrivados = await idsPrivadosEntre(listas.map((s) => s.id));
   const disponibles = listas.filter((s) => !idsPrivados.has(s.id));
 
+  const items: ItemIndicePublico[] = disponibles.map((s) => ({
+    id: s.id,
+    nombre: s.nombre,
+    descripcion: s.descripcion,
+    icono: s.icono,
+    rutaPublica: s.rutaPublica,
+  }));
+
   return (
-    <main className="min-h-dvh bg-papel pb-10">
-      <header className="border-b border-linea-fuerte bg-white px-4 py-3">
-        <h1 className="font-display text-cuerpo font-semibold text-tinta">{POS.nombreNegocio}</h1>
-        <p className="text-fino text-grafito">Herramientas de PDF</p>
-      </header>
-
-      <ul className="mx-auto flex max-w-md flex-col gap-3 px-4 py-5">
-        {disponibles.map((sub) => {
-          const Icono = sub.icono;
-          return (
-            <li key={sub.id}>
-              <Link
-                href={sub.rutaPublica}
-                className="flex items-center gap-3 border border-linea-fuerte bg-white p-4 shadow-impresa transition-colors duration-avance hover:bg-papel-hondo"
-              >
-                <span className="text-tinta">
-                  <Icono />
-                </span>
-                <span>
-                  <span className="block font-display text-cuerpo font-semibold text-tinta">
-                    {sub.nombre}
-                  </span>
-                  <span className="block text-fino text-grafito">{sub.descripcion}</span>
-                </span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-
-      {disponibles.length === 0 && (
-        <p className="mx-auto max-w-md px-4 text-center text-base text-grafito">
-          Por el momento no hay herramientas de PDF disponibles.
-        </p>
-      )}
-    </main>
+    <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
+      <CabeceraPublica
+        titulo="Herramientas de PDF"
+        volver={{ href: '/imprimir', texto: 'Herramientas' }}
+      />
+      <IndiceHerramientasPublico
+        items={items}
+        mensajeVacio="Por el momento no hay herramientas de PDF disponibles."
+      />
+    </div>
   );
 }

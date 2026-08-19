@@ -1,7 +1,7 @@
+import type { Metadata } from 'next';
 import { and, asc, eq, isNotNull } from 'drizzle-orm';
 
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
-import { POS } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
 import { esHerramientaPublica } from '@/lib/toolSettings';
@@ -19,6 +19,8 @@ import { ImprimirPublico } from './ImprimirPublico';
 // `force-dynamic`: sin esto, Vercel puede servir esta página desde el Full Route Cache y
 // `revalidatePath` (en la Server Action del interruptor) no siempre la invalida a tiempo.
 export const dynamic = 'force-dynamic';
+
+export const metadata: Metadata = { title: 'Acomodar impresión' };
 
 export default async function AcomodaImpresionPublicoPage({
   searchParams,
@@ -43,7 +45,5 @@ export default async function AcomodaImpresionPublicoPage({
 
   if (!destino?.whatsappNumber) return <HerramientaNoDisponible />;
 
-  return (
-    <ImprimirPublico nombreNegocio={POS.nombreNegocio} whatsappNumber={destino.whatsappNumber} />
-  );
+  return <ImprimirPublico whatsappNumber={destino.whatsappNumber} />;
 }

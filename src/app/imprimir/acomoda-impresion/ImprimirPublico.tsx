@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 
+import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
@@ -33,13 +34,7 @@ const LAYOUTS: { etiqueta: string; filas: number; columnas: number }[] = [
 
 const CONFIG_INICIAL: Config = { ...CONFIG_POR_DEFECTO, orientacion: 'Horizontal' };
 
-export function ImprimirPublico({
-  nombreNegocio,
-  whatsappNumber,
-}: {
-  nombreNegocio: string;
-  whatsappNumber: string;
-}) {
+export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) {
   const [imagenes, setImagenes] = useState<ImagenDelLote[]>([]);
   const [config, setConfig] = useState<Config>(CONFIG_INICIAL);
   const [pagina, setPagina] = useState(0);
@@ -109,13 +104,14 @@ export function ImprimirPublico({
   }
 
   return (
-    <main className="min-h-dvh bg-papel pb-10">
-      <header className="border-b border-linea-fuerte bg-white px-4 py-3">
-        <h1 className="font-display text-cuerpo font-semibold text-tinta">{nombreNegocio}</h1>
-        <p className="text-fino text-grafito">Arma tu impresión y mándala por WhatsApp</p>
-      </header>
+    <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
+      <CabeceraPublica
+        titulo="Acomodar impresión"
+        descripcion="Arma tu impresión y mándala por WhatsApp"
+        volver={{ href: '/imprimir', texto: 'Herramientas' }}
+      />
 
-      <div className="mx-auto flex max-w-md flex-col gap-5 px-4 py-5">
+      <div className="flex flex-col gap-5">
         <Seccion titulo="Tus fotos">
           <div className="flex flex-wrap gap-2">
             <label className="flex min-h-tecla flex-1 cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
@@ -275,7 +271,7 @@ export function ImprimirPublico({
           })();
         }}
       />
-    </main>
+    </div>
   );
 }
 
