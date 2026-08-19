@@ -3,10 +3,11 @@ import { expect, test } from '@playwright/test';
 import { archivoPdf } from './pdf';
 import { conectar, entrarComo } from './ayudas';
 
-// Herramientas de PDF (§ fuera de la spec original, como fase-9): "Unir PDF" y "Dividir
-// PDF", cada una en /herramientas/pdf/<id> (con sesión) y /imprimir/pdf/<id> (pública, si
-// el admin prendió el interruptor). El grupo "Herramientas de PDF" ya no es `proxima`
-// (ver fix en fase-6-herramientas.spec.ts, prueba 3).
+// Herramientas de PDF (§ fuera de la spec original, como fase-9): "Unir", "Dividir",
+// "Rotar", "Reordenar" y "Numerar", cada una en /herramientas/pdf/<id> (con sesión) y
+// /imprimir/pdf/<id> (pública, si el admin prendió el interruptor). El grupo
+// "Herramientas de PDF" ya no es `proxima` (ver fix en fase-6-herramientas.spec.ts,
+// prueba 3).
 //
 // El interruptor de "Disponible al público" (`tool_settings`) empieza apagado por defecto
 // para herramientas nuevas — cada prueba que lo prende lo deja apagado al terminar, para
@@ -24,6 +25,9 @@ async function apagarVisibilidad(id: string) {
 test.afterEach(async () => {
   await apagarVisibilidad('unir');
   await apagarVisibilidad('dividir');
+  await apagarVisibilidad('rotar');
+  await apagarVisibilidad('reordenar');
+  await apagarVisibilidad('numerar');
 });
 
 test('1 · /herramientas/pdf lista "Unir PDF" y ya no está atenuada', async ({ page }) => {
@@ -219,6 +223,174 @@ test('10 · el interruptor público controla /imprimir/pdf/dividir', async ({ pa
 
   const publica2 = await context.newPage();
   await publica2.goto('/imprimir/pdf/dividir');
+  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await publica2.close();
+
+  await interruptor.uncheck();
+  await expect(interruptor).toBeEnabled();
+});
+
+test('11 · girar todas las páginas, y solo un rango, dan la rotación correcta', async ({
+  page,
+}) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/rotar');
+
+  await expect(page.getByRole('button', { name: 'Girar y descargar' })).toBeDisabled();
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 3));
+  await page.getByRole('button', { name: 'Derecha ↻' }).click();
+  await expect(page.getByText('Se va a girar 90° a la derecha')).toBeVisible();
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Girar y descargar' }).click(),
+  ]);
+
+  const { PDFDocument } = await import('pdf-lib');
+  const fs = await import('node:fs/promises');
+  const documento = await PDFDocument.load(await fs.readFile((await descarga.path())!));
+  expect(documento.getPages().map((p) => p.getRotation().angle)).toEqual([90, 90, 90]);
+});
+
+test('12 · girar dos veces a la derecha acumula 180°, no reemplaza', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/rotar');
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 1));
+  await page.getByRole('button', { name: 'Derecha ↻' }).click();
+  await page.getByRole('button', { name: 'Derecha ↻' }).click();
+  await expect(page.getByText('Se va a girar 180°')).toBeVisible();
+});
+
+test('13 · rotar solo un rango deja las demás páginas sin girar', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/rotar');
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 3));
+  await page.getByRole('button', { name: '180°' }).click();
+  await page.getByLabel('Páginas (opcional)').fill('2');
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Girar y descargar' }).click(),
+  ]);
+
+  const { PDFDocument } = await import('pdf-lib');
+  const fs = await import('node:fs/promises');
+  const documento = await PDFDocument.load(await fs.readFile((await descarga.path())!));
+  expect(documento.getPages().map((p) => p.getRotation().angle)).toEqual([0, 180, 0]);
+});
+
+test('14 · el interruptor público controla /imprimir/pdf/rotar', async ({ page, context }) => {
+  const publica1 = await context.newPage();
+  await publica1.goto('/imprimir/pdf/rotar');
+  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await publica1.close();
+
+  await entrarComo(page, 'admin');
+  await page.goto('/herramientas/pdf/rotar');
+  const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
+  await interruptor.check();
+  await expect(interruptor).toBeEnabled();
+
+  const publica2 = await context.newPage();
+  await publica2.goto('/imprimir/pdf/rotar');
+  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await publica2.close();
+
+  await interruptor.uncheck();
+  await expect(interruptor).toBeEnabled();
+});
+
+test('15 · reordenar cambia el orden real de las páginas, e "Invertir orden" lo arma solo', async ({
+  page,
+}) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/reordenar');
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 3));
+  await expect(page.getByLabel('Orden de páginas')).toHaveValue('1, 2, 3');
+
+  await page.getByRole('button', { name: 'Invertir orden' }).click();
+  await expect(page.getByLabel('Orden de páginas')).toHaveValue('3, 2, 1');
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Reordenar y descargar' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toBe('reporte-reordenado.pdf');
+});
+
+test('16 · un orden con páginas repetidas o faltantes avisa, sin tronar', async ({ page }) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/reordenar');
+
+  const erroresDeConsola: string[] = [];
+  page.on('pageerror', (error) => erroresDeConsola.push(error.message));
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 3));
+  await page.getByLabel('Orden de páginas').fill('1, 1, 2');
+  await page.getByRole('button', { name: 'Reordenar y descargar' }).click();
+
+  await expect(page.getByText(/una sola vez/)).toBeVisible();
+  expect(erroresDeConsola).toEqual([]);
+});
+
+test('17 · el interruptor público controla /imprimir/pdf/reordenar', async ({ page, context }) => {
+  const publica1 = await context.newPage();
+  await publica1.goto('/imprimir/pdf/reordenar');
+  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await publica1.close();
+
+  await entrarComo(page, 'admin');
+  await page.goto('/herramientas/pdf/reordenar');
+  const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
+  await interruptor.check();
+  await expect(interruptor).toBeEnabled();
+
+  const publica2 = await context.newPage();
+  await publica2.goto('/imprimir/pdf/reordenar');
+  await expect(publica2.getByText('Agregar PDF')).toBeVisible();
+  await publica2.close();
+
+  await interruptor.uncheck();
+  await expect(interruptor).toBeEnabled();
+});
+
+test('18 · numerar arranca en 1 por defecto y respeta un número inicial distinto', async ({
+  page,
+}) => {
+  await entrarComo(page, 'cajera');
+  await page.goto('/herramientas/pdf/numerar');
+
+  await expect(page.getByRole('button', { name: 'Numerar y descargar' })).toBeDisabled();
+
+  await page.locator('input[type="file"]').setInputFiles(await archivoPdf('reporte.pdf', 3));
+  await page.getByLabel('Empezar en').fill('10');
+  await expect(page.getByText('La última hoja quedará con el 12.')).toBeVisible();
+
+  const [descarga] = await Promise.all([
+    page.waitForEvent('download'),
+    page.getByRole('button', { name: 'Numerar y descargar' }).click(),
+  ]);
+  expect(descarga.suggestedFilename()).toBe('reporte-numerado.pdf');
+});
+
+test('19 · el interruptor público controla /imprimir/pdf/numerar', async ({ page, context }) => {
+  const publica1 = await context.newPage();
+  await publica1.goto('/imprimir/pdf/numerar');
+  await expect(publica1.getByText('no está disponible')).toBeVisible();
+  await publica1.close();
+
+  await entrarComo(page, 'admin');
+  await page.goto('/herramientas/pdf/numerar');
+  const interruptor = page.getByRole('checkbox', { name: /Disponible al público/ });
+  await interruptor.check();
+  await expect(interruptor).toBeEnabled();
+
+  const publica2 = await context.newPage();
+  await publica2.goto('/imprimir/pdf/numerar');
   await expect(publica2.getByText('Agregar PDF')).toBeVisible();
   await publica2.close();
 

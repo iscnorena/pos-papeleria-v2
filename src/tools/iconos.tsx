@@ -79,3 +79,37 @@ export function IconoDividirPdf() {
     </svg>
   );
 }
+
+export function IconoRotarPdf() {
+  return (
+    <svg {...comunes}>
+      <path d="M8 4h6l4 4v10H8z" />
+      <path d="M14 4v4h4" />
+      <path d="M4 14a4 4 0 0 1 4-4" />
+      <path d="M4 14v-3M4 14h3" />
+    </svg>
+  );
+}
+
+export function IconoReordenarPdf() {
+  return (
+    <svg {...comunes}>
+      <rect x="4" y="3" width="9" height="12" />
+      <rect x="11" y="9" width="9" height="12" />
+      <path d="M16 3v3M14.5 4.5h3" />
+    </svg>
+  );
+}
+
+export function IconoNumerarPdf() {
+  return (
+    <svg {...comunes}>
+      <path d="M6 2h8l4 4v16H6z" />
+      <path d="M14 2v4h4" />
+      <circle cx="9.5" cy="13.5" r="0.75" fill="currentColor" stroke="none" />
+      <path d="M11.5 13.5h3" />
+      <circle cx="9.5" cy="17.5" r="0.75" fill="currentColor" stroke="none" />
+      <path d="M11.5 17.5h3" />
+    </svg>
+  );
+}

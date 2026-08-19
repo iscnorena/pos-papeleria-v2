@@ -1,16 +1,23 @@
 import type { ComponentType } from 'react';
 
-import { IconoDividirPdf, IconoPdf, IconoUnirPdf } from '../iconos';
+import {
+  IconoDividirPdf,
+  IconoNumerarPdf,
+  IconoPdf,
+  IconoReordenarPdf,
+  IconoRotarPdf,
+  IconoUnirPdf,
+} from '../iconos';
 
 // Sub-registro de "Herramientas de PDF" (id 'pdf' en src/tools/registry.ts), mismo
 // espíritu que ese archivo pero un nivel más abajo: cada entrada es una pantalla propia
 // en /herramientas/pdf/<id> (y, si `tieneVersionPublica`, en /imprimir/pdf/<id>).
 //
-// Vamos agregándolas una por una, como el resto del registro — "Unir PDF" y "Dividir PDF"
-// ya están. "Convertir PDF" y "Comprimir PDF" quedaron anotadas, pero no arrancan hasta
-// que se decida el alcance: pdf-lib no soporta PDF cifrados (no hay "Desbloquear PDF" por
-// ahora) y no trae una función lista para recomprimir imágenes incrustadas — cualquiera de
-// las dos necesitaría traer otra librería (ej. pdf.js) antes de poder construirse.
+// Vamos agregándolas una por una, como el resto del registro. "Convertir PDF" y
+// "Comprimir PDF" quedaron anotadas, pero no arrancan hasta que se decida el alcance:
+// pdf-lib no soporta PDF cifrados (no hay "Desbloquear PDF" por ahora) y no trae una
+// función lista para recomprimir imágenes incrustadas — cualquiera de las dos necesitaría
+// traer otra librería (ej. pdf.js) antes de poder construirse.
 
 export type EstadoSubHerramienta = 'lista' | 'proxima';
 
@@ -41,6 +48,33 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     icono: IconoDividirPdf,
     ruta: '/herramientas/pdf/dividir',
     rutaPublica: '/imprimir/pdf/dividir',
+    estado: 'lista',
+  },
+  {
+    id: 'rotar',
+    nombre: 'Rotar páginas',
+    descripcion: 'Gira las páginas de un PDF, todas o solo algunas.',
+    icono: IconoRotarPdf,
+    ruta: '/herramientas/pdf/rotar',
+    rutaPublica: '/imprimir/pdf/rotar',
+    estado: 'lista',
+  },
+  {
+    id: 'reordenar',
+    nombre: 'Reordenar páginas',
+    descripcion: 'Cambia el orden de las páginas de un PDF.',
+    icono: IconoReordenarPdf,
+    ruta: '/herramientas/pdf/reordenar',
+    rutaPublica: '/imprimir/pdf/reordenar',
+    estado: 'lista',
+  },
+  {
+    id: 'numerar',
+    nombre: 'Numerar páginas',
+    descripcion: 'Agrega el número de página, centrado abajo, en cada hoja.',
+    icono: IconoNumerarPdf,
+    ruta: '/herramientas/pdf/numerar',
+    rutaPublica: '/imprimir/pdf/numerar',
     estado: 'lista',
   },
   {
