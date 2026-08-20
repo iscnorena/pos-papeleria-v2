@@ -8,6 +8,7 @@ import type { ProductoDeCaja } from '@/lib/catalogo';
 import { clases } from '@/lib/clases';
 import { aCentavos, formatear, formatearCantidad } from '@/lib/money';
 import { totalesDe, usarCarrito } from './carrito';
+import { BotonDictadoVoz } from './ModalDictadoVoz';
 import { ModalCobro } from './ModalCobro';
 import { ModalPrecioAbierto } from './ModalPrecioAbierto';
 import { PantallaExito } from './PantallaExito';
@@ -160,6 +161,7 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
               </option>
             ))}
           </select>
+          <BotonDictadoVoz catalogo={catalogo} />
         </form>
 
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">

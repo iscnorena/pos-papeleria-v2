@@ -32,6 +32,7 @@ type EstadoCarrito = {
   descuentoGeneral: number;
 
   agregar: (producto: ProductoDeCaja) => void;
+  agregarConCantidad: (producto: ProductoDeCaja, cantidad: number) => void;
   agregarPrecioAbierto: (producto: ProductoDeCaja, precio: number) => void;
   cambiarCantidad: (productId: number, cantidad: number) => void;
   sumarCantidad: (productId: number, delta: number) => void;
@@ -67,6 +68,41 @@ export const usarCarrito = create<EstadoCarrito>((set) => ({
             nombre: producto.nombre,
             codigo: producto.codigo,
             cantidad: 100,
+            precioUnitario: aCentavos(producto.precio) ?? 0,
+            costoUnitario: aCentavos(producto.costo) ?? 0,
+            descuento: 0,
+            manejaInventario: producto.manejaInventario,
+            precioAbierto: producto.precioAbierto,
+            existencia: aCentavos(producto.existencia) ?? 0,
+          },
+        ],
+        activo: producto.id,
+      };
+    }),
+
+  // Precarga de Ticket por Voz (docs/modulo-venta-por-voz.md): "lleva 4 libretas" agrega de
+  // un tirón con la cantidad dictada, en vez de agregar 1 y sumar 3 veces. Si el producto ya
+  // estaba en el carrito, SUMA la cantidad nueva (igual que tocar el mismo producto en el
+  // catálogo dos veces, solo que de golpe).
+  agregarConCantidad: (producto, cantidad) =>
+    set((estado) => {
+      const existente = estado.renglones.find((r) => r.productId === producto.id);
+      if (existente) {
+        return {
+          renglones: estado.renglones.map((r) =>
+            r.productId === producto.id ? { ...r, cantidad: r.cantidad + cantidad } : r,
+          ),
+          activo: producto.id,
+        };
+      }
+      return {
+        renglones: [
+          ...estado.renglones,
+          {
+            productId: producto.id,
+            nombre: producto.nombre,
+            codigo: producto.codigo,
+            cantidad,
             precioUnitario: aCentavos(producto.precio) ?? 0,
             costoUnitario: aCentavos(producto.costo) ?? 0,
             descuento: 0,
