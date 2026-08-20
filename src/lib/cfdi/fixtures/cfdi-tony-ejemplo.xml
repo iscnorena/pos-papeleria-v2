@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<cfdi:Comprobante xmlns:cfdi="http://www.sat.gob.mx/cfd/4"
+  xmlns:tfd="http://www.sat.gob.mx/TimbreFiscalDigital"
+  xmlns:bovadd="http://www.bovedafiscal.com/addenda"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  Version="4.0"
+  Serie="333"
+  Folio="132595"
+  Fecha="2026-08-10T12:30:00"
+  SubTotal="1200.00"
+  Total="1392.00"
+  Moneda="MXN"
+  TipoDeComprobante="I"
+  FormaPago="99"
+  MetodoPago="PPD"
+  CondicionesDePago="CONTADO"
+  LugarExpedicion="76000">
+  <cfdi:Emisor Rfc="STY850101AB1" Nombre="SUPER PAPELERIAS TONY SA DE CV" RegimenFiscal="601" />
+  <cfdi:Receptor Rfc="XAXX010101000" Nombre="PUBLICO EN GENERAL" DomicilioFiscalReceptor="76000" RegimenFiscalReceptor="616" UsoCFDI="G03" />
+  <cfdi:Conceptos>
+    <cfdi:Concepto ClaveProdServ="44121600" NoIdentificacion="07980376" Cantidad="10.00" ClaveUnidad="H87" Unidad="Pieza" Descripcion="CUADERNO PROFESIONAL 100 HOJAS CUADRICULA" ValorUnitario="40.09" Importe="400.90" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="400.90" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="64.14" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+    <cfdi:Concepto ClaveProdServ="44121710" NoIdentificacion="03150022" Cantidad="20.00" ClaveUnidad="H87" Unidad="Pieza" Descripcion="BOLIGRAFO PUNTO MEDIO AZUL" ValorUnitario="39.95" Importe="799.10" ObjetoImp="02">
+      <cfdi:Impuestos>
+        <cfdi:Traslados>
+          <cfdi:Traslado Base="799.10" Impuesto="002" TipoFactor="Tasa" TasaOCuota="0.160000" Importe="127.86" />
+        </cfdi:Traslados>
+      </cfdi:Impuestos>
+    </cfdi:Concepto>
+  </cfdi:Conceptos>
+  <cfdi:Addenda>
+    <bovadd:BOVEDAFISCAL TipoDoctoElectronico="FACTURA MAYOREO" almacen="MATRIZ" condicion="CONTADO" TR="884521" />
+  </cfdi:Addenda>
+  <cfdi:Complemento>
+    <tfd:TimbreFiscalDigital Version="1.1" UUID="7A3B21F0-4C5D-4E9A-8B6F-1234567890AB" FechaTimbrado="2026-08-10T12:31:05" RfcProvCertif="SAT970701NN3" SelloCFD="abc" NoCertificadoSAT="00001000000000000000" SelloSAT="def" />
+  </cfdi:Complemento>
+</cfdi:Comprobante>

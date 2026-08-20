@@ -35,6 +35,21 @@ export const LIBRETA = {
   hojasMaximo: 300,
 } as const;
 
+export type ReglaCostoConsolidado = 'ultima_compra' | 'proveedor_preferido';
+
+export const RECEPCION = {
+  // Tolerancia entre la suma de líneas+impuestos y el Total del comprobante antes de
+  // bloquear el botón de autorizar (redondeo de centavos entre conceptos, no un margen de
+  // negocio).
+  toleranciaCuadreCentavos: 100, // $1.00
+  // A partir de qué variación (fracción) entre el costo nuevo y el último costo del MISMO
+  // proveedor se muestra una advertencia. No bloquea autorizar.
+  alertaVariacionCostoFraccion: 0.15, // 15%
+  // Regla de `calcularCostoConsolidado` (src/lib/costeo.ts): qué costo por proveedor se
+  // refleja en `products.costPrice`, el único que usa el resto del sistema.
+  reglaCostoConsolidado: 'ultima_compra' as ReglaCostoConsolidado,
+} as const;
+
 export type MetodoPago = keyof typeof POS.metodosPago;
 
 /** Zona de presentación y de corte de día (§2). Una sola constante para todo el sistema. */

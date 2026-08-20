@@ -150,6 +150,22 @@ export const shiftStatusEnum = pgEnum('shift_status', ['open', 'closed']);
 export const saleStatusEnum = pgEnum('sale_status', ['completed', 'cancelled']);
 export const paymentMethodEnum = pgEnum('payment_method', ['cash', 'card', 'transfer']);
 
+// Recepción de Mercancía (docs/modulo-recepcion-mercancia-xml.md). `source` distingue si
+// la recepción se generó importando un CFDI XML o capturando líneas a mano; ambas vías
+// comparten el mismo modelo de cabecera + líneas.
+export const goodsReceiptSourceEnum = pgEnum('goods_receipt_source', ['xml', 'manual']);
+export const goodsReceiptStatusEnum = pgEnum('goods_receipt_status', [
+  'draft',
+  'authorized',
+  'discarded',
+]);
+export const goodsReceiptItemMatchStatusEnum = pgEnum('goods_receipt_item_match_status', [
+  'matched_auto',
+  'matched_manual',
+  'created_new',
+  'unmatched',
+]);
+
 export const cashRegisterShifts = pgTable(
   'cash_register_shifts',
   {
@@ -284,6 +300,136 @@ export const folios = pgTable(
   (t) => [primaryKey({ columns: [t.branchId, t.date] })],
 );
 
+export const suppliers = pgTable(
+  'suppliers',
+  {
+    id: serial('id').primaryKey(),
+    name: text('name').notNull(),
+    // RFC del emisor del CFDI. Se usa para validar que el emisor de un XML importado
+    // corresponda a un proveedor ya configurado (§ Requerimientos funcionales, validación 3).
+    rfc: text('rfc'),
+    contactName: text('contact_name'),
+    phone: text('phone'),
+    email: text('email'),
+    isActive: boolean('is_active').notNull().default(true),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('suppliers_rfc_unique').on(t.rfc),
+    index('suppliers_active_name_idx').on(t.isActive, t.name),
+  ],
+);
+
+// Costo y código de un producto SEGÚN un proveedor específico. La clave real de
+// emparejamiento con las líneas de un CFDI es (supplierId, supplierCode) — el
+// `NoIdentificacion` de Tony u homólogo de otro proveedor — porque un mismo código puede
+// repetirse entre proveedores distintos sin confundirse. Deliberadamente NO hay unique en
+// (productId, supplierId): si el proveedor cambia de código para el mismo producto, debe
+// poder existir una fila nueva sin romper la anterior.
+export const productSuppliers = pgTable(
+  'product_suppliers',
+  {
+    id: serial('id').primaryKey(),
+    productId: integer('product_id')
+      .notNull()
+      .references(() => products.id, { onDelete: 'cascade' }),
+    supplierId: integer('supplier_id')
+      .notNull()
+      .references(() => suppliers.id, { onDelete: 'cascade' }),
+    supplierCode: text('supplier_code').notNull(),
+    // Solo una fila por producto debería tener `true`; eso se garantiza a nivel de
+    // aplicación (transacción que apaga las demás del mismo producto), no con un índice.
+    isPreferred: boolean('is_preferred').notNull().default(false),
+    lastCost: numeric('last_cost', { precision: 12, scale: 2 }).notNull().default('0'),
+    lastCostAt: timestamp('last_cost_at', { withTimezone: true }),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex('product_suppliers_supplier_code_unique').on(t.supplierId, t.supplierCode),
+    index('product_suppliers_product_idx').on(t.productId),
+  ],
+);
+
+// Cabecera de una recepción de mercancía: la pre-carga (borrador) que un usuario revisa y
+// autoriza antes de que se toque el inventario. Los campos `cfdi*` quedan nulos cuando
+// `source = 'manual'`.
+//
+// La unicidad del UUID NO se declara aquí como `uniqueIndex` normal: al descartar una
+// recepción el UUID debe quedar libre para reimportarse, pero la fila descartada conserva
+// su UUID como rastro de auditoría. Eso exige un índice único PARCIAL
+// (`WHERE status <> 'discarded'`), que se agrega a mano en la migración SQL — ver
+// `drizzle/`. Un `uniqueIndex` de Drizzle no soporta ese predicado.
+export const goodsReceipts = pgTable(
+  'goods_receipts',
+  {
+    id: serial('id').primaryKey(),
+    source: goodsReceiptSourceEnum('source').notNull(),
+    status: goodsReceiptStatusEnum('status').notNull().default('draft'),
+    supplierId: integer('supplier_id')
+      .notNull()
+      .references(() => suppliers.id),
+    branchId: integer('branch_id')
+      .notNull()
+      .references(() => branches.id),
+    cfdiUuid: text('cfdi_uuid'),
+    cfdiSeries: text('cfdi_series'),
+    cfdiFolio: text('cfdi_folio'),
+    cfdiIssuedAt: timestamp('cfdi_issued_at', { withTimezone: true }),
+    cfdiStampedAt: timestamp('cfdi_stamped_at', { withTimezone: true }),
+    referenceNote: text('reference_note'),
+    subtotal: numeric('subtotal', { precision: 12, scale: 2 }).notNull().default('0'),
+    tax: numeric('tax', { precision: 12, scale: 2 }).notNull().default('0'),
+    total: numeric('total', { precision: 12, scale: 2 }).notNull().default('0'),
+    createdByUserId: integer('created_by_user_id')
+      .notNull()
+      .references(() => users.id),
+    authorizedByUserId: integer('authorized_by_user_id').references(() => users.id),
+    authorizedAt: timestamp('authorized_at', { withTimezone: true }),
+    discardedByUserId: integer('discarded_by_user_id').references(() => users.id),
+    discardedAt: timestamp('discarded_at', { withTimezone: true }),
+    discardReason: text('discard_reason'),
+    ...timestamps,
+  },
+  (t) => [
+    index('goods_receipts_status_idx').on(t.status),
+    index('goods_receipts_supplier_idx').on(t.supplierId),
+    index('goods_receipts_branch_created_idx').on(t.branchId, t.createdAt),
+  ],
+);
+
+// Líneas de una recepción. Sin unique en (receiptId, supplierCode): una factura real puede
+// repetir el mismo NoIdentificacion en dos conceptos distintos (caso borde explícito de la
+// spec), y ambas líneas deben poder coexistir y sumar stock por separado al autorizar.
+export const goodsReceiptItems = pgTable(
+  'goods_receipt_items',
+  {
+    id: serial('id').primaryKey(),
+    receiptId: integer('receipt_id')
+      .notNull()
+      .references(() => goodsReceipts.id, { onDelete: 'cascade' }),
+    // Nulo = línea sin resolver. No se puede autorizar la recepción con líneas así.
+    productId: integer('product_id').references(() => products.id),
+    supplierCode: text('supplier_code'),
+    description: text('description').notNull(),
+    // ClaveProdServ del CFDI: clasificación fiscal SAT, puramente informativa. NUNCA se usa
+    // para emparejar contra el catálogo (eso es `supplierCode`).
+    satProductKey: text('sat_product_key'),
+    unitKey: text('unit_key'),
+    unitLabel: text('unit_label'),
+    quantity: numeric('quantity', { precision: 12, scale: 2 }).notNull(),
+    unitCost: numeric('unit_cost', { precision: 12, scale: 2 }).notNull(),
+    taxRate: numeric('tax_rate', { precision: 5, scale: 4 }).notNull().default('0'),
+    taxAmount: numeric('tax_amount', { precision: 12, scale: 2 }).notNull().default('0'),
+    lineTotal: numeric('line_total', { precision: 12, scale: 2 }).notNull(),
+    matchStatus: goodsReceiptItemMatchStatusEnum('match_status').notNull().default('unmatched'),
+    ...timestamps,
+  },
+  (t) => [
+    index('goods_receipt_items_receipt_idx').on(t.receiptId),
+    index('goods_receipt_items_product_idx').on(t.productId),
+  ],
+);
+
 export const branchesRelations = relations(branches, ({ many }) => ({
   users: many(users),
   inventories: many(inventories),
@@ -299,6 +445,36 @@ export const productsRelations = relations(products, ({ one, many }) => ({
     references: [productCategories.id],
   }),
   inventories: many(inventories),
+  productSuppliers: many(productSuppliers),
+}));
+
+export const suppliersRelations = relations(suppliers, ({ many }) => ({
+  productSuppliers: many(productSuppliers),
+  goodsReceipts: many(goodsReceipts),
+}));
+
+export const productSuppliersRelations = relations(productSuppliers, ({ one }) => ({
+  product: one(products, { fields: [productSuppliers.productId], references: [products.id] }),
+  supplier: one(suppliers, { fields: [productSuppliers.supplierId], references: [suppliers.id] }),
+}));
+
+export const goodsReceiptsRelations = relations(goodsReceipts, ({ one, many }) => ({
+  supplier: one(suppliers, { fields: [goodsReceipts.supplierId], references: [suppliers.id] }),
+  branch: one(branches, { fields: [goodsReceipts.branchId], references: [branches.id] }),
+  createdBy: one(users, { fields: [goodsReceipts.createdByUserId], references: [users.id] }),
+  authorizedBy: one(users, {
+    fields: [goodsReceipts.authorizedByUserId],
+    references: [users.id],
+  }),
+  items: many(goodsReceiptItems),
+}));
+
+export const goodsReceiptItemsRelations = relations(goodsReceiptItems, ({ one }) => ({
+  receipt: one(goodsReceipts, {
+    fields: [goodsReceiptItems.receiptId],
+    references: [goodsReceipts.id],
+  }),
+  product: one(products, { fields: [goodsReceiptItems.productId], references: [products.id] }),
 }));
 
 export const inventoriesRelations = relations(inventories, ({ one }) => ({
@@ -354,6 +530,13 @@ export type Sale = typeof sales.$inferSelect;
 export type SaleItem = typeof saleItems.$inferSelect;
 export type SalePayment = typeof salePayments.$inferSelect;
 export type ShiftPayment = typeof shiftPayments.$inferSelect;
+export type Supplier = typeof suppliers.$inferSelect;
+export type ProductSupplier = typeof productSuppliers.$inferSelect;
+export type GoodsReceipt = typeof goodsReceipts.$inferSelect;
+export type GoodsReceiptItem = typeof goodsReceiptItems.$inferSelect;
 export type Rol = (typeof rolEnum.enumValues)[number];
 export type EstadoTurno = (typeof shiftStatusEnum.enumValues)[number];
 export type EstadoVenta = (typeof saleStatusEnum.enumValues)[number];
+export type OrigenRecepcion = (typeof goodsReceiptSourceEnum.enumValues)[number];
+export type EstadoRecepcion = (typeof goodsReceiptStatusEnum.enumValues)[number];
+export type EstadoEmparejamientoLinea = (typeof goodsReceiptItemMatchStatusEnum.enumValues)[number];

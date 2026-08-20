@@ -1,13 +1,16 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
+import { RECEPCION } from '@/config/pos';
 import { db } from '@/db';
-import { branches, inventories, products } from '@/db/schema';
+import { productSuppliers, products } from '@/db/schema';
+import { calcularCostoConsolidado } from '@/lib/costeo';
+import { asegurarInventario } from '@/lib/inventario';
 import { aCentavos, aPesos } from '@/lib/money';
-import { erroresDeZod, type EstadoFormulario } from '@/lib/resultado';
+import { erroresDeZod, type EstadoFormulario, type Resultado } from '@/lib/resultado';
 import { exigirRol } from '@/lib/sesion';
 
 // El dinero entra como texto del formulario y sale como `numeric` para Postgres. En medio
@@ -97,19 +100,57 @@ export async function guardarProducto(
 }
 
 /**
- * Crea la fila de inventario del producto en TODAS las sucursales, con stock 0. Portado
- * tal cual de la versión Laravel: si una sucursal no tiene fila, el producto no se puede
- * ni contar ni ajustar ahí, y el hueco solo se descubre vendiendo.
- *
- * `onConflictDoNothing` sobre el índice único (product_id, branch_id) lo hace repetible:
- * al agregar una sucursal nueva se vuelve a llamar y solo aparecen las que faltaban.
+ * Marca un proveedor como preferido para un producto (comparativo de costo por proveedor,
+ * docs/modulo-recepcion-mercancia-xml.md). Solo una fila por producto queda `isPreferred`:
+ * apaga las demás en la misma transacción. Si la regla activa de
+ * `RECEPCION.reglaCostoConsolidado` es `'proveedor_preferido'`, el catálogo se recalcula de
+ * inmediato para reflejar el cambio sin esperar a la siguiente recepción autorizada.
  */
-async function asegurarInventario(productId: number): Promise<void> {
-  const sucursales = await db.select({ id: branches.id }).from(branches);
-  if (sucursales.length === 0) return;
+export async function marcarProveedorPreferido(entrada: unknown): Promise<Resultado<undefined>> {
+  const permiso = await exigirRol('admin');
+  if (!permiso.ok) return { ok: false, error: permiso.error };
 
-  await db
-    .insert(inventories)
-    .values(sucursales.map((s) => ({ productId, branchId: s.id, stock: '0' })))
-    .onConflictDoNothing();
+  const analisis = z
+    .object({ productId: z.number().int().positive(), supplierId: z.number().int().positive() })
+    .safeParse(entrada);
+  if (!analisis.success) return { ok: false, error: 'Datos no válidos.' };
+  const { productId, supplierId } = analisis.data;
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(productSuppliers)
+      .set({ isPreferred: false })
+      .where(eq(productSuppliers.productId, productId));
+    await tx
+      .update(productSuppliers)
+      .set({ isPreferred: true })
+      .where(
+        and(eq(productSuppliers.productId, productId), eq(productSuppliers.supplierId, supplierId)),
+      );
+  });
+
+  if (RECEPCION.reglaCostoConsolidado === 'proveedor_preferido') {
+    const candidatos = await db
+      .select({
+        supplierId: productSuppliers.supplierId,
+        isPreferred: productSuppliers.isPreferred,
+        lastCost: productSuppliers.lastCost,
+        lastCostAt: productSuppliers.lastCostAt,
+      })
+      .from(productSuppliers)
+      .where(eq(productSuppliers.productId, productId));
+
+    const nuevoCosto = calcularCostoConsolidado(
+      candidatos.map((c) => ({ ...c, lastCost: aCentavos(c.lastCost) ?? 0 })),
+    );
+    if (nuevoCosto !== null) {
+      await db
+        .update(products)
+        .set({ costPrice: aPesos(nuevoCosto) })
+        .where(eq(products.id, productId));
+    }
+  }
+
+  revalidatePath('/productos');
+  return { ok: true, data: undefined };
 }

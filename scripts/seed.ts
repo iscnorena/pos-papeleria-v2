@@ -17,7 +17,7 @@ async function main() {
   // Abre su propia conexión, corta y de un solo uso, con el mismo esquema.
   const { drizzle } = await import('drizzle-orm/postgres-js');
   const postgres = (await import('postgres')).default;
-  const { branches, users, productCategories, products, inventories } =
+  const { branches, users, productCategories, products, inventories, suppliers } =
     await import('../src/db/schema');
 
   const url = process.env.DATABASE_URL;
@@ -25,7 +25,7 @@ async function main() {
 
   const cliente = postgres(url, { prepare: false, max: 1 });
   const db = drizzle(cliente, {
-    schema: { branches, users, productCategories, products, inventories },
+    schema: { branches, users, productCategories, products, inventories, suppliers },
   });
 
   const COSTO_BCRYPT = 12; // §5
@@ -215,6 +215,19 @@ async function main() {
 
   for (const entrada of CATALOGO) await producto(entrada, true, '25.00');
   for (const entrada of SERVICIOS) await producto(entrada, false, '0.00');
+
+  // ── Recepción de Mercancía (docs/modulo-recepcion-mercancia-xml.md) ────────────────
+  // RFC igual al del fixture de prueba (src/lib/cfdi/fixtures/cfdi-tony-ejemplo.xml), para
+  // que importar ese XML en local empareje con este proveedor sin configuración extra.
+  async function proveedor(name: string, rfc: string) {
+    const [existente] = await db.select().from(suppliers).where(eq(suppliers.rfc, rfc)).limit(1);
+    if (existente) return existente;
+    const [creado] = await db.insert(suppliers).values({ name, rfc }).returning();
+    if (!creado) throw new Error(`No se pudo crear el proveedor ${name}`);
+    return creado;
+  }
+
+  await proveedor('Super Papelerías Tony', 'STY850101AB1');
 
   const sucursales = await db.select().from(branches);
   const usuarios = await db.select().from(users);

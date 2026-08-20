@@ -311,6 +311,25 @@ export async function limpiarIntentos(): Promise<void> {
   }
 }
 
+/**
+ * Borra lo que crean las pruebas de Recepción de Mercancía: recepciones de prueba (por
+ * `referenceNote` o por el UUID fijo del fixture `cfdi-tony-ejemplo.xml`) y los pares
+ * producto-proveedor que hayan quedado vinculados. `goods_receipt_items` se borra en
+ * cascada al borrar `goods_receipts` (FK `onDelete: 'cascade'`).
+ */
+export async function limpiarRecepciones(): Promise<void> {
+  const sql = conectar();
+  try {
+    await sql`
+      delete from goods_receipts
+      where reference_note like 'E2E%' or cfdi_uuid = '7A3B21F0-4C5D-4E9A-8B6F-1234567890AB'
+    `;
+    await sql`delete from product_suppliers where supplier_id in (select id from suppliers where rfc = 'STY850101AB1')`;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 /** Limpia el límite por IP de la búsqueda pública de /imprimir, sin tocar el del PIN. */
 export async function limpiarIntentosBusquedaPublica(): Promise<void> {
   const sql = conectar();

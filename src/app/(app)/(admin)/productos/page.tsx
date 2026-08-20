@@ -6,9 +6,10 @@ import { FormularioCrud } from '@/components/FormularioCrud';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
 import { db } from '@/db';
-import { productCategories, products } from '@/db/schema';
+import { productCategories, productSuppliers, products, suppliers } from '@/db/schema';
 import { aCentavos, formatear } from '@/lib/money';
 import { guardarProducto } from './acciones';
+import { ComparativoProveedores, type CostoProveedor } from './ComparativoProveedores';
 
 export default async function PantallaProductos({
   searchParams,
@@ -44,6 +45,23 @@ export default async function PantallaProductos({
   const enEdicion = Number.isInteger(idEditar)
     ? ((await db.select().from(products).where(eq(products.id, idEditar)).limit(1))[0] ?? null)
     : null;
+
+  const costosProveedor: CostoProveedor[] = enEdicion
+    ? (
+        await db
+          .select({
+            supplierId: suppliers.id,
+            supplierName: suppliers.name,
+            supplierCode: productSuppliers.supplierCode,
+            lastCost: productSuppliers.lastCost,
+            lastCostAt: productSuppliers.lastCostAt,
+            isPreferred: productSuppliers.isPreferred,
+          })
+          .from(productSuppliers)
+          .innerJoin(suppliers, eq(productSuppliers.supplierId, suppliers.id))
+          .where(eq(productSuppliers.productId, enEdicion.id))
+      ).map((c) => ({ ...c, lastCost: aCentavos(c.lastCost) ?? 0 }))
+    : [];
 
   return (
     <section>
@@ -171,6 +189,10 @@ export default async function PantallaProductos({
             <Link href="/productos" className="mt-3 block text-fino text-boligrafo underline">
               Cancelar edición
             </Link>
+          )}
+
+          {enEdicion && (
+            <ComparativoProveedores productId={enEdicion.id} costos={costosProveedor} />
           )}
         </aside>
       </div>
