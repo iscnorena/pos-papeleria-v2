@@ -70,6 +70,16 @@ async function main() {
   const principal = await sucursal('Principal');
   const segunda = await sucursal('Sucursal 2');
 
+  // Sin un número de WhatsApp en al menos una sucursal, el botón "Enviar por WhatsApp" de
+  // /imprimir/* nunca aparece (src/app/imprimir/rifas/page.tsx y hermanas exigen
+  // `isNotNull(branches.whatsappNumber)`) — la suite de e2e lo da por hecho.
+  if (!principal.whatsappNumber) {
+    await db
+      .update(branches)
+      .set({ whatsappNumber: '527445008175' })
+      .where(eq(branches.id, principal.id));
+  }
+
   await usuario({
     name: 'Administración',
     username: 'admin',

@@ -453,11 +453,16 @@ contra Supabase Auth en lugar de Auth.js.
 - **`drizzle-kit` arrastra un aviso `moderate` de npm audit** (`@esbuild-kit/*`
   → `esbuild`). Es herramienta de desarrollo, no llega a producción, y no hay
   versión publicada que lo resuelva. Revisar al subir de versión.
-- **Producción y desarrollo comparten la MISMA base de Supabase.** Hoy da igual
-  porque no hay datos reales, pero en cuanto el negocio empiece a vender, correr
-  `npm run test:e2e` estaría creando y borrando cosas en la base de producción.
-  Antes de ese día hace falta un segundo proyecto de Supabase para desarrollo, y
-  que `.env.local` apunte ahí.
+- ~~**Producción y desarrollo comparten la MISMA base de Supabase.**~~ ✅
+  Resuelto el 2026-08-20, después de que correr la suite de e2e contra la base
+  compartida agotó el pool de conexiones de Supabase y causó timeouts (504) en
+  producción durante ~20 minutos. Proyecto nuevo de Supabase para desarrollo:
+  ref `bnethgxggohysdefkynj`, mismo org, región `us-east-1`, migraciones y
+  semilla ya aplicadas (17 tablas, `pg_trgm`, índice parcial de
+  `goods_receipts.cfdi_uuid`). `.env.local` apunta ahí; producción (Vercel) NO
+  se tocó y sigue en el proyecto original (`fwtbpdimycbjplteuviw`). De aquí en
+  adelante, `npm run test:e2e` y cualquier prueba local corren sin riesgo para
+  producción.
 - **Migración pendiente de la Fase 6:** cuando se conecte el cobro de
   herramientas habrá que permitir `product_id` nulo en `sale_items` con
   `product_name` obligatorio. **No hacerla todavía** (§6 de la especificación).
@@ -488,16 +493,17 @@ dejarlo como está.
 
 ## Cuentas y accesos
 
-| Qué                  | Valor                                                                 |
-| -------------------- | --------------------------------------------------------------------- |
-| Repo                 | `git@github.com:iscnorena/pos-papeleria-v2.git` (SSH)                 |
-| Identidad de commits | `iscnorena <iscnorenam@gmail.com>`, configurada **solo en este repo** |
-| Llave SSH            | `~/.ssh/id_ed25519_github`, verificada contra GitHub                  |
-| Cuenta Vercel        | `iscnorenam-8534` (`iscnorenam@gmail.com`)                            |
-| Team Vercel          | `christopher-norenas-projects`                                        |
-| Proyecto Vercel      | `pos-papeleria` (`prj_BbMW9DIQbolMFldpGHtVzTwEMORg`)                  |
-| Producción           | <https://pos-papeleria.vercel.app>                                    |
-| Supabase             | proyecto `fwtbpdimycbjplteuviw`, región `us-east-1`                   |
+| Qué                   | Valor                                                                         |
+| --------------------- | ----------------------------------------------------------------------------- |
+| Repo                  | `git@github.com:iscnorena/pos-papeleria-v2.git` (SSH)                         |
+| Identidad de commits  | `iscnorena <iscnorenam@gmail.com>`, configurada **solo en este repo**         |
+| Llave SSH             | `~/.ssh/id_ed25519_github`, verificada contra GitHub                          |
+| Cuenta Vercel         | `iscnorenam-8534` (`iscnorenam@gmail.com`)                                    |
+| Team Vercel           | `christopher-norenas-projects`                                                |
+| Proyecto Vercel       | `pos-papeleria` (`prj_BbMW9DIQbolMFldpGHtVzTwEMORg`)                          |
+| Producción            | <https://pos-papeleria.vercel.app>                                            |
+| Supabase (producción) | proyecto `fwtbpdimycbjplteuviw`, región `us-east-1` — el que usa Vercel       |
+| Supabase (desarrollo) | proyecto `bnethgxggohysdefkynj`, región `us-east-1` — el que usa `.env.local` |
 
 Verificar que `iscnorenam@gmail.com` esté confirmado en
 `github.com/settings/emails`, o los commits no se atribuyen al perfil.
