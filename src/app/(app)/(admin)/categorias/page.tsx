@@ -54,34 +54,36 @@ export default async function PantallaCategorias({
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
-        <Tabla encabezados={['Nombre', 'Descripción', 'Productos', 'Estado', '']}>
-          {lista.length === 0 && <SinDatos columnas={5}>Todavía no hay categorías.</SinDatos>}
-          {lista.map((c) => (
-            <Fila key={c.id}>
-              <Celda>{c.name}</Celda>
-              <Celda>{c.description ?? '—'}</Celda>
-              <Celda mono>{c.productos}</Celda>
-              <Celda>
-                {c.isActive ? (
-                  <Distintivo tono="visto">Activa</Distintivo>
-                ) : (
-                  <Distintivo tono="sello">Inactiva</Distintivo>
-                )}
-              </Celda>
-              <Celda>
-                <Link href={`/categorias?editar=${c.id}`} className="text-boligrafo underline">
-                  Editar
-                </Link>
-              </Celda>
-            </Fila>
-          ))}
-        </Tabla>
-        <Paginacion
-          ruta="/categorias"
-          pagina={pagina}
-          totalFilas={total}
-          porPagina={PAGINACION.porPagina}
-        />
+        <div>
+          <Tabla encabezados={['Nombre', 'Descripción', 'Productos', 'Estado', '']}>
+            {lista.length === 0 && <SinDatos columnas={5}>Todavía no hay categorías.</SinDatos>}
+            {lista.map((c) => (
+              <Fila key={c.id}>
+                <Celda>{c.name}</Celda>
+                <Celda>{c.description ?? '—'}</Celda>
+                <Celda mono>{c.productos}</Celda>
+                <Celda>
+                  {c.isActive ? (
+                    <Distintivo tono="visto">Activa</Distintivo>
+                  ) : (
+                    <Distintivo tono="sello">Inactiva</Distintivo>
+                  )}
+                </Celda>
+                <Celda>
+                  <Link href={`/categorias?editar=${c.id}`} className="text-boligrafo underline">
+                    Editar
+                  </Link>
+                </Celda>
+              </Fila>
+            ))}
+          </Tabla>
+          <Paginacion
+            ruta="/categorias"
+            pagina={pagina}
+            totalFilas={total}
+            porPagina={PAGINACION.porPagina}
+          />
+        </div>
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">

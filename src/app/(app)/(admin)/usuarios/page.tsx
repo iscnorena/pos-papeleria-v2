@@ -54,38 +54,42 @@ export default async function PantallaUsuarios({
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-        <Tabla encabezados={['Usuario', 'Nombre', 'Rol', 'Sucursal', 'PIN', 'Estado', '']}>
-          {lista.length === 0 && <SinDatos columnas={7}>Todavía no hay usuarios.</SinDatos>}
-          {lista.map((u) => (
-            <Fila key={u.id}>
-              <Celda mono>{u.username}</Celda>
-              <Celda>{u.name}</Celda>
-              <Celda>
-                <Distintivo tono={u.role === 'admin' ? 'marcador' : 'neutro'}>{u.role}</Distintivo>
-              </Celda>
-              <Celda>{u.sucursal ?? '—'}</Celda>
-              <Celda>{u.tienePin ? 'Sí' : '—'}</Celda>
-              <Celda>
-                {u.isActive ? (
-                  <Distintivo tono="visto">Activo</Distintivo>
-                ) : (
-                  <Distintivo tono="sello">Inactivo</Distintivo>
-                )}
-              </Celda>
-              <Celda>
-                <Link href={`/usuarios?editar=${u.id}`} className="text-boligrafo underline">
-                  Editar
-                </Link>
-              </Celda>
-            </Fila>
-          ))}
-        </Tabla>
-        <Paginacion
-          ruta="/usuarios"
-          pagina={pagina}
-          totalFilas={total}
-          porPagina={PAGINACION.porPagina}
-        />
+        <div>
+          <Tabla encabezados={['Usuario', 'Nombre', 'Rol', 'Sucursal', 'PIN', 'Estado', '']}>
+            {lista.length === 0 && <SinDatos columnas={7}>Todavía no hay usuarios.</SinDatos>}
+            {lista.map((u) => (
+              <Fila key={u.id}>
+                <Celda mono>{u.username}</Celda>
+                <Celda>{u.name}</Celda>
+                <Celda>
+                  <Distintivo tono={u.role === 'admin' ? 'marcador' : 'neutro'}>
+                    {u.role}
+                  </Distintivo>
+                </Celda>
+                <Celda>{u.sucursal ?? '—'}</Celda>
+                <Celda>{u.tienePin ? 'Sí' : '—'}</Celda>
+                <Celda>
+                  {u.isActive ? (
+                    <Distintivo tono="visto">Activo</Distintivo>
+                  ) : (
+                    <Distintivo tono="sello">Inactivo</Distintivo>
+                  )}
+                </Celda>
+                <Celda>
+                  <Link href={`/usuarios?editar=${u.id}`} className="text-boligrafo underline">
+                    Editar
+                  </Link>
+                </Celda>
+              </Fila>
+            ))}
+          </Tabla>
+          <Paginacion
+            ruta="/usuarios"
+            pagina={pagina}
+            totalFilas={total}
+            porPagina={PAGINACION.porPagina}
+          />
+        </div>
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">

@@ -115,53 +115,57 @@ export default async function PantallaProductos({
       </form>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
-        <Tabla encabezados={['Producto', 'Código', 'Categoría', 'Costo', 'Precio', 'Estado', '']}>
-          {lista.length === 0 && (
-            <SinDatos columnas={7}>
-              {buscar ? 'Nada coincide con la búsqueda.' : 'Todavía no hay productos.'}
-            </SinDatos>
-          )}
-          {lista.map((p) => {
-            const costo = aCentavos(p.costPrice) ?? 0;
-            const precio = aCentavos(p.salePrice) ?? 0;
-            return (
-              <Fila key={p.id}>
-                <Celda>
-                  {p.name}
-                  {!p.managesInventory && <Distintivo className="ml-2">Sin inventario</Distintivo>}
-                  {p.openPrice && <Distintivo className="ml-2">Precio libre</Distintivo>}
-                </Celda>
-                <Celda mono>{p.code ?? '—'}</Celda>
-                <Celda>{p.categoria ?? '—'}</Celda>
-                <Celda mono className="text-right">
-                  {formatear(costo)}
-                </Celda>
-                <Celda mono className="text-right">
-                  {formatear(precio)}
-                </Celda>
-                <Celda>
-                  {p.isActive ? (
-                    <Distintivo tono="visto">Activo</Distintivo>
-                  ) : (
-                    <Distintivo tono="sello">Inactivo</Distintivo>
-                  )}
-                </Celda>
-                <Celda>
-                  <Link href={`/productos?editar=${p.id}`} className="text-boligrafo underline">
-                    Editar
-                  </Link>
-                </Celda>
-              </Fila>
-            );
-          })}
-        </Tabla>
-        <Paginacion
-          ruta="/productos"
-          parametros={{ buscar: buscarTexto }}
-          pagina={pagina}
-          totalFilas={total}
-          porPagina={PAGINACION.porPagina}
-        />
+        <div>
+          <Tabla encabezados={['Producto', 'Código', 'Categoría', 'Costo', 'Precio', 'Estado', '']}>
+            {lista.length === 0 && (
+              <SinDatos columnas={7}>
+                {buscar ? 'Nada coincide con la búsqueda.' : 'Todavía no hay productos.'}
+              </SinDatos>
+            )}
+            {lista.map((p) => {
+              const costo = aCentavos(p.costPrice) ?? 0;
+              const precio = aCentavos(p.salePrice) ?? 0;
+              return (
+                <Fila key={p.id}>
+                  <Celda>
+                    {p.name}
+                    {!p.managesInventory && (
+                      <Distintivo className="ml-2">Sin inventario</Distintivo>
+                    )}
+                    {p.openPrice && <Distintivo className="ml-2">Precio libre</Distintivo>}
+                  </Celda>
+                  <Celda mono>{p.code ?? '—'}</Celda>
+                  <Celda>{p.categoria ?? '—'}</Celda>
+                  <Celda mono className="text-right">
+                    {formatear(costo)}
+                  </Celda>
+                  <Celda mono className="text-right">
+                    {formatear(precio)}
+                  </Celda>
+                  <Celda>
+                    {p.isActive ? (
+                      <Distintivo tono="visto">Activo</Distintivo>
+                    ) : (
+                      <Distintivo tono="sello">Inactivo</Distintivo>
+                    )}
+                  </Celda>
+                  <Celda>
+                    <Link href={`/productos?editar=${p.id}`} className="text-boligrafo underline">
+                      Editar
+                    </Link>
+                  </Celda>
+                </Fila>
+              );
+            })}
+          </Tabla>
+          <Paginacion
+            ruta="/productos"
+            parametros={{ buscar: buscarTexto }}
+            pagina={pagina}
+            totalFilas={total}
+            porPagina={PAGINACION.porPagina}
+          />
+        </div>
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">
