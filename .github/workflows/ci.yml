@@ -1,0 +1,84 @@
+name: CI
+
+# Dos velocidades a propósito:
+#   - `verificar` no toca ninguna base real (el cliente de Postgres es perezoso: construirlo
+#     no exige una conexión que funcione, solo que las variables existan). Corre en PRs y en
+#     cada push a main, en segundos.
+#   - `e2e` sí necesita una base real, y corre SIEMPRE contra el proyecto de Supabase de
+#     DESARROLLO (ver docs/estado.md, sección "Cuentas y accesos") — nunca contra producción.
+#     Solo arranca si `verificar` ya pasó, para no gastar los ~11 minutos en un push
+#     obviamente roto.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Si se empuja dos veces seguido, cancela la corrida de e2e anterior en vez de dejar dos
+# corridas pegándole a la misma base de desarrollo al mismo tiempo — es justo el patrón que
+# agotó el pool de conexiones de Supabase el 2026-08-20 (ver docs/estado.md).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Tipos, lint, formato y build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      # Ficticias a propósito: el build nunca llega a conectarse de verdad, solo exige que
+      # las variables no falten (`src/env.ts`, `requerida()`).
+      DATABASE_URL: postgresql://usuario:clave@host-no-real.invalid:6543/postgres
+      SUPABASE_URL: https://ejemplo.supabase.co
+      SUPABASE_SERVICE_ROLE_KEY: no-usada-por-ningun-codigo-todavia
+      AUTH_SECRET: solo-para-que-el-build-no-truene-no-firma-nada-real
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test
+      - run: npm run build
+
+  e2e:
+    name: Pruebas end-to-end (base de desarrollo)
+    needs: verificar
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DATABASE_URL: ${{ secrets.DEV_DATABASE_URL }}
+      SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: no-usada-por-ningun-codigo-todavia
+      AUTH_SECRET: ${{ secrets.CI_AUTH_SECRET }}
+      POS_COMPANY_NAME: 'Papelería Gabbana (CI)'
+      UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+      PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+      PIXABAY_API_KEY: ${{ secrets.PIXABAY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - name: Migrar y sembrar la base de desarrollo
+        run: |
+          npm run db:migrate
+          npm run db:seed
+      - run: npm run test:e2e
+      - name: Subir trazas de fallos
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-trace
+          path: test-results/
+          retention-days: 7

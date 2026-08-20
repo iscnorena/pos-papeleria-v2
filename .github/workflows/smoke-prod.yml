@@ -1,0 +1,49 @@
+name: Smoke test de producción
+
+# Deliberadamente NO automático: los deploys son manuales (`vercel deploy --prod`, ver
+# docs/estado.md — no hay auto-deploy conectado a GitHub), así que un push a main no
+# significa que ya se desplegó. Se dispara a mano desde la pestaña Actions (o `gh workflow
+# run smoke-prod.yml`) justo después de cada `vercel deploy --prod`.
+#
+# Solo lee: pide unas cuantas rutas públicas y de login, y revisa el código de estado.
+# Nunca inicia sesión ni escribe nada — no es el lugar para probar lógica de negocio (eso ya
+# lo cubrió el job `e2e` de ci.yml contra la base de desarrollo, antes de llegar aquí).
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: URL base a revisar
+        required: false
+        default: https://pos-papeleria.vercel.app
+
+jobs:
+  smoke:
+    name: Rutas clave responden
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Revisar rutas
+        run: |
+          set -e
+          BASE="${{ github.event.inputs.base_url || 'https://pos-papeleria.vercel.app' }}"
+          fallo=0
+
+          revisar() {
+            ruta="$1"
+            esperado="$2"
+            codigo=$(curl -s -o /dev/null -w "%{http_code}" --max-time 15 "$BASE$ruta")
+            if [ "$codigo" = "$esperado" ]; then
+              echo "✓ $ruta -> $codigo"
+            else
+              echo "✗ $ruta -> $codigo (se esperaba $esperado)"
+              fallo=1
+            fi
+          }
+
+          revisar "/login" 200
+          revisar "/imprimir" 200
+          revisar "/dashboard" 307   # sin sesión, redirige a /login
+          revisar "/productos" 307   # ídem
+
+          exit $fallo
