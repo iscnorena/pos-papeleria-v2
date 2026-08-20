@@ -2,12 +2,15 @@ import Link from 'next/link';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { FiltrosFecha } from '@/components/FiltrosFecha';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { diaDelNegocio } from '@/lib/fechas';
 import { momento } from '@/lib/formato';
 import { aCentavos, formatear } from '@/lib/money';
-import { totalesDe, ventasDe, type Filtros } from '@/lib/reportes';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
+import { contarVentas, totalesDe, ventasDe, type Filtros } from '@/lib/reportes';
 import { requerirSesion } from '@/lib/sesion';
 
 type Busqueda = {
@@ -16,6 +19,7 @@ type Busqueda = {
   sucursal?: string;
   cajera?: string;
   estado?: string;
+  pagina?: string;
 };
 
 function filtrosDe(busqueda: Busqueda): Filtros {
@@ -41,9 +45,11 @@ export default async function PantallaHistorial({
   const sesion = await requerirSesion();
   const busqueda = await searchParams;
   const filtros = filtrosDe(busqueda);
+  const pagina = paginaDeBusqueda(busqueda.pagina);
 
-  const [ventas, totales] = await Promise.all([
-    ventasDe(filtros, sesion),
+  const [ventas, total, totales] = await Promise.all([
+    ventasDe(filtros, sesion, { limite: PAGINACION.porPagina, offset: offsetDePagina(pagina) }),
+    contarVentas(filtros, sesion),
     totalesDe(filtros, sesion),
   ]);
 
@@ -95,6 +101,13 @@ export default async function PantallaHistorial({
           );
         })}
       </Tabla>
+      <Paginacion
+        ruta="/historial"
+        parametros={busqueda}
+        pagina={pagina}
+        totalFilas={total}
+        porPagina={PAGINACION.porPagina}
+      />
     </section>
   );
 }

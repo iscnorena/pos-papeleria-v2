@@ -120,7 +120,10 @@ export async function congelarDesglose(shiftId: number, porMetodo: ResumenMetodo
 }
 
 /** Turnos visibles para quien mira: la cajera solo los suyos, el admin todos (§3). */
-export async function turnosVisibles(sesion: { userId: number; rol: string }) {
+export async function turnosVisibles(
+  sesion: { userId: number; rol: string },
+  paginacion?: { limite: number; offset: number },
+) {
   const consulta = db
     .select({
       id: cashRegisterShifts.id,
@@ -145,5 +148,24 @@ export async function turnosVisibles(sesion: { userId: number; rol: string }) {
 
   // El turno abierto primero: es el único sobre el que se puede actuar. El enum se ordena
   // por su orden de declaración —`open` antes que `closed`—, así que va ascendente.
-  return filtrada.orderBy(asc(cashRegisterShifts.status), desc(cashRegisterShifts.openedAt));
+  const ordenada = filtrada.orderBy(
+    asc(cashRegisterShifts.status),
+    desc(cashRegisterShifts.openedAt),
+  );
+
+  return paginacion ? ordenada.limit(paginacion.limite).offset(paginacion.offset) : ordenada;
+}
+
+/** Cuántos turnos ve esta sesión, para la paginación de `turnosVisibles`. */
+export async function contarTurnosVisibles(sesion: {
+  userId: number;
+  rol: string;
+}): Promise<number> {
+  const consulta = db.select({ n: count() }).from(cashRegisterShifts).$dynamic();
+  const filtrada =
+    sesion.rol === 'admin'
+      ? consulta
+      : consulta.where(eq(cashRegisterShifts.userId, sesion.userId));
+  const [fila] = await filtrada;
+  return fila?.n ?? 0;
 }

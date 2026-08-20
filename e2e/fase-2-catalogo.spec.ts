@@ -77,6 +77,10 @@ test('1 · crear y editar sucursal, categoría, usuario y producto, con el error
   await page.getByLabel('Precio de venta').fill('21.00');
   await page.getByRole('button', { name: 'Guardar cambios' }).click();
   await expect(page.getByText('Producto actualizado.')).toBeVisible();
+
+  // Con el catálogo paginado, el producto puede no estar en la página 1: se busca por su
+  // código para verlo en la tabla sin importar dónde cayó alfabéticamente.
+  await page.goto(`/productos?buscar=${CODIGO_PRUEBA}`);
   await expect(page.getByRole('cell', { name: '$21.00' }).first()).toBeVisible();
 });
 
@@ -138,8 +142,9 @@ test('4 · desactivar un producto lo saca del catálogo de la caja sin borrar su
   expect(sigue).not.toBeNull();
   expect(sigue!.isActive).toBe(false);
 
-  // Y sigue visible en la pantalla de administración, marcado como inactivo.
-  await page.goto('/productos');
+  // Y sigue visible en la pantalla de administración, marcado como inactivo. Se busca por
+  // código: con el catálogo paginado no hay garantía de que caiga en la página 1.
+  await page.goto(`/productos?buscar=${CODIGO_PRUEBA}`);
   const fila = page.getByRole('row').filter({ hasText: CODIGO_PRUEBA });
   await expect(fila).toBeVisible();
   await expect(fila.getByText('Inactivo')).toBeVisible();

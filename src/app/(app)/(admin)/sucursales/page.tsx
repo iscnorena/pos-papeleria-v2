@@ -1,23 +1,36 @@
 import Link from 'next/link';
-import { asc, eq } from 'drizzle-orm';
+import { asc, count, eq } from 'drizzle-orm';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { FormularioCrud } from '@/components/FormularioCrud';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { guardarSucursal } from './acciones';
 
 export default async function PantallaSucursales({
   searchParams,
 }: {
-  searchParams: Promise<{ editar?: string }>;
+  searchParams: Promise<{ editar?: string; pagina?: string }>;
 }) {
-  const { editar } = await searchParams;
+  const { editar, pagina: paginaTexto } = await searchParams;
   const idEditar = Number(editar);
+  const pagina = paginaDeBusqueda(paginaTexto);
 
-  const lista = await db.select().from(branches).orderBy(asc(branches.id));
+  const [lista, filasTotal] = await Promise.all([
+    db
+      .select()
+      .from(branches)
+      .orderBy(asc(branches.id))
+      .limit(PAGINACION.porPagina)
+      .offset(offsetDePagina(pagina)),
+    db.select({ total: count() }).from(branches),
+  ]);
+  const total = filasTotal[0]?.total ?? 0;
   const enEdicion = Number.isInteger(idEditar)
     ? ((await db.select().from(branches).where(eq(branches.id, idEditar)).limit(1))[0] ?? null)
     : null;
@@ -54,6 +67,12 @@ export default async function PantallaSucursales({
             </Fila>
           ))}
         </Tabla>
+        <Paginacion
+          ruta="/sucursales"
+          pagina={pagina}
+          totalFilas={total}
+          porPagina={PAGINACION.porPagina}
+        />
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">

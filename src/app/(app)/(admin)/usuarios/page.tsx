@@ -1,23 +1,27 @@
 import Link from 'next/link';
-import { asc, eq } from 'drizzle-orm';
+import { asc, count, eq } from 'drizzle-orm';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { FormularioCrud } from '@/components/FormularioCrud';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { branches, users } from '@/db/schema';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { guardarUsuario } from './acciones';
 
 export default async function PantallaUsuarios({
   searchParams,
 }: {
-  searchParams: Promise<{ editar?: string }>;
+  searchParams: Promise<{ editar?: string; pagina?: string }>;
 }) {
-  const { editar } = await searchParams;
+  const { editar, pagina: paginaTexto } = await searchParams;
   const idEditar = Number(editar);
+  const pagina = paginaDeBusqueda(paginaTexto);
 
-  const [lista, sucursales] = await Promise.all([
+  const [lista, filasTotal, sucursales] = await Promise.all([
     db
       .select({
         id: users.id,
@@ -30,9 +34,13 @@ export default async function PantallaUsuarios({
       })
       .from(users)
       .leftJoin(branches, eq(users.branchId, branches.id))
-      .orderBy(asc(users.username)),
+      .orderBy(asc(users.username))
+      .limit(PAGINACION.porPagina)
+      .offset(offsetDePagina(pagina)),
+    db.select({ total: count() }).from(users),
     db.select().from(branches).where(eq(branches.isActive, true)).orderBy(asc(branches.name)),
   ]);
+  const total = filasTotal[0]?.total ?? 0;
 
   const enEdicion = Number.isInteger(idEditar)
     ? ((await db.select().from(users).where(eq(users.id, idEditar)).limit(1))[0] ?? null)
@@ -72,6 +80,12 @@ export default async function PantallaUsuarios({
             </Fila>
           ))}
         </Tabla>
+        <Paginacion
+          ruta="/usuarios"
+          pagina={pagina}
+          totalFilas={total}
+          porPagina={PAGINACION.porPagina}
+        />
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">

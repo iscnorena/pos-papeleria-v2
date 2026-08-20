@@ -1,25 +1,42 @@
 import Link from 'next/link';
-import { asc, eq } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, or, type SQL } from 'drizzle-orm';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { FormularioCrud } from '@/components/FormularioCrud';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { productCategories, productSuppliers, products, suppliers } from '@/db/schema';
 import { aCentavos, formatear } from '@/lib/money';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { guardarProducto } from './acciones';
 import { ComparativoProveedores, type CostoProveedor } from './ComparativoProveedores';
 
 export default async function PantallaProductos({
   searchParams,
 }: {
-  searchParams: Promise<{ editar?: string }>;
+  searchParams: Promise<{ editar?: string; pagina?: string; buscar?: string }>;
 }) {
-  const { editar } = await searchParams;
+  const { editar, pagina: paginaTexto, buscar: buscarTexto } = await searchParams;
   const idEditar = Number(editar);
+  const pagina = paginaDeBusqueda(paginaTexto);
+  const buscar = buscarTexto?.trim() ?? '';
 
-  const [lista, categorias] = await Promise.all([
+  // Por nombre o por código: mismo criterio que ya usa el buscador de /inventario. Sin
+  // esto, con el catálogo paginado no habría forma de llegar a un producto específico
+  // salvo conocer su id de antemano.
+  let dondeFiltra: SQL | undefined;
+  if (buscar !== '') {
+    const porNombreOCodigo = or(
+      ilike(products.name, `%${buscar}%`),
+      ilike(products.code, `%${buscar}%`),
+    );
+    dondeFiltra = porNombreOCodigo ? and(porNombreOCodigo) : undefined;
+  }
+
+  const [lista, filasTotal, categorias] = await Promise.all([
     db
       .select({
         id: products.id,
@@ -34,13 +51,18 @@ export default async function PantallaProductos({
       })
       .from(products)
       .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
-      .orderBy(asc(products.name)),
+      .where(dondeFiltra)
+      .orderBy(asc(products.name))
+      .limit(PAGINACION.porPagina)
+      .offset(offsetDePagina(pagina)),
+    db.select({ total: count() }).from(products).where(dondeFiltra),
     db
       .select()
       .from(productCategories)
       .where(eq(productCategories.isActive, true))
       .orderBy(asc(productCategories.name)),
   ]);
+  const total = filasTotal[0]?.total ?? 0;
 
   const enEdicion = Number.isInteger(idEditar)
     ? ((await db.select().from(products).where(eq(products.id, idEditar)).limit(1))[0] ?? null)
@@ -70,9 +92,35 @@ export default async function PantallaProductos({
         descripcion="El catálogo que ve la caja. Los inactivos siguen en el historial pero no se pueden vender."
       />
 
+      {/* Filtro por GET, igual que en /inventario: queda en la URL y se puede recargar. */}
+      <form method="get" className="mb-6 flex flex-wrap items-end gap-3">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="buscar" className="text-fino font-medium text-tinta">
+            Buscar
+          </label>
+          <input
+            id="buscar"
+            name="buscar"
+            defaultValue={buscar}
+            placeholder="Nombre o código"
+            className="min-h-[2.5rem] w-56 border border-linea-fuerte bg-white px-3 text-base text-tinta"
+          />
+        </div>
+        <button
+          type="submit"
+          className="min-h-[2.5rem] border border-boligrafo-hondo bg-boligrafo px-4 font-medium text-white shadow-impresa hover:bg-boligrafo-hondo"
+        >
+          Filtrar
+        </button>
+      </form>
+
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
         <Tabla encabezados={['Producto', 'Código', 'Categoría', 'Costo', 'Precio', 'Estado', '']}>
-          {lista.length === 0 && <SinDatos columnas={7}>Todavía no hay productos.</SinDatos>}
+          {lista.length === 0 && (
+            <SinDatos columnas={7}>
+              {buscar ? 'Nada coincide con la búsqueda.' : 'Todavía no hay productos.'}
+            </SinDatos>
+          )}
           {lista.map((p) => {
             const costo = aCentavos(p.costPrice) ?? 0;
             const precio = aCentavos(p.salePrice) ?? 0;
@@ -107,6 +155,13 @@ export default async function PantallaProductos({
             );
           })}
         </Tabla>
+        <Paginacion
+          ruta="/productos"
+          parametros={{ buscar: buscarTexto }}
+          pagina={pagina}
+          totalFilas={total}
+          porPagina={PAGINACION.porPagina}
+        />
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">

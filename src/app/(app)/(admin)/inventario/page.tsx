@@ -1,14 +1,17 @@
-import { and, asc, eq, ilike, or, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, ilike, or, type SQL } from 'drizzle-orm';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { branches, inventories, productCategories, products } from '@/db/schema';
 import { aCentavos, formatearCantidad } from '@/lib/money';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { AjusteExistencia } from './AjusteExistencia';
 
-type Filtros = { sucursal?: string; categoria?: string; buscar?: string };
+type Filtros = { sucursal?: string; categoria?: string; buscar?: string; pagina?: string };
 
 export default async function PantallaInventario({
   searchParams,
@@ -19,6 +22,7 @@ export default async function PantallaInventario({
   const sucursalId = Number(filtros.sucursal);
   const categoriaId = Number(filtros.categoria);
   const buscar = filtros.buscar?.trim() ?? '';
+  const pagina = paginaDeBusqueda(filtros.pagina);
 
   const [sucursales, categorias] = await Promise.all([
     db.select().from(branches).orderBy(asc(branches.name)),
@@ -41,23 +45,36 @@ export default async function PantallaInventario({
     if (porNombreOCodigo) condiciones.push(porNombreOCodigo);
   }
 
-  const lista = await db
-    .select({
-      productId: products.id,
-      producto: products.name,
-      code: products.code,
-      categoria: productCategories.name,
-      branchId: branches.id,
-      sucursal: branches.name,
-      stock: inventories.stock,
-      activo: products.isActive,
-    })
-    .from(inventories)
-    .innerJoin(products, eq(inventories.productId, products.id))
-    .innerJoin(branches, eq(inventories.branchId, branches.id))
-    .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
-    .where(condiciones.length > 0 ? and(...condiciones) : undefined)
-    .orderBy(asc(products.name), asc(branches.id));
+  const dondeFiltra = condiciones.length > 0 ? and(...condiciones) : undefined;
+
+  const [lista, filasTotal] = await Promise.all([
+    db
+      .select({
+        productId: products.id,
+        producto: products.name,
+        code: products.code,
+        categoria: productCategories.name,
+        branchId: branches.id,
+        sucursal: branches.name,
+        stock: inventories.stock,
+        activo: products.isActive,
+      })
+      .from(inventories)
+      .innerJoin(products, eq(inventories.productId, products.id))
+      .innerJoin(branches, eq(inventories.branchId, branches.id))
+      .leftJoin(productCategories, eq(products.categoryId, productCategories.id))
+      .where(dondeFiltra)
+      .orderBy(asc(products.name), asc(branches.id))
+      .limit(PAGINACION.porPagina)
+      .offset(offsetDePagina(pagina)),
+    db
+      .select({ total: count() })
+      .from(inventories)
+      .innerJoin(products, eq(inventories.productId, products.id))
+      .innerJoin(branches, eq(inventories.branchId, branches.id))
+      .where(dondeFiltra),
+  ]);
+  const total = filasTotal[0]?.total ?? 0;
 
   return (
     <section>
@@ -161,6 +178,13 @@ export default async function PantallaInventario({
           );
         })}
       </Tabla>
+      <Paginacion
+        ruta="/inventario"
+        parametros={filtros}
+        pagina={pagina}
+        totalFilas={total}
+        porPagina={PAGINACION.porPagina}
+      />
     </section>
   );
 }

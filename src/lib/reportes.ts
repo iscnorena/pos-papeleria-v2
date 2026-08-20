@@ -121,7 +121,11 @@ export async function desglosePorMetodo(
 }
 
 /** Las ventas del rango, para el historial. */
-export async function ventasDe(filtros: Filtros, sesion: Sesion, limite = 200) {
+export async function ventasDe(
+  filtros: Filtros,
+  sesion: Sesion,
+  paginacion: { limite: number; offset: number } = { limite: 200, offset: 0 },
+) {
   return db
     .select({
       id: sales.id,
@@ -139,7 +143,17 @@ export async function ventasDe(filtros: Filtros, sesion: Sesion, limite = 200) {
     .innerJoin(branches, eq(sales.branchId, branches.id))
     .where(and(...condicionesDe(filtros, sesion)))
     .orderBy(desc(sales.createdAt))
-    .limit(limite);
+    .limit(paginacion.limite)
+    .offset(paginacion.offset);
+}
+
+/** Cuántas ventas hay en el rango, para la paginación de `ventasDe`. */
+export async function contarVentas(filtros: Filtros, sesion: Sesion): Promise<number> {
+  const [fila] = await db
+    .select({ n: count(sales.id) })
+    .from(sales)
+    .where(and(...condicionesDe(filtros, sesion)));
+  return fila?.n ?? 0;
 }
 
 /** Totales agrupados por sucursal, para el reporte de §Fase 5. */

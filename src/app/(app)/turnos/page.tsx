@@ -1,17 +1,28 @@
 import Link from 'next/link';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { momento, tonoDiferencia } from '@/lib/formato';
 import { aCentavos, formatear } from '@/lib/money';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { requerirSesion } from '@/lib/sesion';
-import { turnoAbiertoDe, turnosVisibles } from '@/lib/turnos';
+import { contarTurnosVisibles, turnoAbiertoDe, turnosVisibles } from '@/lib/turnos';
 
-export default async function PantallaTurnos() {
+export default async function PantallaTurnos({
+  searchParams,
+}: {
+  searchParams: Promise<{ pagina?: string }>;
+}) {
   const sesion = await requerirSesion();
-  const [lista, abierto] = await Promise.all([
-    turnosVisibles(sesion),
+  const { pagina: paginaTexto } = await searchParams;
+  const pagina = paginaDeBusqueda(paginaTexto);
+
+  const [lista, total, abierto] = await Promise.all([
+    turnosVisibles(sesion, { limite: PAGINACION.porPagina, offset: offsetDePagina(pagina) }),
+    contarTurnosVisibles(sesion),
     turnoAbiertoDe(sesion.userId),
   ]);
 
@@ -92,6 +103,12 @@ export default async function PantallaTurnos() {
           );
         })}
       </Tabla>
+      <Paginacion
+        ruta="/turnos"
+        pagina={pagina}
+        totalFilas={total}
+        porPagina={PAGINACION.porPagina}
+      />
     </section>
   );
 }

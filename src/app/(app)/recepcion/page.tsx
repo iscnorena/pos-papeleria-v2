@@ -1,14 +1,17 @@
 import Link from 'next/link';
-import { and, desc, eq, gte, ilike, lte } from 'drizzle-orm';
+import { and, count, desc, eq, gte, ilike, lte } from 'drizzle-orm';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
+import { Paginacion } from '@/components/Paginacion';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { Boton } from '@/components/ui/Boton';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { goodsReceipts, suppliers } from '@/db/schema';
 import { momento } from '@/lib/formato';
 import { aCentavos, formatear } from '@/lib/money';
+import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { requerirSesion } from '@/lib/sesion';
 
 type Busqueda = {
@@ -17,6 +20,7 @@ type Busqueda = {
   folio?: string;
   desde?: string;
   hasta?: string;
+  pagina?: string;
 };
 
 const ESTADO_TONO = {
@@ -39,6 +43,7 @@ export default async function PantallaRecepcion({
   const sesion = await requerirSesion();
   const busqueda = await searchParams;
   const proveedorId = Number(busqueda.proveedor);
+  const pagina = paginaDeBusqueda(busqueda.pagina);
 
   const condiciones = [
     ...(Number.isInteger(proveedorId) && proveedorId > 0
@@ -58,7 +63,9 @@ export default async function PantallaRecepcion({
       : []),
   ];
 
-  const [lista, listaProveedores] = await Promise.all([
+  const dondeFiltra = condiciones.length > 0 ? and(...condiciones) : undefined;
+
+  const [lista, filasTotal, listaProveedores] = await Promise.all([
     db
       .select({
         id: goodsReceipts.id,
@@ -71,11 +78,18 @@ export default async function PantallaRecepcion({
       })
       .from(goodsReceipts)
       .innerJoin(suppliers, eq(goodsReceipts.supplierId, suppliers.id))
-      .where(condiciones.length > 0 ? and(...condiciones) : undefined)
+      .where(dondeFiltra)
       .orderBy(desc(goodsReceipts.createdAt))
-      .limit(200),
+      .limit(PAGINACION.porPagina)
+      .offset(offsetDePagina(pagina)),
+    db
+      .select({ total: count() })
+      .from(goodsReceipts)
+      .innerJoin(suppliers, eq(goodsReceipts.supplierId, suppliers.id))
+      .where(dondeFiltra),
     db.select().from(suppliers).where(eq(suppliers.isActive, true)),
   ]);
+  const total = filasTotal[0]?.total ?? 0;
 
   return (
     <section>
@@ -196,6 +210,13 @@ export default async function PantallaRecepcion({
           </Fila>
         ))}
       </Tabla>
+      <Paginacion
+        ruta="/recepcion"
+        parametros={busqueda}
+        pagina={pagina}
+        totalFilas={total}
+        porPagina={PAGINACION.porPagina}
+      />
 
       {sesion.rol === 'cajera' && (
         <p className="mt-4 text-fino text-grafito">

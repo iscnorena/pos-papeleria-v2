@@ -50,6 +50,12 @@ export const RECEPCION = {
   reglaCostoConsolidado: 'ultima_compra' as ReglaCostoConsolidado,
 } as const;
 
+export const PAGINACION = {
+  // Filas por página en los listados administrativos (productos, inventario, historial…).
+  // Un solo número para todos: que "página 2" signifique lo mismo en cualquier pantalla.
+  porPagina: 30,
+} as const;
+
 export type MetodoPago = keyof typeof POS.metodosPago;
 
 /** Zona de presentación y de corte de día (§2). Una sola constante para todo el sistema. */
