@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { RECEPCION } from '@/config/pos';
 import { db } from '@/db';
 import {
+  claudeIntegration,
   goodsReceiptItems,
   goodsReceipts,
   inventories,
@@ -15,17 +16,22 @@ import {
   suppliers,
 } from '@/db/schema';
 import { parsearCfdi } from '@/lib/cfdi';
+import { extraerListadoDeTicket } from '@/lib/claudeVision';
 import { calcularCostoConsolidado } from '@/lib/costeo';
 import { momento } from '@/lib/formato';
 import { asegurarInventario } from '@/lib/inventario';
 import { aCentavos, aCentesimas, aPesos } from '@/lib/money';
 import type { EstadoFormulario, Resultado } from '@/lib/resultado';
-import { exigirRol, requerirSesion } from '@/lib/sesion';
+import { exigirRol, requerirSesion, type Sesion } from '@/lib/sesion';
+import { parsearTicketTexto } from '@/lib/ticketTexto';
 
-// Recepción de Mercancía (docs/modulo-recepcion-mercancia-xml.md). Dos vías —importar un
-// CFDI XML o capturar líneas a mano— alimentan el mismo modelo de cabecera + líneas.
-// Cualquier sesión puede crear/editar una pre-carga en borrador; solo `admin` autoriza,
-// que es el único paso que toca inventario (§Decisiones ya cerradas con el usuario).
+// Recepción de Mercancía (docs/modulo-recepcion-mercancia-xml.md). Cuatro vías —importar
+// un CFDI XML, capturar líneas a mano, pegar un listado de texto (típicamente generado
+// pidiéndole a Claude que lea la foto de un ticket) o subir la foto directo (si la
+// integración con la API de Claude está activada)— alimentan el mismo modelo de cabecera +
+// líneas. Cualquier sesión puede crear/editar una pre-carga en borrador; solo `admin`
+// autoriza, que es el único paso que toca inventario (§Decisiones ya cerradas con el
+// usuario).
 
 const dinero = (etiqueta: string) =>
   z
@@ -56,17 +62,18 @@ const cantidadCampo = z
     return centesimas;
   });
 
-/** Recalcula subtotal/impuesto/total de una recepción MANUAL a partir de sus líneas, para
- *  que la validación de cuadre en `autorizarRecepcion` siempre coincida por construcción.
- *  No aplica a recepciones `source: 'xml'`: ahí el total es el del CFDI, y es justo lo que
- *  la validación de cuadre debe contrastar contra la suma de líneas. */
+/** Recalcula subtotal/impuesto/total a partir de las líneas, para que la validación de
+ *  cuadre en `autorizarRecepcion` siempre coincida por construcción. Aplica a `'manual'`,
+ *  `'texto'` y `'foto'` — ninguna trae un total "oficial" propio. No aplica a
+ *  `source: 'xml'`: ahí el total es el del CFDI, y es justo lo que la validación de cuadre
+ *  debe contrastar contra la suma de líneas. */
 async function recalcularTotalesSiManual(receiptId: number): Promise<void> {
   const [recepcion] = await db
     .select({ source: goodsReceipts.source })
     .from(goodsReceipts)
     .where(eq(goodsReceipts.id, receiptId))
     .limit(1);
-  if (!recepcion || recepcion.source !== 'manual') return;
+  if (!recepcion || recepcion.source === 'xml') return;
 
   const lineas = await db
     .select({ taxAmount: goodsReceiptItems.taxAmount, lineTotal: goodsReceiptItems.lineTotal })
@@ -227,19 +234,21 @@ export async function importarXmlCfdi(datos: FormData): Promise<Resultado<{ id: 
   }
 }
 
+/** Proveedor + referencia opcional: cabecera común a captura manual, texto pegado y foto —
+ *  ninguna de las tres trae estos datos de un documento fiscal, a diferencia de XML. */
+const esquemaCabeceraLibre = z.object({
+  supplierId: z.coerce.number().int().positive('Elige un proveedor.'),
+  referenceNote: z.string().trim().max(200).optional(),
+});
+
 /** Crea una recepción en borrador con captura manual, sin líneas todavía. */
 export async function crearRecepcionManual(datos: FormData): Promise<Resultado<{ id: number }>> {
   const sesion = await requerirSesion();
 
-  const analisis = z
-    .object({
-      supplierId: z.coerce.number().int().positive('Elige un proveedor.'),
-      referenceNote: z.string().trim().max(200).optional(),
-    })
-    .safeParse({
-      supplierId: datos.get('supplierId'),
-      referenceNote: datos.get('referenceNote') || undefined,
-    });
+  const analisis = esquemaCabeceraLibre.safeParse({
+    supplierId: datos.get('supplierId'),
+    referenceNote: datos.get('referenceNote') || undefined,
+  });
   if (!analisis.success) {
     return { ok: false, error: analisis.error.issues[0]?.message ?? 'Datos no válidos.' };
   }
@@ -260,6 +269,177 @@ export async function crearRecepcionManual(datos: FormData): Promise<Resultado<{
 
   revalidatePath('/recepcion');
   return { ok: true, data: { id: creada.id } };
+}
+
+/** Línea ya validada (cantidad en centésimas, costo en centavos), lista para insertar. */
+type LineaLibreValidada = { description: string; quantity: number; unitCost: number };
+
+/** Inserta cabecera (`status: 'draft'`) + líneas de un jalón, para las vías que no
+ *  resuelven producto ni traen `supplierCode` de fábrica (texto pegado y foto): cada línea
+ *  nace `matchStatus: 'unmatched'`, a resolver luego con `BuscadorProducto` — mismo camino
+ *  que ya usa una línea sin match de XML o manual, sin UI nueva. */
+async function crearRecepcionDesdeLineas(
+  source: 'texto' | 'foto',
+  sesion: Sesion,
+  supplierId: number,
+  referenceNote: string | undefined,
+  lineas: LineaLibreValidada[],
+): Promise<Resultado<{ id: number }>> {
+  const receiptId = await db.transaction(async (tx) => {
+    const [recepcion] = await tx
+      .insert(goodsReceipts)
+      .values({
+        source,
+        status: 'draft',
+        supplierId,
+        branchId: sesion.branchId,
+        createdByUserId: sesion.userId,
+        referenceNote: referenceNote ?? null,
+      })
+      .returning({ id: goodsReceipts.id });
+    if (!recepcion) throw new Error('No se pudo crear la recepción.');
+
+    for (const linea of lineas) {
+      const importe = Math.round((linea.unitCost * linea.quantity) / 100);
+      await tx.insert(goodsReceiptItems).values({
+        receiptId: recepcion.id,
+        description: linea.description,
+        quantity: aPesos(linea.quantity),
+        unitCost: aPesos(linea.unitCost),
+        taxRate: '0',
+        taxAmount: aPesos(0),
+        lineTotal: aPesos(importe),
+        matchStatus: 'unmatched',
+      });
+    }
+
+    return recepcion.id;
+  });
+
+  await recalcularTotalesSiManual(receiptId);
+  revalidatePath('/recepcion');
+  return { ok: true, data: { id: receiptId } };
+}
+
+const esquemaLineaLibre = z.object({
+  description: z.string().trim().min(1, 'Falta la descripción.').max(200),
+  quantity: cantidadCampo,
+  unitCost: dinero('El costo'),
+});
+
+/** Valida cada línea ya separada por `parsearTicketTexto` con las mismas reglas que
+ *  `agregarLineaManual`, señalando el número de línea si alguna falla — todo o nada, igual
+ *  que el parseo mismo. */
+function validarLineasLibres(
+  lineas: { descripcion: string; cantidadTexto: string; costoTexto: string }[],
+): Resultado<LineaLibreValidada[]> {
+  const validadas: LineaLibreValidada[] = [];
+  for (let i = 0; i < lineas.length; i++) {
+    const linea = lineas[i]!;
+    const analisis = esquemaLineaLibre.safeParse({
+      description: linea.descripcion,
+      quantity: linea.cantidadTexto,
+      unitCost: linea.costoTexto,
+    });
+    if (!analisis.success) {
+      const mensaje = analisis.error.issues[0]?.message ?? 'Línea no válida.';
+      return { ok: false, error: `Línea ${i + 1}: ${mensaje}` };
+    }
+    validadas.push(analisis.data);
+  }
+  return { ok: true, data: validadas };
+}
+
+/** Crea una pre-carga a partir de un bloque de texto pegado a mano — típicamente generado
+ *  pidiéndole a Claude, fuera de este sistema, que lea la foto de un ticket. Comparte el
+ *  parser y la validación de línea con `crearRecepcionDesdeFoto`; la única diferencia es de
+ *  dónde sale el bloque de texto. */
+export async function crearRecepcionDesdeTexto(
+  datos: FormData,
+): Promise<Resultado<{ id: number }>> {
+  const sesion = await requerirSesion();
+
+  const cabecera = esquemaCabeceraLibre.safeParse({
+    supplierId: datos.get('supplierId'),
+    referenceNote: datos.get('referenceNote') || undefined,
+  });
+  if (!cabecera.success) {
+    return { ok: false, error: cabecera.error.issues[0]?.message ?? 'Datos no válidos.' };
+  }
+
+  const texto = (datos.get('texto') as string | null) ?? '';
+  const parseo = parsearTicketTexto(texto);
+  if (!parseo.ok) return { ok: false, error: parseo.error };
+
+  const lineas = validarLineasLibres(parseo.lineas);
+  if (!lineas.ok) return lineas;
+
+  return crearRecepcionDesdeLineas(
+    'texto',
+    sesion,
+    cabecera.data.supplierId,
+    cabecera.data.referenceNote,
+    lineas.data,
+  );
+}
+
+const TIPOS_IMAGEN_ACEPTADOS = new Set(['image/jpeg', 'image/png', 'image/webp']);
+
+/** Crea una pre-carga subiendo directo la foto del ticket: solo funciona si la integración
+ *  con la API de Claude está activada (hay una llave guardada en `claude_integration`).
+ *  Reusa `parsearTicketTexto`/`validarLineasLibres` sobre lo que devuelva la API, exactamente
+ *  igual que la vía de texto pegado — la llamada a la API es la única pieza distinta. */
+export async function crearRecepcionDesdeFoto(datos: FormData): Promise<Resultado<{ id: number }>> {
+  const sesion = await requerirSesion();
+
+  const [integracion] = await db
+    .select({ apiKey: claudeIntegration.apiKey })
+    .from(claudeIntegration)
+    .limit(1);
+  if (!integracion?.apiKey) {
+    return { ok: false, error: 'La integración con Claude no está activada.' };
+  }
+
+  const cabecera = esquemaCabeceraLibre.safeParse({
+    supplierId: datos.get('supplierId'),
+    referenceNote: datos.get('referenceNote') || undefined,
+  });
+  if (!cabecera.success) {
+    return { ok: false, error: cabecera.error.issues[0]?.message ?? 'Datos no válidos.' };
+  }
+
+  const archivo = datos.get('archivo');
+  if (!(archivo instanceof File) || archivo.size === 0) {
+    return { ok: false, error: 'Selecciona una foto del ticket.' };
+  }
+  if (archivo.size > RECEPCION.fotoTicketMaximoBytes) {
+    return { ok: false, error: 'La foto pesa demasiado.' };
+  }
+  if (!TIPOS_IMAGEN_ACEPTADOS.has(archivo.type)) {
+    return { ok: false, error: 'Formato de imagen no soportado (usa JPG, PNG o WebP).' };
+  }
+
+  const base64 = Buffer.from(await archivo.arrayBuffer()).toString('base64');
+  const extraido = await extraerListadoDeTicket(
+    integracion.apiKey,
+    base64,
+    archivo.type as 'image/jpeg' | 'image/png' | 'image/webp',
+  );
+  if (!extraido.ok) return { ok: false, error: extraido.error };
+
+  const parseo = parsearTicketTexto(extraido.texto);
+  if (!parseo.ok) return { ok: false, error: parseo.error };
+
+  const lineas = validarLineasLibres(parseo.lineas);
+  if (!lineas.ok) return lineas;
+
+  return crearRecepcionDesdeLineas(
+    'foto',
+    sesion,
+    cabecera.data.supplierId,
+    cabecera.data.referenceNote,
+    lineas.data,
+  );
 }
 
 // ---------------------------------------------------------------------------------------
@@ -738,4 +918,61 @@ export async function descartarRecepcion(
   revalidatePath('/recepcion');
   revalidatePath(`/recepcion/${receiptId}`);
   return { ok: true, mensaje: 'Recepción descartada.' };
+}
+
+// ---------------------------------------------------------------------------------------
+// Integración con la API de Claude (vía "foto") — activación
+// ---------------------------------------------------------------------------------------
+
+/** Si hay una llave guardada, sin exponer su valor — decide si la UI muestra la pestaña
+ *  "Subir foto". Cualquier sesión puede consultarlo; solo `admin` puede cambiarlo. */
+export async function estadoIntegracionClaude(): Promise<{ activa: boolean }> {
+  await requerirSesion();
+  const [fila] = await db
+    .select({ apiKey: claudeIntegration.apiKey })
+    .from(claudeIntegration)
+    .limit(1);
+  return { activa: Boolean(fila?.apiKey) };
+}
+
+const esquemaClaveApi = z.object({
+  apiKey: z.string().trim().min(10, 'La clave no parece válida.'),
+});
+
+/** Guarda (o reemplaza) la llave de la integración. Admin-only. */
+export async function guardarClaveApiClaude(datos: FormData): Promise<Resultado<undefined>> {
+  const permiso = await exigirRol('admin');
+  if (!permiso.ok) return { ok: false, error: permiso.error };
+
+  const analisis = esquemaClaveApi.safeParse({ apiKey: datos.get('apiKey') });
+  if (!analisis.success) {
+    return { ok: false, error: analisis.error.issues[0]?.message ?? 'Clave no válida.' };
+  }
+
+  await db
+    .update(claudeIntegration)
+    .set({
+      apiKey: analisis.data.apiKey,
+      updatedByUserId: permiso.sesion.userId,
+      updatedAt: new Date(),
+    })
+    .where(eq(claudeIntegration.id, 1));
+
+  revalidatePath('/recepcion/nueva');
+  return { ok: true, data: undefined };
+}
+
+/** Apaga la integración (borra la llave guardada, sin borrar el historial de recepciones
+ *  `source: 'foto'` que ya se hubieran creado). Admin-only. */
+export async function desactivarIntegracionClaude(): Promise<Resultado<undefined>> {
+  const permiso = await exigirRol('admin');
+  if (!permiso.ok) return { ok: false, error: permiso.error };
+
+  await db
+    .update(claudeIntegration)
+    .set({ apiKey: null, updatedByUserId: permiso.sesion.userId, updatedAt: new Date() })
+    .where(eq(claudeIntegration.id, 1));
+
+  revalidatePath('/recepcion/nueva');
+  return { ok: true, data: undefined };
 }

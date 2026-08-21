@@ -153,7 +153,15 @@ export const paymentMethodEnum = pgEnum('payment_method', ['cash', 'card', 'tran
 // Recepción de Mercancía (docs/modulo-recepcion-mercancia-xml.md). `source` distingue si
 // la recepción se generó importando un CFDI XML o capturando líneas a mano; ambas vías
 // comparten el mismo modelo de cabecera + líneas.
-export const goodsReceiptSourceEnum = pgEnum('goods_receipt_source', ['xml', 'manual']);
+// 'texto' = texto pegado a mano (el usuario le pidió a Claude, fuera del sistema, que
+// leyera la foto de un ticket). 'foto' = imagen subida aquí mismo y procesada por la API
+// de Claude (integración opcional, ver `claudeIntegration` más abajo).
+export const goodsReceiptSourceEnum = pgEnum('goods_receipt_source', [
+  'xml',
+  'manual',
+  'texto',
+  'foto',
+]);
 export const goodsReceiptStatusEnum = pgEnum('goods_receipt_status', [
   'draft',
   'authorized',
@@ -429,6 +437,19 @@ export const goodsReceiptItems = pgTable(
     index('goods_receipt_items_product_idx').on(t.productId),
   ],
 );
+
+// Integración opcional con la API de Claude para leer fotos de tickets (recepción de
+// mercancía, vía "foto"). Fila única (id = 1, sembrada en la migración). `apiKey` en
+// texto plano deliberadamente: app de un solo negocio, admin-only, mismo nivel de
+// confianza que ya tienen otros datos de esta base (RFC, WhatsApp de sucursal). `null` =
+// integración apagada; la acción que la lee para la UI nunca expone el valor, solo si
+// está o no configurada.
+export const claudeIntegration = pgTable('claude_integration', {
+  id: serial('id').primaryKey(),
+  apiKey: text('api_key'),
+  updatedByUserId: integer('updated_by_user_id').references(() => users.id),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const branchesRelations = relations(branches, ({ many }) => ({
   users: many(users),

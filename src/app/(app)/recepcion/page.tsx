@@ -8,7 +8,7 @@ import { Boton } from '@/components/ui/Boton';
 import { Distintivo } from '@/components/ui/Distintivo';
 import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
-import { goodsReceipts, suppliers } from '@/db/schema';
+import { goodsReceipts, suppliers, type OrigenRecepcion } from '@/db/schema';
 import { momento } from '@/lib/formato';
 import { aCentavos, formatear } from '@/lib/money';
 import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
@@ -28,6 +28,13 @@ const ESTADO_TONO = {
   authorized: 'visto',
   discarded: 'sello',
 } as const;
+
+const ETIQUETA_ORIGEN: Record<OrigenRecepcion, string> = {
+  xml: 'XML',
+  manual: 'Manual',
+  texto: 'Texto',
+  foto: 'Foto (Claude)',
+};
 
 const ESTADO_TEXTO = {
   draft: 'Borrador',
@@ -192,7 +199,7 @@ export default async function PantallaRecepcion({
         {lista.map((r) => (
           <Fila key={r.id}>
             <Celda mono>{r.id}</Celda>
-            <Celda>{r.source === 'xml' ? 'XML' : 'Manual'}</Celda>
+            <Celda>{ETIQUETA_ORIGEN[r.source]}</Celda>
             <Celda>{r.supplierName}</Celda>
             <Celda mono>{r.cfdiFolio ?? '—'}</Celda>
             <Celda mono className="text-right">

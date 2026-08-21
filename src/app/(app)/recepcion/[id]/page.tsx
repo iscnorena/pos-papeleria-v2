@@ -13,6 +13,7 @@ import {
   products,
   suppliers,
   users,
+  type OrigenRecepcion,
 } from '@/db/schema';
 import { costoVarioSignificativamente } from '@/lib/costeo';
 import { momento } from '@/lib/formato';
@@ -27,6 +28,12 @@ const ESTADO_TEXTO = {
   authorized: 'Autorizada',
   discarded: 'Descartada',
 } as const;
+const ORIGEN_TEXTO: Record<OrigenRecepcion, string> = {
+  xml: 'Importada de XML',
+  manual: 'Captura manual',
+  texto: 'Pegada desde texto',
+  foto: 'Foto leída por Claude',
+};
 
 export default async function PantallaDetalleRecepcion({
   params,
@@ -136,7 +143,7 @@ export default async function PantallaDetalleRecepcion({
     <section>
       <EncabezadoPantalla
         titulo={`Recepción #${recepcion.id}`}
-        descripcion={`${recepcion.supplierName} · ${recepcion.source === 'xml' ? 'Importada de XML' : 'Captura manual'}`}
+        descripcion={`${recepcion.supplierName} · ${ORIGEN_TEXTO[recepcion.source]}`}
       >
         <span data-testid="estado-recepcion">
           <Distintivo tono={ESTADO_TONO[recepcion.status]}>

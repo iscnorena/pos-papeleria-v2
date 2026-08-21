@@ -17,6 +17,15 @@ export const POS = {
   precioAbiertoMaximo: 200000, // $2,000.00
 } as const;
 
+export const SEGURIDAD = {
+  // `login_attempts` guarda IP + intento (candado del PIN de login y límite de búsqueda
+  // pública de bancos de imágenes de /imprimir). El candado en sí solo mira una ventana de
+  // minutos, pero sin purga las IPs se acumulaban para siempre — más de lo necesario para
+  // el fin (LFPDPPP, principio de proporcionalidad). 7 días alcanza de sobra para detectar
+  // patrones de abuso sostenidos sin retener IPs indefinidamente.
+  retencionIntentosMs: 7 * 24 * 60 * 60 * 1000,
+} as const;
+
 export const RIFAS = {
   // Tope contra que el navegador se congele armando un PDF gigantesco, no un límite de negocio.
   cantidadMaxima: 5000,
@@ -48,6 +57,12 @@ export const RECEPCION = {
   // Regla de `calcularCostoConsolidado` (src/lib/costeo.ts): qué costo por proveedor se
   // refleja en `products.costPrice`, el único que usa el resto del sistema.
   reglaCostoConsolidado: 'ultima_compra' as ReglaCostoConsolidado,
+  // Modelo usado por la integración opcional con la API de Claude (vía "foto" — ver
+  // src/lib/claudeVision.ts). Apagada por defecto: solo se usa si hay una llave guardada.
+  modeloClaudeVision: 'claude-sonnet-5',
+  // Tope de tamaño de la foto que se manda a la API, para no gastar cuota con fotos
+  // gigantes de cámara sin comprimir.
+  fotoTicketMaximoBytes: 8 * 1024 * 1024, // 8 MB
 } as const;
 
 export const PAGINACION = {

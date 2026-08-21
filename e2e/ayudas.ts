@@ -330,6 +330,18 @@ export async function limpiarRecepciones(): Promise<void> {
   }
 }
 
+/** Apaga la integración con la API de Claude (vía "foto" de Recepción de Mercancía), sin
+ *  pasar por el modal — así cada prueba empieza con un estado conocido sin importar el
+ *  orden en que corran. */
+export async function desactivarIntegracionClaudeDB(): Promise<void> {
+  const sql = conectar();
+  try {
+    await sql`update claude_integration set api_key = null where id = 1`;
+  } finally {
+    await sql.end({ timeout: 5 });
+  }
+}
+
 /** Limpia el límite por IP de la búsqueda pública de /imprimir, sin tocar el del PIN. */
 export async function limpiarIntentosBusquedaPublica(): Promise<void> {
   const sql = conectar();
