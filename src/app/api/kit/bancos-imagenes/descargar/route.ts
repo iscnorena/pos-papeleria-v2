@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import { ANFITRIONES_PERMITIDOS } from '@/lib/bancosImagenes';
 import { anotarIntento, intentosRecientes, ipDelCliente } from '@/lib/limiteIntentos';
 
-// Versión pública de la descarga-proxy de imágenes, para /imprimir. Mismo límite por IP
+// Versión pública de la descarga-proxy de imágenes, para /kit. Mismo límite por IP
 // que la búsqueda (comparten el mismo `kind`, es un solo presupuesto por visitante).
 
 const KIND = 'busqueda_imagenes_publica';

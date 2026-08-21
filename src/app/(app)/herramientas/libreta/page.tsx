@@ -23,7 +23,7 @@ export default async function PantallaLibreta() {
     <section className="flex flex-col gap-4">
       <EncabezadoPantalla titulo={herramienta.nombre} descripcion={herramienta.descripcion} />
       {sesion.rol === 'admin' && (
-        <InterruptorPublico id="libreta" publicaInicial={publica} rutaPublica="/imprimir/libreta" />
+        <InterruptorPublico id="libreta" publicaInicial={publica} rutaPublica="/kit/libreta" />
       )}
       <GeneradorLibreta />
     </section>

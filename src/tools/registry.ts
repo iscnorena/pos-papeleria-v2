@@ -23,8 +23,8 @@ export type Herramienta = {
   descripcion: string; // una línea, la que se lee en la tarjeta
   icono: ComponentType; // SVG a trazo, no emoji
   ruta: string; // '/herramientas/acomoda-impresion'
-  /** Solo si la herramienta también tiene versión pública, sin sesión, colgando de /imprimir. */
-  rutaPublica?: string; // '/imprimir/acomoda-impresion'
+  /** Solo si la herramienta también tiene versión pública, sin sesión, colgando de /kit. */
+  rutaPublica?: string; // '/kit/acomoda-impresion'
   roles: Rol[]; // ['admin', 'cajera']
   estado: EstadoHerramienta;
 };
@@ -36,7 +36,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     descripcion: 'Acomoda varias imágenes en hojas, arma el PDF y calcula cuánto cobrar.',
     icono: IconoHojas,
     ruta: '/herramientas/acomoda-impresion',
-    rutaPublica: '/imprimir/acomoda-impresion',
+    rutaPublica: '/kit/acomoda-impresion',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },
@@ -46,7 +46,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     descripcion: 'Genera la hoja de control de una rifa: números, nombre y contacto por boleto.',
     icono: IconoRifa,
     ruta: '/herramientas/rifas',
-    rutaPublica: '/imprimir/rifas',
+    rutaPublica: '/kit/rifas',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },
@@ -56,7 +56,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     descripcion: 'Genera hojas con rayado o cuadrícula, con los datos del alumno.',
     icono: IconoLibreta,
     ruta: '/herramientas/libreta',
-    rutaPublica: '/imprimir/libreta',
+    rutaPublica: '/kit/libreta',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },
@@ -85,7 +85,7 @@ export const HERRAMIENTAS: Herramienta[] = [
     descripcion: 'Unir, dividir y convertir lo que trae el cliente en la USB.',
     icono: IconoPdf,
     ruta: '/herramientas/pdf',
-    rutaPublica: '/imprimir/pdf',
+    rutaPublica: '/kit/pdf',
     roles: ['admin', 'cajera'],
     estado: 'lista',
   },
@@ -101,7 +101,7 @@ export function herramientaPorId(id: string): Herramienta | undefined {
 }
 
 /**
- * Herramientas que PODRÍAN aparecer en el índice sin sesión de /imprimir: tienen
+ * Herramientas que PODRÍAN aparecer en el índice sin sesión de /kit: tienen
  * `rutaPublica` y no están en `proxima`. No es la lista final — cada una además necesita
  * `is_public = true` en `tool_settings` (ver `src/lib/toolSettings.ts`), que el admin
  * prende o apaga desde un interruptor en su propia pantalla de /herramientas.

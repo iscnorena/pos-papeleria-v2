@@ -4,7 +4,7 @@ import { conectar, entrarComo } from './ayudas';
 
 // Hoja de libreta (§ fuera de la spec original, como fase-9/10): genera un PDF con
 // rayado/cuadrícula y datos opcionales del alumno, en /herramientas/libreta (con
-// sesión) y /imprimir/libreta (pública salvo que el admin la apague). Todo ocurre en el
+// sesión) y /kit/libreta (pública salvo que el admin la apague). Todo ocurre en el
 // navegador con pdf-lib + fontkit, sin rutas API propias.
 //
 // El interruptor de "Disponible al público" es público por defecto (ver
@@ -30,23 +30,23 @@ test('1 · /herramientas/libreta responde para admin y cajera con sesión', asyn
   await expect(page.getByRole('heading', { name: 'Hoja de libreta' })).toBeVisible();
 });
 
-test('2 · /imprimir/libreta responde sin sesión, sin redirigir a /login', async ({ page }) => {
-  const respuesta = await page.goto('/imprimir/libreta');
+test('2 · /kit/libreta responde sin sesión, sin redirigir a /login', async ({ page }) => {
+  const respuesta = await page.goto('/kit/libreta');
   expect(respuesta?.status()).toBe(200);
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByRole('button', { name: 'Generar y descargar' })).toBeVisible();
 });
 
-test('3 · el índice /imprimir enlaza a /imprimir/libreta', async ({ page }) => {
-  await page.goto('/imprimir');
+test('3 · el índice /kit enlaza a /kit/libreta', async ({ page }) => {
+  await page.goto('/kit');
   await expect(page.getByRole('link', { name: /Hoja de libreta/i })).toHaveAttribute(
     'href',
-    '/imprimir/libreta',
+    '/kit/libreta',
   );
 });
 
 test('4 · sin ningún dato del alumno, la hoja sale sin encabezado (1 página)', async ({ page }) => {
-  await page.goto('/imprimir/libreta');
+  await page.goto('/kit/libreta');
 
   const [descarga] = await Promise.all([
     page.waitForEvent('download'),
@@ -63,7 +63,7 @@ test('4 · sin ningún dato del alumno, la hoja sale sin encabezado (1 página)'
 });
 
 test('5 · cada estilo de rayado genera un PDF válido, de una sola página', async ({ page }) => {
-  await page.goto('/imprimir/libreta');
+  await page.goto('/kit/libreta');
   await page.getByLabel('Nombre del alumno', { exact: true }).fill('Ana García');
 
   for (const estilo of ['raya', 'doble-raya', 'cuadro-c7', 'cuadro-aleman', 'dibujo']) {
@@ -84,7 +84,7 @@ test('5 · cada estilo de rayado genera un PDF válido, de una sola página', as
 test('6 · la cantidad repite la misma hoja y numerar páginas solo aparece si hay más de una', async ({
   page,
 }) => {
-  await page.goto('/imprimir/libreta');
+  await page.goto('/kit/libreta');
 
   await expect(page.getByLabel('Numerar páginas')).toHaveCount(0);
 
@@ -105,7 +105,7 @@ test('6 · la cantidad repite la misma hoja y numerar páginas solo aparece si h
 });
 
 test('7 · una cantidad fuera de rango muestra el aviso y no descarga nada', async ({ page }) => {
-  await page.goto('/imprimir/libreta');
+  await page.goto('/kit/libreta');
 
   await page.getByLabel('¿Cuántas hojas?').fill('999999');
 
@@ -122,7 +122,7 @@ test('8 · un nombre con emoji genera el PDF sin tronar', async ({ page }) => {
   const erroresDeConsola: string[] = [];
   page.on('pageerror', (error) => erroresDeConsola.push(error.message));
 
-  await page.goto('/imprimir/libreta');
+  await page.goto('/kit/libreta');
   await page.getByLabel('Nombre del alumno', { exact: true }).fill('🎉 Ana 🎁');
 
   const [descarga] = await Promise.all([
@@ -133,10 +133,10 @@ test('8 · un nombre con emoji genera el PDF sin tronar', async ({ page }) => {
   expect(erroresDeConsola).toEqual([]);
 });
 
-test('9 · "Enviar por WhatsApp" en /imprimir/libreta descarga el PDF y abre el chat correcto', async ({
+test('9 · "Enviar por WhatsApp" en /kit/libreta descarga el PDF y abre el chat correcto', async ({
   page,
 }) => {
-  await page.goto('/imprimir/libreta');
+  await page.goto('/kit/libreta');
   await expect(page.getByRole('button', { name: 'Enviar por WhatsApp' })).toBeVisible();
 
   const [descarga, ventanaNueva] = await Promise.all([
@@ -155,9 +155,9 @@ test('10 · la herramienta interna no muestra "Enviar por WhatsApp"', async ({ p
   await expect(page.getByRole('button', { name: 'Enviar por WhatsApp' })).toHaveCount(0);
 });
 
-test('11 · el interruptor público controla /imprimir/libreta', async ({ page, context }) => {
+test('11 · el interruptor público controla /kit/libreta', async ({ page, context }) => {
   const publica1 = await context.newPage();
-  await publica1.goto('/imprimir/libreta');
+  await publica1.goto('/kit/libreta');
   await expect(publica1.getByLabel('Nombre del alumno', { exact: true })).toBeVisible();
   await publica1.close();
 
@@ -169,7 +169,7 @@ test('11 · el interruptor público controla /imprimir/libreta', async ({ page, 
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
-  await publica2.goto('/imprimir/libreta');
+  await publica2.goto('/kit/libreta');
   await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 

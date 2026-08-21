@@ -8,7 +8,7 @@ import { Modal } from '@/components/ui/Modal';
 import type { ImagenDeBanco } from '@/lib/bancosImagenes';
 
 // Igual que `BuscadorBancos.tsx` (herramienta interna, §7.6), pero contra las rutas
-// públicas de /api/imprimir/*, limitadas por IP en vez de por sesión.
+// públicas de /api/kit/*, limitadas por IP en vez de por sesión.
 
 const PROVEEDORES = [
   { id: 'unsplash', nombre: 'Unsplash' },
@@ -39,7 +39,7 @@ export function BuscadorBancosPublico({
     setMarcadas(new Set());
     try {
       const respuesta = await fetch(
-        `/api/imprimir/bancos-imagenes?proveedor=${proveedor}&texto=${encodeURIComponent(texto)}&cuantos=9`,
+        `/api/kit/bancos-imagenes?proveedor=${proveedor}&texto=${encodeURIComponent(texto)}&cuantos=9`,
       );
       const datos = (await respuesta.json()) as { resultados?: ImagenDeBanco[]; error?: string };
       if (!respuesta.ok) setError(datos.error ?? 'No se pudo buscar.');
@@ -59,7 +59,7 @@ export function BuscadorBancosPublico({
           .filter((r) => marcadas.has(r.id))
           .map(async (r) => {
             const respuesta = await fetch(
-              `/api/imprimir/bancos-imagenes/descargar?url=${encodeURIComponent(r.largeImageUrl)}`,
+              `/api/kit/bancos-imagenes/descargar?url=${encodeURIComponent(r.largeImageUrl)}`,
             );
             if (!respuesta.ok) throw new Error('descarga');
             return respuesta.blob();

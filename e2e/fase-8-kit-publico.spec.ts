@@ -4,8 +4,8 @@ import { entrarComo, limpiarIntentosBusquedaPublica, limpiarRastrosE2E } from '.
 import { archivoPng } from './png';
 
 // Acomoda Impresión pública (§ fuera de la spec original, como las pruebas 8/9 de
-// fase-4-punto-de-venta.spec.ts): /imprimir/acomoda-impresion sin sesión, con envío por
-// WhatsApp en vez de precio ni descarga directa. Cuelga del índice /imprimir, que también
+// fase-4-punto-de-venta.spec.ts): /kit/acomoda-impresion sin sesión, con envío por
+// WhatsApp en vez de precio ni descarga directa. Cuelga del índice /kit, que también
 // se prueba aquí (test 1).
 //
 // Depende de que la sucursal "Principal" de la semilla tenga `whatsapp_number` cargado
@@ -21,22 +21,20 @@ test.afterAll(async () => {
   await limpiarIntentosBusquedaPublica();
 });
 
-test('1 · /imprimir se ve sin sesión y enlaza a Acomoda Impresión pública', async ({ page }) => {
+test('1 · /kit se ve sin sesión y enlaza a Acomoda Impresión pública', async ({ page }) => {
   await page.context().clearCookies();
-  const respuesta = await page.goto('/imprimir');
+  const respuesta = await page.goto('/kit');
   expect(respuesta?.status()).toBe(200);
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByRole('link', { name: /Acomodar impresión/i })).toHaveAttribute(
     'href',
-    '/imprimir/acomoda-impresion',
+    '/kit/acomoda-impresion',
   );
 });
 
-test('2 · /imprimir/acomoda-impresion se ve sin sesión, sin redirigir a /login', async ({
-  page,
-}) => {
+test('2 · /kit/acomoda-impresion se ve sin sesión, sin redirigir a /login', async ({ page }) => {
   await page.context().clearCookies();
-  const respuesta = await page.goto('/imprimir/acomoda-impresion');
+  const respuesta = await page.goto('/kit/acomoda-impresion');
   expect(respuesta?.status()).toBe(200);
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByRole('button', { name: 'Enviar por WhatsApp' })).toBeVisible();
@@ -46,7 +44,7 @@ test('3 · armar una hoja y "Enviar por WhatsApp" descarga el PDF y abre el chat
   page,
 }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/acomoda-impresion');
+  await page.goto('/kit/acomoda-impresion');
 
   await page
     .locator('input[type="file"][accept="image/*"]')
@@ -77,7 +75,7 @@ test('4 · la herramienta interna sigue exigiendo sesión y no muestra este fluj
 test('5 · la búsqueda pública de imágenes se corta después de varios intentos por IP', async ({
   page,
 }) => {
-  // El endpoint (`src/app/api/imprimir/bancos-imagenes/route.ts`) revisa si hay API key
+  // El endpoint (`src/app/api/kit/bancos-imagenes/route.ts`) revisa si hay API key
   // ANTES de anotar el intento: sin una llave real de Pixabay, cada petición corta en 503
   // sin contar para el límite, y `ultima` nunca llega a 429 — no es que el límite no
   // funcione, es que sin llave nunca se gasta cuota que limitar.
@@ -89,7 +87,7 @@ test('5 · la búsqueda pública de imágenes se corta después de varios intent
   let ultima = 200;
   for (let i = 0; i < 9; i++) {
     const respuesta = await page.request.get(
-      `/api/imprimir/bancos-imagenes?proveedor=pixabay&texto=prueba${i}&cuantos=1`,
+      `/api/kit/bancos-imagenes?proveedor=pixabay&texto=prueba${i}&cuantos=1`,
     );
     ultima = respuesta.status();
   }
@@ -104,7 +102,7 @@ test('6 · el WhatsApp de una sucursal se guarda y se puede editar desde el admi
 
   const marca = Date.now();
   await page.getByLabel('Nombre').fill(`Sucursal e2e ${marca}`);
-  await page.getByLabel('WhatsApp para /imprimir/acomoda-impresion').fill('529990001111');
+  await page.getByLabel('WhatsApp para /kit/acomoda-impresion').fill('529990001111');
   await page.getByRole('button', { name: 'Crear sucursal' }).click();
   await expect(page.getByText('Sucursal creada.')).toBeVisible();
   await expect(page.getByRole('cell', { name: '529990001111' })).toBeVisible();

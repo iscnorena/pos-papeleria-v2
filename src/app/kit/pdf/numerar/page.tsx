@@ -9,7 +9,7 @@ import { esHerramientaPublica } from '@/lib/toolSettings';
 import { NumerarPdf } from '@/tools/pdf/NumerarPdf';
 
 // Versión pública de Numerar páginas: misma herramienta que /herramientas/pdf/numerar,
-// sin sesión, colgando de /imprimir/pdf. Mismo criterio que las demás herramientas de PDF:
+// sin sesión, colgando de /kit/pdf. Mismo criterio que las demás herramientas de PDF:
 // el interruptor de "Disponible al público" bloquea del todo si está apagado; el WhatsApp
 // es un extra, no bloquea si no hay sucursal con número configurado.
 //
@@ -45,7 +45,7 @@ export default async function ImprimirPdfNumerarPage({
       <CabeceraPublica
         titulo="Numerar páginas"
         descripcion="Agrega el número de página, centrado abajo, en cada hoja."
-        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
       />
       <NumerarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

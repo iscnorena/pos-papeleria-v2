@@ -8,7 +8,7 @@ import {
 import { idsPrivadosEntre } from '@/lib/toolSettings';
 import { subHerramientasPdfListas } from '@/tools/pdf/registro';
 
-// Índice público de "Herramientas de PDF", sin sesión — cuelga de /imprimir. Mismo
+// Índice público de "Herramientas de PDF", sin sesión — cuelga de /kit. Mismo
 // criterio que el índice principal: pública por defecto, cada sub-herramienta desaparece
 // solo si su interruptor en `tool_settings` se apagó a mano.
 //
@@ -35,7 +35,7 @@ export default async function ImprimirPdfPage() {
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
       <CabeceraPublica
         titulo="Herramientas de PDF"
-        volver={{ href: '/imprimir', texto: 'Herramientas' }}
+        volver={{ href: '/kit', texto: 'Herramientas' }}
       />
       <IndiceHerramientasPublico
         items={items}

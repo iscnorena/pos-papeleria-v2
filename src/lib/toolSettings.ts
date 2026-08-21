@@ -5,7 +5,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { db } from '@/db';
 import { toolSettings } from '@/db/schema';
 
-// Qué herramientas están visibles en /imprimir sin sesión. El `id` es el mismo que usa
+// Qué herramientas están visibles en /kit sin sesión. El `id` es el mismo que usa
 // `src/tools/registry.ts` (o `src/tools/pdf/registro.ts` para las sub-herramientas de
 // PDF, sin prefijo: 'unir', no 'pdf-unir').
 //

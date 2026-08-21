@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { buscarEnBanco, llaveDe, NOMBRES } from '@/lib/bancosImagenes';
 import { anotarIntento, intentosRecientes, ipDelCliente } from '@/lib/limiteIntentos';
 
-// Versión pública (sin sesión) de la búsqueda en bancos de imágenes, para /imprimir. En vez
+// Versión pública (sin sesión) de la búsqueda en bancos de imágenes, para /kit. En vez
 // de exigir sesión de empleado, limita por IP — igual que el PIN del login — para no dejar
 // que cualquiera vacíe la cuota de Unsplash/Pexels/Pixabay de la papelería.
 

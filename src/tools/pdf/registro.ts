@@ -11,7 +11,7 @@ import {
 
 // Sub-registro de "Herramientas de PDF" (id 'pdf' en src/tools/registry.ts), mismo
 // espíritu que ese archivo pero un nivel más abajo: cada entrada es una pantalla propia
-// en /herramientas/pdf/<id> (y, si `tieneVersionPublica`, en /imprimir/pdf/<id>).
+// en /herramientas/pdf/<id> (y, si `tieneVersionPublica`, en /kit/pdf/<id>).
 //
 // Vamos agregándolas una por una, como el resto del registro. "Convertir PDF" y
 // "Comprimir PDF" quedaron anotadas, pero no arrancan hasta que se decida el alcance:
@@ -27,7 +27,7 @@ export type SubHerramientaPdf = {
   descripcion: string;
   icono: ComponentType;
   ruta: string; // '/herramientas/pdf/unir'
-  rutaPublica: string; // '/imprimir/pdf/unir'
+  rutaPublica: string; // '/kit/pdf/unir'
   estado: EstadoSubHerramienta;
 };
 
@@ -38,7 +38,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'Junta varios PDF en uno solo, en el orden que quieras.',
     icono: IconoUnirPdf,
     ruta: '/herramientas/pdf/unir',
-    rutaPublica: '/imprimir/pdf/unir',
+    rutaPublica: '/kit/pdf/unir',
     estado: 'lista',
   },
   {
@@ -47,7 +47,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'Separa un PDF en archivos más chicos, por rango de páginas.',
     icono: IconoDividirPdf,
     ruta: '/herramientas/pdf/dividir',
-    rutaPublica: '/imprimir/pdf/dividir',
+    rutaPublica: '/kit/pdf/dividir',
     estado: 'lista',
   },
   {
@@ -56,7 +56,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'Gira las páginas de un PDF, todas o solo algunas.',
     icono: IconoRotarPdf,
     ruta: '/herramientas/pdf/rotar',
-    rutaPublica: '/imprimir/pdf/rotar',
+    rutaPublica: '/kit/pdf/rotar',
     estado: 'lista',
   },
   {
@@ -65,7 +65,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'Cambia el orden de las páginas de un PDF.',
     icono: IconoReordenarPdf,
     ruta: '/herramientas/pdf/reordenar',
-    rutaPublica: '/imprimir/pdf/reordenar',
+    rutaPublica: '/kit/pdf/reordenar',
     estado: 'lista',
   },
   {
@@ -74,7 +74,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'Agrega el número de página, centrado abajo, en cada hoja.',
     icono: IconoNumerarPdf,
     ruta: '/herramientas/pdf/numerar',
-    rutaPublica: '/imprimir/pdf/numerar',
+    rutaPublica: '/kit/pdf/numerar',
     estado: 'lista',
   },
   {
@@ -83,7 +83,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'De imágenes a PDF, o de PDF a imágenes.',
     icono: IconoPdf,
     ruta: '/herramientas/pdf/convertir',
-    rutaPublica: '/imprimir/pdf/convertir',
+    rutaPublica: '/kit/pdf/convertir',
     estado: 'proxima',
   },
   {
@@ -92,7 +92,7 @@ export const HERRAMIENTAS_PDF: SubHerramientaPdf[] = [
     descripcion: 'Reduce el tamaño del archivo.',
     icono: IconoPdf,
     ruta: '/herramientas/pdf/comprimir',
-    rutaPublica: '/imprimir/pdf/comprimir',
+    rutaPublica: '/kit/pdf/comprimir',
     estado: 'proxima',
   },
 ];

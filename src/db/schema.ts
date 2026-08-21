@@ -35,7 +35,7 @@ export const branches = pgTable('branches', {
   name: text('name').notNull(),
   address: text('address'),
   phone: text('phone'),
-  // Adónde llegan los pedidos de /imprimir/acomoda-impresion (Acomoda Impresión pública). Sin signos ni
+  // Adónde llegan los pedidos de /kit/acomoda-impresion (Acomoda Impresión pública). Sin signos ni
   // espacios: es el número que arma el link `wa.me`.
   whatsappNumber: text('whatsapp_number'),
   isActive: boolean('is_active').notNull().default(true),
@@ -79,7 +79,7 @@ export const loginAttempts = pgTable(
 );
 
 // Qué herramientas del registro (`src/tools/registry.ts` y `src/tools/pdf/registro.ts`)
-// están visibles en /imprimir sin sesión. El `id` es el mismo que usa el registro (ej.
+// están visibles en /kit sin sesión. El `id` es el mismo que usa el registro (ej.
 // 'rifas', 'pdf-unir'); si una herramienta no tiene fila aquí, se trata como privada
 // (`isPublic` por defecto `false`) — el checkbox de cada pantalla la da de alta al
 // prenderla la primera vez.

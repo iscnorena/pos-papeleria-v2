@@ -12,7 +12,7 @@ import { inicioValido, numerarPdf, type PosicionNumero } from './numerar';
 import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/numerar, con
-// sesión) y la pública (/imprimir/pdf/numerar, sin sesión) — mismo patrón que las demás
+// sesión) y la pública (/kit/pdf/numerar, sin sesión) — mismo patrón que las demás
 // herramientas de PDF. El número siempre va abajo; lo único elegible es la posición
 // horizontal (izquierda/centro/derecha) — sin selector de "arriba", que nadie pidió.
 

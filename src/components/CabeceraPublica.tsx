@@ -1,7 +1,7 @@
 import Link from 'next/link';
 
-// Título de pantalla para las páginas de /imprimir (sin sesión). El nombre del negocio
-// ya vive en la franja de arriba (src/app/imprimir/layout.tsx); esto es el título de
+// Título de pantalla para las páginas de /kit (sin sesión). El nombre del negocio
+// ya vive en la franja de arriba (src/app/kit/layout.tsx); esto es el título de
 // CADA herramienta, con su link de regreso al índice del que cuelga.
 
 export function CabeceraPublica({

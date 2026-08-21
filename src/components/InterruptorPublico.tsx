@@ -5,7 +5,7 @@ import { useState, useTransition } from 'react';
 import { alternarVisibilidadPublica } from '@/app/(app)/herramientas/acciones';
 
 // Solo se monta para admin (lo decide cada pantalla que lo usa): prende/apaga si la
-// herramienta aparece en /imprimir sin sesión. Optimista, con reversión si la Server
+// herramienta aparece en /kit sin sesión. Optimista, con reversión si la Server
 // Action falla — el checkbox nunca deja al admin sin saber si de verdad se guardó.
 
 export function InterruptorPublico({

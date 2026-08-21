@@ -111,7 +111,7 @@ export default async function PantallaSucursales({
               {
                 tipo: 'texto',
                 nombre: 'whatsappNumber',
-                etiqueta: 'WhatsApp para /imprimir/acomoda-impresion',
+                etiqueta: 'WhatsApp para /kit/acomoda-impresion',
                 valor: enEdicion?.whatsappNumber ?? '',
                 ayuda: 'Formato internacional sin espacios ni signos, ej. 527445008175.',
               },

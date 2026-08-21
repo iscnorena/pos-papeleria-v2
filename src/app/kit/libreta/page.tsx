@@ -6,25 +6,25 @@ import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
 import { esHerramientaPublica } from '@/lib/toolSettings';
-import { UnirPdf } from '@/tools/pdf/UnirPdf';
+import { GeneradorLibreta } from '@/tools/libreta/GeneradorLibreta';
 
-// Versión pública de Unir PDF: misma herramienta que /herramientas/pdf/unir, sin sesión,
-// colgando de /imprimir/pdf. Mismo criterio que Rifas: el interruptor de "Disponible al
-// público" bloquea del todo si está apagado; el WhatsApp es un extra, no bloquea si no
-// hay sucursal con número configurado (a diferencia de Acomoda Impresión pública).
+// Versión pública de Hoja de libreta: misma herramienta que /herramientas/libreta, sin
+// sesión, colgando de /kit. Mismo criterio que las demás herramientas del catálogo:
+// el interruptor de "Disponible al público" bloquea del todo si está apagado; el
+// WhatsApp es un extra, no bloquea si no hay sucursal con número configurado.
 //
-// `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
+// `force-dynamic`: ver el comentario en ../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Unir PDF' };
+export const metadata: Metadata = { title: 'Hoja de libreta' };
 
-export default async function ImprimirPdfUnirPage({
+export default async function ImprimirLibretaPage({
   searchParams,
 }: {
   searchParams: Promise<{ sucursal?: string }>;
 }) {
-  const publica = await esHerramientaPublica('unir');
+  const publica = await esHerramientaPublica('libreta');
   if (!publica) return <HerramientaNoDisponible />;
 
   const { sucursal } = await searchParams;
@@ -43,11 +43,11 @@ export default async function ImprimirPdfUnirPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Unir PDF"
-        descripcion="Junta varios PDF en uno solo, en el orden que quieras."
-        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+        titulo="Hoja de libreta"
+        descripcion="Genera hojas con rayado o cuadrícula, con los datos del alumno."
+        volver={{ href: '/kit', texto: 'Herramientas' }}
       />
-      <UnirPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
+      <GeneradorLibreta whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>
   );
 }

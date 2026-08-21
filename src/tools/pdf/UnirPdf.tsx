@@ -11,7 +11,7 @@ import { tamanoArchivo } from '@/lib/formato';
 import { cargarPdf, unirPdfs, type ArchivoPdf } from './unir';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/unir, con sesión) y
-// la pública (/imprimir/pdf/unir, sin sesión) — mismo patrón que GeneradorRifas: el botón
+// la pública (/kit/pdf/unir, sin sesión) — mismo patrón que GeneradorRifas: el botón
 // de WhatsApp solo aparece si se recibe `whatsappNumber`.
 
 const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya unido.';

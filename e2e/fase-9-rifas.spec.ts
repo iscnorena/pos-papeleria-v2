@@ -4,11 +4,11 @@ import { entrarComo } from './ayudas';
 import { archivoPng } from './png';
 
 // Números de rifa (§ fuera de la spec original, como fase-8): la MISMA herramienta en
-// /herramientas/rifas (con sesión) y /imprimir/rifas (sin sesión, colgando del índice
+// /herramientas/rifas (con sesión) y /kit/rifas (sin sesión, colgando del índice
 // público). Sin rutas API propias: todo ocurre en el navegador con pdf-lib + fontkit.
 //
-// /imprimir/rifas SÍ tiene "Enviar por WhatsApp" (además de "Descargar PDF", a diferencia
-// de /imprimir/acomoda-impresion que solo tiene WhatsApp) — depende de que la sucursal
+// /kit/rifas SÍ tiene "Enviar por WhatsApp" (además de "Descargar PDF", a diferencia
+// de /kit/acomoda-impresion que solo tiene WhatsApp) — depende de que la sucursal
 // "Principal" de la semilla tenga `whatsapp_number` cargado (527445008175), igual que
 // fase-8. La ruta interna no lo muestra: el personal ya está en la papelería.
 
@@ -19,26 +19,26 @@ test('1 · /herramientas/rifas responde para admin y cajera con sesión', async 
   await expect(page.getByRole('heading', { name: 'Números de rifa' })).toBeVisible();
 });
 
-test('2 · /imprimir/rifas responde sin sesión, sin redirigir a /login', async ({ page }) => {
+test('2 · /kit/rifas responde sin sesión, sin redirigir a /login', async ({ page }) => {
   await page.context().clearCookies();
-  const respuesta = await page.goto('/imprimir/rifas');
+  const respuesta = await page.goto('/kit/rifas');
   expect(respuesta?.status()).toBe(200);
   await expect(page).not.toHaveURL(/\/login/);
   await expect(page.getByRole('button', { name: 'Descargar PDF' })).toBeVisible();
 });
 
-test('3 · el índice /imprimir enlaza a /imprimir/rifas', async ({ page }) => {
+test('3 · el índice /kit enlaza a /kit/rifas', async ({ page }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir');
+  await page.goto('/kit');
   await expect(page.getByRole('link', { name: /Números de rifa/i })).toHaveAttribute(
     'href',
-    '/imprimir/rifas',
+    '/kit/rifas',
   );
 });
 
 test('4 · cambiar la cantidad o los boletos por página recalcula las páginas', async ({ page }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
 
   await page.getByLabel('Cantidad de boletos').fill('18');
   await expect(page.getByText('Salen 1 página, de 18 boletos cada una.')).toBeVisible();
@@ -54,7 +54,7 @@ test('4b · fuera del rango 18-35, el texto muestra el valor acotado pero no dej
   page,
 }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
 
   // El campo deja escribir libremente (no pelea con cada tecla)...
   await page.getByLabel('Boletos por página').fill('40');
@@ -76,7 +76,7 @@ test('4b · fuera del rango 18-35, el texto muestra el valor acotado pero no dej
 
 test('5 · "Descargar PDF" dispara una descarga con el nombre esperado', async ({ page }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
 
   const [descarga] = await Promise.all([
     page.waitForEvent('download'),
@@ -87,7 +87,7 @@ test('5 · "Descargar PDF" dispara una descarga con el nombre esperado', async (
 
 test('6 · una cantidad fuera de rango muestra el aviso y no descarga nada', async ({ page }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
 
   await page.getByLabel('Cantidad de boletos').fill('999999');
 
@@ -104,7 +104,7 @@ test('7b · la foto del premio es opcional: se puede generar sin ella y con ella
   page,
 }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
 
   // Sin foto: descarga igual (es opcional).
   const [sinFoto] = await Promise.all([
@@ -125,11 +125,11 @@ test('7b · la foto del premio es opcional: se puede generar sin ella y con ella
   expect(conFoto.suggestedFilename()).toMatch(/^rifa-\d+\.pdf$/);
 });
 
-test('8 · "Enviar por WhatsApp" en /imprimir/rifas descarga el PDF y abre el chat correcto', async ({
+test('8 · "Enviar por WhatsApp" en /kit/rifas descarga el PDF y abre el chat correcto', async ({
   page,
 }) => {
   await page.context().clearCookies();
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
   await expect(page.getByRole('button', { name: 'Enviar por WhatsApp' })).toBeVisible();
 
   const [descarga, ventanaNueva] = await Promise.all([
@@ -158,7 +158,7 @@ test('7 · un nombre de evento con emoji genera el PDF sin tronar', async ({ pag
   const erroresDeConsola: string[] = [];
   page.on('pageerror', (error) => erroresDeConsola.push(error.message));
 
-  await page.goto('/imprimir/rifas');
+  await page.goto('/kit/rifas');
   await page.getByLabel('Nombre del evento').fill('🎉 Rifa Navideña 🎁');
 
   const [descarga] = await Promise.all([

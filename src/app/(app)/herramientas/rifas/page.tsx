@@ -23,7 +23,7 @@ export default async function PantallaRifas() {
     <section className="flex flex-col gap-4">
       <EncabezadoPantalla titulo={herramienta.nombre} descripcion={herramienta.descripcion} />
       {sesion.rol === 'admin' && (
-        <InterruptorPublico id="rifas" publicaInicial={publica} rutaPublica="/imprimir/rifas" />
+        <InterruptorPublico id="rifas" publicaInicial={publica} rutaPublica="/kit/rifas" />
       )}
       <GeneradorRifas />
     </section>

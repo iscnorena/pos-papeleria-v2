@@ -11,7 +11,7 @@ import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 import { analizarOrden, reordenarPdf, textoOrdenActual, textoOrdenInvertido } from './reordenar';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/reordenar, con
-// sesión) y la pública (/imprimir/pdf/reordenar, sin sesión) — mismo patrón que las demás
+// sesión) y la pública (/kit/pdf/reordenar, sin sesión) — mismo patrón que las demás
 // herramientas de PDF.
 //
 // Sin vista previa de páginas (pdf-lib no las puede renderizar como imagen): el campo se

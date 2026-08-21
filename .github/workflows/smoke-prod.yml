@@ -42,7 +42,7 @@ jobs:
           }
 
           revisar "/login" 200
-          revisar "/imprimir" 200
+          revisar "/kit" 200
           revisar "/dashboard" 307   # sin sesión, redirige a /login
           revisar "/productos" 307   # ídem
 

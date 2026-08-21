@@ -19,7 +19,7 @@ import { generarPdfRifas } from './pdf';
 import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 
 // Componente único, compartido por la ruta interna (/herramientas/rifas, con sesión) y la
-// pública (/imprimir/rifas, sin sesión). La única diferencia entre las dos es el botón de
+// pública (/kit/rifas, sin sesión). La única diferencia entre las dos es el botón de
 // WhatsApp: solo aparece si se recibe `whatsappNumber` (la ruta pública lo resuelve por
 // sucursal; la interna no lo pasa, porque el personal ya está en la papelería).
 

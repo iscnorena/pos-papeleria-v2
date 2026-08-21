@@ -1,8 +1,8 @@
 import Link from 'next/link';
 import type { ComponentType } from 'react';
 
-// Lista de tarjetas de herramientas para los índices públicos (/imprimir e
-// /imprimir/pdf) — antes duplicada letra por letra entre esas dos páginas. Las dos
+// Lista de tarjetas de herramientas para los índices públicos (/kit e
+// /kit/pdf) — antes duplicada letra por letra entre esas dos páginas. Las dos
 // fuentes de datos (registro principal y sub-registro de PDF) tienen forma distinta;
 // cada página adapta la suya a `ItemIndicePublico` antes de pasarla aquí.
 //

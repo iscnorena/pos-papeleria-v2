@@ -19,7 +19,7 @@ export const POS = {
 
 export const SEGURIDAD = {
   // `login_attempts` guarda IP + intento (candado del PIN de login y límite de búsqueda
-  // pública de bancos de imágenes de /imprimir). El candado en sí solo mira una ventana de
+  // pública de bancos de imágenes de /kit). El candado en sí solo mira una ventana de
   // minutos, pero sin purga las IPs se acumulaban para siempre — más de lo necesario para
   // el fin (LFPDPPP, principio de proporcionalidad). 7 días alcanza de sobra para detectar
   // patrones de abuso sostenidos sin retener IPs indefinidamente.

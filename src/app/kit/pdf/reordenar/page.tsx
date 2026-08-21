@@ -6,25 +6,25 @@ import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
 import { esHerramientaPublica } from '@/lib/toolSettings';
-import { DividirPdf } from '@/tools/pdf/DividirPdf';
+import { ReordenarPdf } from '@/tools/pdf/ReordenarPdf';
 
-// Versión pública de Dividir PDF: misma herramienta que /herramientas/pdf/dividir, sin
-// sesión, colgando de /imprimir/pdf. Mismo criterio que Unir PDF: el interruptor de
-// "Disponible al público" bloquea del todo si está apagado; el WhatsApp es un extra, no
-// bloquea si no hay sucursal con número configurado.
+// Versión pública de Reordenar páginas: misma herramienta que /herramientas/pdf/reordenar,
+// sin sesión, colgando de /kit/pdf. Mismo criterio que las demás herramientas de PDF:
+// el interruptor de "Disponible al público" bloquea del todo si está apagado; el WhatsApp
+// es un extra, no bloquea si no hay sucursal con número configurado.
 //
 // `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Dividir PDF' };
+export const metadata: Metadata = { title: 'Reordenar páginas' };
 
-export default async function ImprimirPdfDividirPage({
+export default async function ImprimirPdfReordenarPage({
   searchParams,
 }: {
   searchParams: Promise<{ sucursal?: string }>;
 }) {
-  const publica = await esHerramientaPublica('dividir');
+  const publica = await esHerramientaPublica('reordenar');
   if (!publica) return <HerramientaNoDisponible />;
 
   const { sucursal } = await searchParams;
@@ -43,11 +43,11 @@ export default async function ImprimirPdfDividirPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Dividir PDF"
-        descripcion="Separa un PDF en archivos más chicos, por rango de páginas."
-        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+        titulo="Reordenar páginas"
+        descripcion="Cambia el orden de las páginas de un PDF."
+        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
       />
-      <DividirPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
+      <ReordenarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>
   );
 }

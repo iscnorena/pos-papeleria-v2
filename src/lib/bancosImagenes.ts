@@ -1,7 +1,7 @@
 import 'server-only';
 
 // §7.6 — búsqueda y descarga en bancos de imágenes gratuitos, compartido entre la
-// herramienta interna (con sesión) y la pública de /imprimir/acomoda-impresion (con límite por IP en vez de
+// herramienta interna (con sesión) y la pública de /kit/acomoda-impresion (con límite por IP en vez de
 // sesión). Las llaves viven SOLO aquí, en el servidor (§10).
 
 export type ImagenDeBanco = {

@@ -12,7 +12,7 @@ import { ImprimirPublico } from './ImprimirPublico';
 // (app) a propósito, igual que el ticket: sin sesión ni navegación de admin, y el `proxy`
 // la deja pasar (§ ver comentario ahí). La herramienta interna, con precios, no se toca.
 //
-// Cuelga de /imprimir, que es el índice de herramientas públicas (ver ../page.tsx) — esta
+// Cuelga de /kit, que es el índice de herramientas públicas (ver ../page.tsx) — esta
 // es una de las tarjetas, no la raíz. Bloquea si el admin apagó el interruptor de
 // "Disponible al público" en la pantalla interna, o si ninguna sucursal tiene WhatsApp.
 //

@@ -27,10 +27,10 @@ test('1 · el selector cambia data-theme al instante y la preferencia persiste t
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'clasico');
 });
 
-test('2 · el selector también está en /imprimir (sin sesión) y en /login', async ({ page }) => {
+test('2 · el selector también está en /kit (sin sesión) y en /login', async ({ page }) => {
   await page.context().clearCookies();
 
-  await page.goto('/imprimir');
+  await page.goto('/kit');
   await expect(page.getByRole('button', { name: /Cambiar a diseño Moderno/i })).toBeVisible();
 
   await page.goto('/login');

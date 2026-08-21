@@ -6,25 +6,25 @@ import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
 import { esHerramientaPublica } from '@/lib/toolSettings';
-import { ReordenarPdf } from '@/tools/pdf/ReordenarPdf';
+import { RotarPdf } from '@/tools/pdf/RotarPdf';
 
-// Versión pública de Reordenar páginas: misma herramienta que /herramientas/pdf/reordenar,
-// sin sesión, colgando de /imprimir/pdf. Mismo criterio que las demás herramientas de PDF:
-// el interruptor de "Disponible al público" bloquea del todo si está apagado; el WhatsApp
-// es un extra, no bloquea si no hay sucursal con número configurado.
+// Versión pública de Rotar páginas: misma herramienta que /herramientas/pdf/rotar, sin
+// sesión, colgando de /kit/pdf. Mismo criterio que las demás herramientas de PDF: el
+// interruptor de "Disponible al público" bloquea del todo si está apagado; el WhatsApp es
+// un extra, no bloquea si no hay sucursal con número configurado.
 //
 // `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Reordenar páginas' };
+export const metadata: Metadata = { title: 'Rotar páginas' };
 
-export default async function ImprimirPdfReordenarPage({
+export default async function ImprimirPdfRotarPage({
   searchParams,
 }: {
   searchParams: Promise<{ sucursal?: string }>;
 }) {
-  const publica = await esHerramientaPublica('reordenar');
+  const publica = await esHerramientaPublica('rotar');
   if (!publica) return <HerramientaNoDisponible />;
 
   const { sucursal } = await searchParams;
@@ -43,11 +43,11 @@ export default async function ImprimirPdfReordenarPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Reordenar páginas"
-        descripcion="Cambia el orden de las páginas de un PDF."
-        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+        titulo="Rotar páginas"
+        descripcion="Gira las páginas de un PDF, todas o solo algunas."
+        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
       />
-      <ReordenarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
+      <RotarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>
   );
 }

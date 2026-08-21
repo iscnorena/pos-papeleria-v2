@@ -5,7 +5,7 @@ import { conectar, entrarComo } from './ayudas';
 
 // Herramientas de PDF (§ fuera de la spec original, como fase-9): "Unir", "Dividir",
 // "Rotar", "Reordenar" y "Numerar", cada una en /herramientas/pdf/<id> (con sesión) y
-// /imprimir/pdf/<id> (pública salvo que el admin la apague). El grupo "Herramientas de
+// /kit/pdf/<id> (pública salvo que el admin la apague). El grupo "Herramientas de
 // PDF" ya no es `proxima` (ver fix en fase-6-herramientas.spec.ts, prueba 3).
 //
 // El interruptor de "Disponible al público" (`tool_settings`) es PÚBLICA por defecto
@@ -99,13 +99,13 @@ test('4 · un archivo que no es PDF de verdad avisa, sin tronar', async ({ page 
   expect(erroresDeConsola).toEqual([]);
 });
 
-test('5 · el interruptor público controla /imprimir/pdf/unir y los dos índices, de punta a punta', async ({
+test('5 · el interruptor público controla /kit/pdf/unir y los dos índices, de punta a punta', async ({
   page,
   context,
 }) => {
   // Pública por defecto: sin fila en tool_settings, ya responde.
   const publica1 = await context.newPage();
-  await publica1.goto('/imprimir/pdf/unir');
+  await publica1.goto('/kit/pdf/unir');
   await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
@@ -122,12 +122,12 @@ test('5 · el interruptor público controla /imprimir/pdf/unir y los dos índice
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
-  await publica2.goto('/imprimir/pdf/unir');
+  await publica2.goto('/kit/pdf/unir');
   await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
   const indice = await context.newPage();
-  await indice.goto('/imprimir/pdf');
+  await indice.goto('/kit/pdf');
   await expect(indice.getByRole('link', { name: /Unir PDF/i })).toHaveCount(0);
   await indice.close();
 
@@ -135,9 +135,9 @@ test('5 · el interruptor público controla /imprimir/pdf/unir y los dos índice
   await interruptor.check();
   await expect(interruptor).toBeEnabled();
   const publica3 = await context.newPage();
-  await publica3.goto('/imprimir/pdf/unir');
+  await publica3.goto('/kit/pdf/unir');
   await expect(publica3.getByText('Agregar PDF')).toBeVisible();
-  await publica3.goto('/imprimir');
+  await publica3.goto('/kit');
   await expect(publica3.getByRole('link', { name: /Herramientas de PDF/i })).toBeVisible();
   await publica3.close();
 });
@@ -209,9 +209,9 @@ test('9 · un rango fuera de las páginas del PDF avisa, sin tronar', async ({ p
   expect(erroresDeConsola).toEqual([]);
 });
 
-test('10 · el interruptor público controla /imprimir/pdf/dividir', async ({ page, context }) => {
+test('10 · el interruptor público controla /kit/pdf/dividir', async ({ page, context }) => {
   const publica1 = await context.newPage();
-  await publica1.goto('/imprimir/pdf/dividir');
+  await publica1.goto('/kit/pdf/dividir');
   await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
@@ -223,7 +223,7 @@ test('10 · el interruptor público controla /imprimir/pdf/dividir', async ({ pa
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
-  await publica2.goto('/imprimir/pdf/dividir');
+  await publica2.goto('/kit/pdf/dividir');
   await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
@@ -283,9 +283,9 @@ test('13 · rotar solo un rango deja las demás páginas sin girar', async ({ pa
   expect(documento.getPages().map((p) => p.getRotation().angle)).toEqual([0, 180, 0]);
 });
 
-test('14 · el interruptor público controla /imprimir/pdf/rotar', async ({ page, context }) => {
+test('14 · el interruptor público controla /kit/pdf/rotar', async ({ page, context }) => {
   const publica1 = await context.newPage();
-  await publica1.goto('/imprimir/pdf/rotar');
+  await publica1.goto('/kit/pdf/rotar');
   await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
@@ -297,7 +297,7 @@ test('14 · el interruptor público controla /imprimir/pdf/rotar', async ({ page
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
-  await publica2.goto('/imprimir/pdf/rotar');
+  await publica2.goto('/kit/pdf/rotar');
   await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
@@ -339,9 +339,9 @@ test('16 · un orden con páginas repetidas o faltantes avisa, sin tronar', asyn
   expect(erroresDeConsola).toEqual([]);
 });
 
-test('17 · el interruptor público controla /imprimir/pdf/reordenar', async ({ page, context }) => {
+test('17 · el interruptor público controla /kit/pdf/reordenar', async ({ page, context }) => {
   const publica1 = await context.newPage();
-  await publica1.goto('/imprimir/pdf/reordenar');
+  await publica1.goto('/kit/pdf/reordenar');
   await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
@@ -353,7 +353,7 @@ test('17 · el interruptor público controla /imprimir/pdf/reordenar', async ({ 
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
-  await publica2.goto('/imprimir/pdf/reordenar');
+  await publica2.goto('/kit/pdf/reordenar');
   await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 
@@ -380,9 +380,9 @@ test('18 · numerar arranca en 1 por defecto y respeta un número inicial distin
   expect(descarga.suggestedFilename()).toBe('reporte-numerado.pdf');
 });
 
-test('19 · el interruptor público controla /imprimir/pdf/numerar', async ({ page, context }) => {
+test('19 · el interruptor público controla /kit/pdf/numerar', async ({ page, context }) => {
   const publica1 = await context.newPage();
-  await publica1.goto('/imprimir/pdf/numerar');
+  await publica1.goto('/kit/pdf/numerar');
   await expect(publica1.getByText('Agregar PDF')).toBeVisible();
   await publica1.close();
 
@@ -394,7 +394,7 @@ test('19 · el interruptor público controla /imprimir/pdf/numerar', async ({ pa
   await expect(interruptor).toBeEnabled();
 
   const publica2 = await context.newPage();
-  await publica2.goto('/imprimir/pdf/numerar');
+  await publica2.goto('/kit/pdf/numerar');
   await expect(publica2.getByText('no está disponible')).toBeVisible();
   await publica2.close();
 

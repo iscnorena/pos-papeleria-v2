@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 import { SelectorTema } from '@/components/ui/SelectorTema';
 import { POS } from '@/config/pos';
 
-// Layout compartido de la sección pública /imprimir (sin sesión). Dueño de min-h-dvh y
+// Layout compartido de la sección pública /kit (sin sesión). Dueño de min-h-dvh y
 // bg-papel: las páginas hijas ya no declaran ninguno de los dos, para no duplicar el
 // alto de viewport. No lleva `dynamic = 'force-dynamic'` propio — no consulta nada
 // dinámico; el que sí lo necesita es cada page.tsx que consulta `tool_settings` (ver
@@ -23,7 +23,7 @@ export default function LayoutImprimir({ children }: { children: React.ReactNode
     <div className="flex min-h-dvh flex-col bg-papel">
       <header className="border-b border-linea-fuerte bg-white px-4 py-3">
         <div className="mx-auto flex max-w-md items-center justify-between gap-3">
-          <Link href="/imprimir" className="inline-block">
+          <Link href="/kit" className="inline-block">
             <p className="font-display text-cuerpo font-semibold text-tinta">{POS.nombreNegocio}</p>
             <p className="font-mono text-micro uppercase text-grafito-claro">
               Herramientas gratis · sin cuenta
@@ -37,7 +37,7 @@ export default function LayoutImprimir({ children }: { children: React.ReactNode
 
       <footer className="border-t border-linea-fuerte px-4 py-3 text-center">
         <Link
-          href="/imprimir/privacidad"
+          href="/kit/privacidad"
           className="font-mono text-micro uppercase text-grafito-claro hover:text-tinta"
         >
           Aviso de privacidad

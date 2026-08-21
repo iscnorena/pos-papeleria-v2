@@ -108,7 +108,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
       <CabeceraPublica
         titulo="Acomodar impresión"
         descripcion="Arma tu impresión y mándala por WhatsApp"
-        volver={{ href: '/imprimir', texto: 'Herramientas' }}
+        volver={{ href: '/kit', texto: 'Herramientas' }}
       />
 
       <div className="flex flex-col gap-5">

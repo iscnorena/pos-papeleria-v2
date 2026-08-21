@@ -13,7 +13,7 @@ import { generarHojaLibreta } from './pdf';
 import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 
 // Componente único, compartido por la ruta interna (/herramientas/libreta, con sesión) y
-// la pública (/imprimir/libreta, sin sesión) — mismo criterio que GeneradorRifas: el
+// la pública (/kit/libreta, sin sesión) — mismo criterio que GeneradorRifas: el
 // botón de WhatsApp solo aparece si se recibe `whatsappNumber`.
 
 const TEXTO_WHATSAPP = 'Hola, les mando esta hoja para imprimir 🖨️';

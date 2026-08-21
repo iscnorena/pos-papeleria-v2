@@ -6,25 +6,25 @@ import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
 import { esHerramientaPublica } from '@/lib/toolSettings';
-import { RotarPdf } from '@/tools/pdf/RotarPdf';
+import { DividirPdf } from '@/tools/pdf/DividirPdf';
 
-// Versión pública de Rotar páginas: misma herramienta que /herramientas/pdf/rotar, sin
-// sesión, colgando de /imprimir/pdf. Mismo criterio que las demás herramientas de PDF: el
-// interruptor de "Disponible al público" bloquea del todo si está apagado; el WhatsApp es
-// un extra, no bloquea si no hay sucursal con número configurado.
+// Versión pública de Dividir PDF: misma herramienta que /herramientas/pdf/dividir, sin
+// sesión, colgando de /kit/pdf. Mismo criterio que Unir PDF: el interruptor de
+// "Disponible al público" bloquea del todo si está apagado; el WhatsApp es un extra, no
+// bloquea si no hay sucursal con número configurado.
 //
 // `force-dynamic`: ver el comentario en ../../page.tsx — sin esto, `revalidatePath` no
 // siempre gana la carrera contra el Full Route Cache de Vercel.
 export const dynamic = 'force-dynamic';
 
-export const metadata: Metadata = { title: 'Rotar páginas' };
+export const metadata: Metadata = { title: 'Dividir PDF' };
 
-export default async function ImprimirPdfRotarPage({
+export default async function ImprimirPdfDividirPage({
   searchParams,
 }: {
   searchParams: Promise<{ sucursal?: string }>;
 }) {
-  const publica = await esHerramientaPublica('rotar');
+  const publica = await esHerramientaPublica('dividir');
   if (!publica) return <HerramientaNoDisponible />;
 
   const { sucursal } = await searchParams;
@@ -43,11 +43,11 @@ export default async function ImprimirPdfRotarPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Rotar páginas"
-        descripcion="Gira las páginas de un PDF, todas o solo algunas."
-        volver={{ href: '/imprimir/pdf', texto: 'Herramientas de PDF' }}
+        titulo="Dividir PDF"
+        descripcion="Separa un PDF en archivos más chicos, por rango de páginas."
+        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
       />
-      <RotarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
+      <DividirPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>
   );
 }

@@ -11,7 +11,7 @@ import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 import { paginasARotar, rotarPdf, type AnguloRotacion } from './rotar';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/rotar, con sesión)
-// y la pública (/imprimir/pdf/rotar, sin sesión) — mismo patrón que UnirPdf/DividirPdf.
+// y la pública (/kit/pdf/rotar, sin sesión) — mismo patrón que UnirPdf/DividirPdf.
 //
 // Sin vista previa: pdf-lib no sabe renderizar una página como imagen (eso es trabajo de
 // pdf.js, que no está en el proyecto). El giro se acumula en pantalla como un solo número

@@ -29,7 +29,7 @@ export default async function PantallaAcomodaImpresion() {
         <InterruptorPublico
           id="acomoda-impresion"
           publicaInicial={publica}
-          rutaPublica="/imprimir/acomoda-impresion"
+          rutaPublica="/kit/acomoda-impresion"
         />
       )}
       <AcomodaImpresion />

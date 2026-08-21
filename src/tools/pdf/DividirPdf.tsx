@@ -12,7 +12,7 @@ import { analizarRangos, dividirPdf, textoUnaPorPagina } from './dividir';
 import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/dividir, con
-// sesión) y la pública (/imprimir/pdf/dividir, sin sesión) — mismo patrón que UnirPdf: el
+// sesión) y la pública (/kit/pdf/dividir, sin sesión) — mismo patrón que UnirPdf: el
 // botón de WhatsApp solo aparece si se recibe `whatsappNumber`.
 
 const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya dividido.';

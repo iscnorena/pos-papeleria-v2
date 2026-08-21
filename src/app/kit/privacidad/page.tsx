@@ -6,7 +6,7 @@ import { POS, SEGURIDAD } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
 
-// Aviso de privacidad simplificado (LFPDPPP) de la sección pública /imprimir. Redactado
+// Aviso de privacidad simplificado (LFPDPPP) de la sección pública /kit. Redactado
 // contra lo que el código realmente hace, no contra una plantilla genérica — ver la
 // auditoría que lo motivó: ningún archivo ni texto que el visitante suba o escriba en
 // estas herramientas llega al servidor (todo se procesa en el navegador con `pdf-lib`);
@@ -17,7 +17,7 @@ import { branches } from '@/db/schema';
 export const metadata: Metadata = { title: 'Aviso de privacidad' };
 
 // Sin esto, Next puede servir esta página desde el Full Route Cache con la lista de
-// sucursales congelada del build (ver el mismo comentario en `src/app/imprimir/page.tsx`):
+// sucursales congelada del build (ver el mismo comentario en `src/app/kit/page.tsx`):
 // si se edita dirección/teléfono en /sucursales, esta página debe reflejarlo sin esperar
 // un redeploy.
 export const dynamic = 'force-dynamic';
@@ -35,7 +35,7 @@ export default async function PantallaAvisoPrivacidad() {
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
       <CabeceraPublica
         titulo="Aviso de privacidad"
-        volver={{ href: '/imprimir', texto: 'Herramientas' }}
+        volver={{ href: '/kit', texto: 'Herramientas' }}
       />
 
       <div className="flex flex-col gap-4 text-fino text-tinta">
