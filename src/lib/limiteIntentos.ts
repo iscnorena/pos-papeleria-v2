@@ -1,8 +1,9 @@
 import 'server-only';
 
 import { headers } from 'next/headers';
-import { and, count, eq, gt } from 'drizzle-orm';
+import { and, count, eq, gt, lt } from 'drizzle-orm';
 
+import { SEGURIDAD } from '@/config/pos';
 import { db } from '@/db';
 import { loginAttempts } from '@/db/schema';
 
@@ -39,4 +40,10 @@ export async function intentosRecientes(
 
 export async function anotarIntento(ip: string, kind: string): Promise<void> {
   await db.insert(loginAttempts).values({ ip, kind });
+  // Purga oportunista: sin esta línea las IPs de visitantes públicos se acumulaban para
+  // siempre (§ SEGURIDAD.retencionIntentosMs). No hace falta un cron aparte — esta tabla
+  // solo crece cuando alguien intenta algo, así que se autolimpia sola con el tiempo.
+  await db
+    .delete(loginAttempts)
+    .where(lt(loginAttempts.attemptedAt, new Date(Date.now() - SEGURIDAD.retencionIntentosMs)));
 }

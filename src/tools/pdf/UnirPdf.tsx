@@ -109,7 +109,10 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Tus PDF</h2>
+        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">Tus PDF</h2>
+        <p className="mb-3 text-fino text-grafito">
+          Se procesan aquí mismo, en tu navegador: nunca suben a nuestros servidores.
+        </p>
 
         <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
           Agregar PDF

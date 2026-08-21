@@ -113,6 +113,9 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
 
       <div className="flex flex-col gap-5">
         <Seccion titulo="Tus fotos">
+          <p className="text-fino text-grafito">
+            Se procesan aquí mismo, en tu navegador: nunca suben a nuestros servidores.
+          </p>
           <div className="flex flex-wrap gap-2">
             <label className="flex min-h-tecla flex-1 cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
               Agregar fotos

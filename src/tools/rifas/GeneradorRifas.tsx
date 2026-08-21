@@ -210,6 +210,11 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
 
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
+      <p className="text-fino text-grafito">
+        Todo lo que escribas o subas aquí (fotos incluidas) se procesa en tu navegador: nunca sube a
+        nuestros servidores.
+      </p>
+
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
         <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Boletos</h2>
         <div className="grid grid-cols-2 gap-2">
