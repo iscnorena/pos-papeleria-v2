@@ -2,7 +2,132 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Dos identidades visuales permanentes, conmutables con el selector de tema (ver
+ * src/components/ui/SelectorTema.tsx). Un solo `data-theme` en <html>
+ * (src/app/layout.tsx) decide qué bloque aplica — ningún componente cambia. Colores en
+ * tripletas RGB (sin "rgb()") porque tailwind.config.ts los envuelve en
+ * `rgb(var(--x) / <alpha-value>)`, lo que preserva los modificadores de opacidad
+ * (`bg-tinta/40`, ya usado en Modal.tsx). El bloque `:root` sin atributo es el valor por
+ * omisión antes de que corra el script anti-parpadeo (mismo valor que "clasico"). */
 @layer base {
+  :root {
+    --color-papel: 250 249 244;
+    --color-papel-hondo: 241 239 231;
+    --color-tinta: 23 33 47;
+    --color-tinta-claro: 36 51 71;
+    --color-tinta-tenue: 58 74 97;
+    --color-grafito: 90 100 114;
+    --color-grafito-claro: 138 147 161;
+    --color-linea: 226 223 213;
+    --color-linea-fuerte: 207 202 185;
+    --color-boligrafo: 38 71 214;
+    --color-boligrafo-hondo: 26 52 168;
+    --color-boligrafo-tenue: 234 237 251;
+    --color-marcador: 255 226 77;
+    --color-marcador-hondo: 240 203 22;
+    --color-marcador-tenue: 255 246 209;
+    --color-sello: 190 58 46;
+    --color-sello-hondo: 154 44 34;
+    --color-sello-tenue: 251 237 235;
+    --color-visto: 28 122 82;
+    --color-visto-hondo: 19 88 58;
+    --color-visto-tenue: 232 244 238;
+
+    --sombra-impresa: 0 1px 0 0 #e2dfd5, 0 2px 0 0 rgba(23, 33, 47, 0.04);
+    --sombra-alzada: 2px 3px 0 0 rgba(23, 33, 47, 0.1);
+    --sombra-cinta: 3px 4px 0 0 rgba(23, 33, 47, 0.07);
+    --radio-default: 2px;
+    --radio-sm: 1px;
+    --radio-md: 3px;
+    --radio-lg: 4px;
+
+    --fuente-display-latin: var(--font-archivo-latin);
+    --fuente-display-ext: var(--font-archivo-ext);
+    --fuente-sans-latin: var(--font-atkinson-latin);
+    --fuente-sans-ext: var(--font-atkinson-ext);
+  }
+
+  :root[data-theme='clasico'] {
+    /* Idénticos a :root — declarados aparte para que el selector pueda volver aquí
+     * explícitamente después de haber estado en "moderno", sin depender del default. */
+    --color-papel: 250 249 244;
+    --color-papel-hondo: 241 239 231;
+    --color-tinta: 23 33 47;
+    --color-tinta-claro: 36 51 71;
+    --color-tinta-tenue: 58 74 97;
+    --color-grafito: 90 100 114;
+    --color-grafito-claro: 138 147 161;
+    --color-linea: 226 223 213;
+    --color-linea-fuerte: 207 202 185;
+    --color-boligrafo: 38 71 214;
+    --color-boligrafo-hondo: 26 52 168;
+    --color-boligrafo-tenue: 234 237 251;
+    --color-marcador: 255 226 77;
+    --color-marcador-hondo: 240 203 22;
+    --color-marcador-tenue: 255 246 209;
+    --color-sello: 190 58 46;
+    --color-sello-hondo: 154 44 34;
+    --color-sello-tenue: 251 237 235;
+    --color-visto: 28 122 82;
+    --color-visto-hondo: 19 88 58;
+    --color-visto-tenue: 232 244 238;
+
+    --sombra-impresa: 0 1px 0 0 #e2dfd5, 0 2px 0 0 rgba(23, 33, 47, 0.04);
+    --sombra-alzada: 2px 3px 0 0 rgba(23, 33, 47, 0.1);
+    --sombra-cinta: 3px 4px 0 0 rgba(23, 33, 47, 0.07);
+    --radio-default: 2px;
+    --radio-sm: 1px;
+    --radio-md: 3px;
+    --radio-lg: 4px;
+
+    --fuente-display-latin: var(--font-archivo-latin);
+    --fuente-display-ext: var(--font-archivo-ext);
+    --fuente-sans-latin: var(--font-atkinson-latin);
+    --fuente-sans-ext: var(--font-atkinson-ext);
+  }
+
+  /* "Moderno": terminal de punto de venta digital, no papel — radios generosos, sombra
+   * suave con tinte del acento, índigo en vez de azul bolígrafo, cian "línea de escaneo"
+   * donde el clásico usa el amarillo resaltador (misma restricción: SOLO el total y el
+   * ítem activo). */
+  :root[data-theme='moderno'] {
+    --color-papel: 245 247 251;
+    --color-papel-hondo: 232 236 243;
+    --color-tinta: 15 23 32;
+    --color-tinta-claro: 30 42 56;
+    --color-tinta-tenue: 62 76 94;
+    --color-grafito: 91 107 124;
+    --color-grafito-claro: 137 152 168;
+    --color-linea: 220 226 234;
+    --color-linea-fuerte: 194 203 214;
+    --color-boligrafo: 91 61 245;
+    --color-boligrafo-hondo: 69 39 209;
+    --color-boligrafo-tenue: 237 233 254;
+    --color-marcador: 0 217 192;
+    --color-marcador-hondo: 0 179 160;
+    --color-marcador-tenue: 217 251 246;
+    --color-sello: 240 69 58;
+    --color-sello-hondo: 210 46 36;
+    --color-sello-tenue: 253 233 232;
+    --color-visto: 18 183 106;
+    --color-visto-hondo: 13 143 82;
+    --color-visto-tenue: 227 249 238;
+
+    --sombra-impresa: 0 1px 2px 0 rgba(15, 23, 32, 0.04), 0 1px 3px 0 rgba(15, 23, 32, 0.08);
+    --sombra-alzada: 0 8px 24px -4px rgba(91, 61, 245, 0.18), 0 2px 8px -2px rgba(15, 23, 32, 0.1);
+    --sombra-cinta:
+      0 12px 32px -8px rgba(91, 61, 245, 0.22), 0 4px 12px -4px rgba(15, 23, 32, 0.08);
+    --radio-default: 10px;
+    --radio-sm: 6px;
+    --radio-md: 12px;
+    --radio-lg: 16px;
+
+    --fuente-display-latin: var(--font-bricolage-latin);
+    --fuente-display-ext: var(--font-bricolage-ext);
+    --fuente-sans-latin: var(--font-plex-sans-latin);
+    --fuente-sans-ext: var(--font-plex-sans-ext);
+  }
+
   html {
     -webkit-text-size-adjust: 100%;
   }
@@ -19,5 +144,20 @@
   /* Las cifras no deben bailar al cambiar de valor. */
   .tabular {
     font-variant-numeric: tabular-nums;
+  }
+
+  /* El radio de borde (§tema) solo importa donde algo lo consuma: en todo el sistema
+   * ningún elemento usa la clase `rounded` de Tailwind (confirmado — "radio casi cero"
+   * se logra hoy con esquinas rectas por omisión, no con un radio de 2px real). Las tres
+   * sombras custom (`shadow-impresa/alzada/cinta`) SÍ son, en la práctica, la marca casi
+   * universal de "esto es una tarjeta/botón/panel" en todo el código — así que redondear
+   * ahí cubre botones, modales y la enorme mayoría de las cajas con borde, sin tener que
+   * agregar `rounded` a mano en decenas de archivos. Los campos de formulario sueltos
+   * (sin sombra) se quedan angulosos en los dos temas — no desentona: es normal que un
+   * input dentro de una tarjeta redondeada tenga esquina recta. */
+  .shadow-impresa,
+  .shadow-alzada,
+  .shadow-cinta {
+    border-radius: var(--radio-default);
   }
 }

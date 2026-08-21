@@ -111,6 +111,31 @@ export function IconoLibreta() {
   );
 }
 
+// Los dos siguientes son del selector de tema (src/components/ui/SelectorTema.tsx), no
+// de una herramienta — misma familia de trazo para que el botón no desentone del resto.
+
+export function IconoPluma() {
+  return (
+    <svg {...comunes}>
+      <path d="M12 2 4 14l8 8 8-8z" />
+      <path d="M12 6v12" />
+      <circle cx="12" cy="10" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function IconoEscaner() {
+  return (
+    <svg {...comunes}>
+      <path d="M4 8V5a1 1 0 0 1 1-1h3" />
+      <path d="M16 4h3a1 1 0 0 1 1 1v3" />
+      <path d="M20 16v3a1 1 0 0 1-1 1h-3" />
+      <path d="M8 20H5a1 1 0 0 1-1-1v-3" />
+      <path d="M4 12h16" />
+    </svg>
+  );
+}
+
 export function IconoNumerarPdf() {
   return (
     <svg {...comunes}>

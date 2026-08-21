@@ -48,7 +48,7 @@ test('1 · 5 imágenes en 2×2 dan dos páginas, la segunda con 3 celdas grises'
 
   // La segunda, una imagen y tres celdas grises.
   await expect(hoja.locator('img')).toHaveCount(1);
-  const grises = hoja.locator('div[style*="rgb(245, 245, 245)"]');
+  const grises = hoja.locator('div.bg-vistaprevia-fondo');
   await expect(grises).toHaveCount(3);
 });
 

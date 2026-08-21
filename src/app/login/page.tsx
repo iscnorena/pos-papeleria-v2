@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 
+import { SelectorTema } from '@/components/ui/SelectorTema';
 import { POS } from '@/config/pos';
 import { FormularioLogin } from './FormularioLogin';
 
@@ -31,6 +32,10 @@ export default async function PaginaLogin({
         <p className="mt-6 text-center text-fino text-grafito-claro">
           Entra con tu usuario o con tu PIN de turno.
         </p>
+
+        <div className="mt-4 flex justify-center">
+          <SelectorTema />
+        </div>
       </div>
     </main>
   );

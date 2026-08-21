@@ -43,15 +43,16 @@ export function VistaPreviaPublica({
 
           return (
             <div key={indice}>
+              {/* Celda vacía: gris fijo (§7.1), no conmuta con el tema — simula la hoja
+                  física, igual que el PDF que representa. */}
               {!imagen && (
                 <div
-                  className="absolute bg-[#F5F5F5]"
+                  className="absolute border border-vistaprevia-borde bg-vistaprevia-fondo"
                   style={{
                     left: pct(celda.x, anchoPagina),
                     top: pct(celda.y, altoPagina),
                     width: pct(celda.ancho, anchoPagina),
                     height: pct(celda.alto, altoPagina),
-                    border: '1px solid #E0E0E0',
                   }}
                 />
               )}
@@ -80,15 +81,15 @@ export function VistaPreviaPublica({
                 </div>
               )}
 
+              {/* Guía de corte: gris fijo, misma razón que la celda vacía de arriba. */}
               {config.mostrarGuias && (
                 <div
-                  className="pointer-events-none absolute"
+                  className="pointer-events-none absolute border border-dashed border-vistaprevia-guia"
                   style={{
                     left: pct(celda.x, anchoPagina),
                     top: pct(celda.y, altoPagina),
                     width: pct(celda.ancho, anchoPagina),
                     height: pct(celda.alto, altoPagina),
-                    border: '1px dashed #808080',
                   }}
                 />
               )}

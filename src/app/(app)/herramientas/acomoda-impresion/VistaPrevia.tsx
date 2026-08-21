@@ -52,17 +52,16 @@ export function VistaPrevia({
 
           return (
             <div key={indice}>
-              {/* Celda vacía: fondo #F5F5F5 y borde #E0E0E0 (§7.1). */}
+              {/* Celda vacía: siempre gris fijo (§7.1), no conmuta con el tema — simula la
+                  hoja física, igual que el PDF que representa. */}
               {!imagen && (
                 <div
-                  className="absolute"
+                  className="absolute border border-vistaprevia-borde bg-vistaprevia-fondo"
                   style={{
                     left: celda.x * escala,
                     top: celda.y * escala,
                     width: celda.ancho * escala,
                     height: celda.alto * escala,
-                    background: '#F5F5F5',
-                    border: '1px solid #E0E0E0',
                   }}
                 />
               )}
@@ -98,17 +97,16 @@ export function VistaPrevia({
                 </div>
               )}
 
-              {/* Guía de corte: borde punteado de LA CELDA, gris, patrón 4 2, 1px en
-                  pantalla (§7.1). */}
+              {/* Guía de corte: borde punteado de LA CELDA, gris fijo (§7.1, no conmuta con
+                  el tema, misma razón que la celda vacía de arriba). */}
               {config.mostrarGuias && (
                 <div
-                  className="pointer-events-none absolute"
+                  className="pointer-events-none absolute border border-dashed border-vistaprevia-guia"
                   style={{
                     left: celda.x * escala,
                     top: celda.y * escala,
                     width: celda.ancho * escala,
                     height: celda.alto * escala,
-                    border: '1px dashed #808080',
                   }}
                 />
               )}

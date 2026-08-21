@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 
 import { salir } from '@/app/acciones-sesion';
 import { EnlaceNav } from '@/components/ui/EnlaceNav';
+import { SelectorTema } from '@/components/ui/SelectorTema';
 import { POS } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
@@ -41,6 +42,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
                 {sesion.rol}
               </span>
             </p>
+            <SelectorTema />
             <form action={salir}>
               <button
                 type="submit"

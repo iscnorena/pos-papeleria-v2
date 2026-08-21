@@ -3,6 +3,15 @@ import forms from '@tailwindcss/forms';
 
 // Paleta y escalas de docs/prompt.md §4. `colors` REEMPLAZA la paleta de Tailwind
 // en vez de extenderla: si un color no está aquí, no se usa.
+//
+// TEMA CLÁSICO/MODERNO: cada color resuelve a `rgb(var(--color-x) / <alpha-value>)` en
+// vez de un hex literal — los valores reales viven en `src/app/globals.css`, dos
+// bloques `:root[data-theme=...]`, y `<alpha-value>` es lo que le permite a Tailwind
+// seguir soportando modificadores de opacidad (`bg-tinta/40`, ya usado en Modal.tsx)
+// aunque el color en sí sea una variable. Los NOMBRES de acá (`papel`, `tinta`, etc.)
+// no cambian — solo lo que apuntan — así que ningún componente necesita tocarse.
+const color = (variable: string) => `rgb(var(${variable}) / <alpha-value>)`;
+
 const config: Config = {
     content: ['./src/**/*.{ts,tsx}'],
     theme: {
@@ -10,14 +19,38 @@ const config: Config = {
             transparent: 'transparent',
             current: 'currentColor',
             white: '#FFFFFF',
-            papel: { DEFAULT: '#FAF9F4', hondo: '#F1EFE7' }, // fondo de página; zonas rehundidas
-            tinta: { DEFAULT: '#17212F', claro: '#243347', tenue: '#3A4A61' }, // texto principal, cromo oscuro
-            grafito: { DEFAULT: '#5A6472', claro: '#8A93A1' }, // texto secundario y terciario
-            linea: { DEFAULT: '#E2DFD5', fuerte: '#CFCAB9' }, // filetes; bordes de campo
-            boligrafo: { DEFAULT: '#2647D6', hondo: '#1A34A8', tenue: '#EAEDFB' }, // acción primaria, enlaces, foco
-            marcador: { DEFAULT: '#FFE24D', hondo: '#F0CB16', tenue: '#FFF6D1' }, // resaltador: SOLO el total y el ítem activo
-            sello: { DEFAULT: '#BE3A2E', hondo: '#9A2C22', tenue: '#FBEDEB' }, // destructivo, cancelada, sin stock
-            visto: { DEFAULT: '#1C7A52', hondo: '#13583A', tenue: '#E8F4EE' }, // completada, pagado, en stock
+            papel: { DEFAULT: color('--color-papel'), hondo: color('--color-papel-hondo') }, // fondo de página; zonas rehundidas
+            tinta: {
+                DEFAULT: color('--color-tinta'),
+                claro: color('--color-tinta-claro'),
+                tenue: color('--color-tinta-tenue'),
+            }, // texto principal, cromo oscuro
+            grafito: { DEFAULT: color('--color-grafito'), claro: color('--color-grafito-claro') }, // texto secundario y terciario
+            linea: { DEFAULT: color('--color-linea'), fuerte: color('--color-linea-fuerte') }, // filetes; bordes de campo
+            boligrafo: {
+                DEFAULT: color('--color-boligrafo'),
+                hondo: color('--color-boligrafo-hondo'),
+                tenue: color('--color-boligrafo-tenue'),
+            }, // acción primaria, enlaces, foco
+            marcador: {
+                DEFAULT: color('--color-marcador'),
+                hondo: color('--color-marcador-hondo'),
+                tenue: color('--color-marcador-tenue'),
+            }, // resaltador: SOLO el total y el ítem activo
+            sello: {
+                DEFAULT: color('--color-sello'),
+                hondo: color('--color-sello-hondo'),
+                tenue: color('--color-sello-tenue'),
+            }, // destructivo, cancelada, sin stock
+            visto: {
+                DEFAULT: color('--color-visto'),
+                hondo: color('--color-visto-hondo'),
+                tenue: color('--color-visto-tenue'),
+            }, // completada, pagado, en stock
+            // Área de "papel simulado" de VistaPrevia.tsx/VistaPreviaPublica.tsx: representa a
+            // escala la hoja física que se va a imprimir, así que se queda fija en los dos
+            // temas — nunca `var()`, igual que el PDF que simula.
+            vistaprevia: { fondo: '#F5F5F5', borde: '#E0E0E0', guia: '#808080' },
         },
         // Cada fuente son DOS familias encadenadas: el subconjunto `latin` primero y
         // `latin-ext` después. Ver el comentario largo en src/lib/fonts.ts.
@@ -42,11 +75,20 @@ const config: Config = {
                 cifra: ['2rem', { lineHeight: '2.25rem', letterSpacing: '-0.02em' }],
                 total: ['2.75rem', { lineHeight: '3rem', letterSpacing: '-0.02em' }],
             },
-            borderRadius: { DEFAULT: '2px', sm: '1px', md: '3px', lg: '4px' },
+            // Radios y sombras completos (no solo el color) cambian por tema: el clásico es
+            // anguloso con sombra dura sin difuminar ("papel apilado"); el moderno usa radios
+            // generosos y sombra suave difuminada ("tarjeta flotante"). Valores reales en
+            // src/app/globals.css, dos bloques :root[data-theme=...].
+            borderRadius: {
+                DEFAULT: 'var(--radio-default)',
+                sm: 'var(--radio-sm)',
+                md: 'var(--radio-md)',
+                lg: 'var(--radio-lg)',
+            },
             boxShadow: {
-                impresa: '0 1px 0 0 #E2DFD5, 0 2px 0 0 rgba(23, 33, 47, 0.04)',
-                alzada: '2px 3px 0 0 rgba(23, 33, 47, 0.10)',
-                cinta: '3px 4px 0 0 rgba(23, 33, 47, 0.07)',
+                impresa: 'var(--sombra-impresa)',
+                alzada: 'var(--sombra-alzada)',
+                cinta: 'var(--sombra-cinta)',
                 none: 'none',
             },
             spacing: {
