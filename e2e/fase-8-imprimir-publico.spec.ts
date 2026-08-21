@@ -77,6 +77,15 @@ test('4 · la herramienta interna sigue exigiendo sesión y no muestra este fluj
 test('5 · la búsqueda pública de imágenes se corta después de varios intentos por IP', async ({
   page,
 }) => {
+  // El endpoint (`src/app/api/imprimir/bancos-imagenes/route.ts`) revisa si hay API key
+  // ANTES de anotar el intento: sin una llave real de Pixabay, cada petición corta en 503
+  // sin contar para el límite, y `ultima` nunca llega a 429 — no es que el límite no
+  // funcione, es que sin llave nunca se gasta cuota que limitar.
+  test.skip(
+    !process.env.PIXABAY_API_KEY,
+    'Necesita una llave real de Pixabay: sin ella, el endpoint corta antes de contar el intento.',
+  );
+
   let ultima = 200;
   for (let i = 0; i < 9; i++) {
     const respuesta = await page.request.get(

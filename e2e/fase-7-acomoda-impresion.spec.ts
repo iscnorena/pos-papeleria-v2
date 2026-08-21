@@ -228,6 +228,15 @@ test('8b · un .json exportado por la app de escritorio carga igual', async ({ p
 });
 
 test('10 · sin llave de API, el buscador lo dice y no revienta', async ({ page }) => {
+  // Esta prueba pide justamente lo contrario de la 9 (ver comentario de arriba): que las
+  // llaves FALTEN. Con `.env.local` (o los secrets de CI) trayendo llaves reales, el
+  // buscador sí responde y el aviso de "Configura la API Key…" nunca aparece — no es un
+  // fallo del código, es que esta prueba y unas llaves reales son mutuamente excluyentes.
+  test.skip(
+    Boolean(process.env.UNSPLASH_ACCESS_KEY || process.env.PIXABAY_API_KEY),
+    'Hay llaves de API reales configuradas: este flujo no se puede probar (pide que falten).',
+  );
+
   const errores: string[] = [];
   page.on('pageerror', (e) => errores.push(e.message));
 
