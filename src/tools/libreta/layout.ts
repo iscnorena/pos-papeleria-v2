@@ -1,3 +1,5 @@
+import { t, type Idioma } from '@/lib/i18n/nucleo';
+
 // Motor puro de "Hoja de libreta": una sola fuente de verdad para el PDF (pdf.ts) y la
 // vista previa en <canvas> (VistaPreviaCanvas.tsx) — mismo criterio que
 // src/tools/rifas/layout.ts (ver ese archivo). Todas las posiciones se expresan como
@@ -45,21 +47,27 @@ export const COLOR_TEXTO_SECUNDARIO = '#5A6472'; // "grafito" del sistema
 
 export type EstiloHoja = 'raya' | 'doble-raya' | 'cuadro-c7' | 'cuadro-aleman' | 'dibujo';
 
-export const ESTILOS_HOJA: { valor: EstiloHoja; texto: string }[] = [
-  { valor: 'raya', texto: 'Raya' },
-  { valor: 'doble-raya', texto: 'Doble raya' },
-  { valor: 'cuadro-c7', texto: 'Cuadro C-7' },
-  { valor: 'cuadro-aleman', texto: 'Cuadro alemán' },
-  { valor: 'dibujo', texto: 'Dibujo' },
-];
+/** Función y no una constante: el texto de cada opción cambia con el idioma (ver
+ *  src/lib/i18n). El `valor` (usado para la lógica de dibujo) nunca cambia. */
+export function estilosHoja(idioma: Idioma): { valor: EstiloHoja; texto: string }[] {
+  return [
+    { valor: 'raya', texto: t(idioma, 'libreta.estiloRaya') },
+    { valor: 'doble-raya', texto: t(idioma, 'libreta.estiloDobleRaya') },
+    { valor: 'cuadro-c7', texto: t(idioma, 'libreta.estiloCuadroC7') },
+    { valor: 'cuadro-aleman', texto: t(idioma, 'libreta.estiloCuadroAleman') },
+    { valor: 'dibujo', texto: t(idioma, 'libreta.estiloDibujo') },
+  ];
+}
 
 export type PosicionTexto = 'izquierda' | 'centro' | 'derecha';
 
-export const OPCIONES_POSICION_TEXTO: { valor: PosicionTexto; texto: string }[] = [
-  { valor: 'izquierda', texto: 'Izquierda' },
-  { valor: 'centro', texto: 'Centro' },
-  { valor: 'derecha', texto: 'Derecha' },
-];
+export function opcionesPosicionTexto(idioma: Idioma): { valor: PosicionTexto; texto: string }[] {
+  return [
+    { valor: 'izquierda', texto: t(idioma, 'libreta.posicionIzquierda') },
+    { valor: 'centro', texto: t(idioma, 'libreta.posicionCentro') },
+    { valor: 'derecha', texto: t(idioma, 'libreta.posicionDerecha') },
+  ];
+}
 
 export type HojaLibretaConfig = {
   nombre: string;

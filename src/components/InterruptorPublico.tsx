@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 
 import { alternarVisibilidadPublica } from '@/app/(app)/herramientas/acciones';
+import { useIdioma } from '@/lib/i18n/cliente';
 
 // Solo se monta para admin (lo decide cada pantalla que lo usa): prende/apaga si la
 // herramienta aparece en /kit sin sesión. Optimista, con reversión si la Server
@@ -17,6 +18,7 @@ export function InterruptorPublico({
   publicaInicial: boolean;
   rutaPublica: string;
 }) {
+  const { t } = useIdioma();
   const [publica, setPublica] = useState(publicaInicial);
   const [error, setError] = useState<string | null>(null);
   const [pendiente, iniciarTransicion] = useTransition();
@@ -43,7 +45,7 @@ export function InterruptorPublico({
           onChange={(e) => alternar(e.target.checked)}
           className="h-4 w-4"
         />
-        Disponible al público, sin cuenta, en{' '}
+        {t('interruptorPublico.disponibleEn')}{' '}
         <code className="font-mono text-fino text-grafito">{rutaPublica}</code>
       </label>
       {error && <p className="text-fino text-sello">{error}</p>}

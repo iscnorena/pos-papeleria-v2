@@ -5,7 +5,9 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
+import { nombreSubDe, descripcionSubDe } from '@/tools/pdf/registro';
 import { DividirPdf } from '@/tools/pdf/DividirPdf';
 
 // Versión pública de Dividir PDF: misma herramienta que /herramientas/pdf/dividir, sin
@@ -27,6 +29,7 @@ export default async function ImprimirPdfDividirPage({
   const publica = await esHerramientaPublica('dividir');
   if (!publica) return <HerramientaNoDisponible />;
 
+  const idioma = await obtenerIdioma();
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -43,9 +46,9 @@ export default async function ImprimirPdfDividirPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Dividir PDF"
-        descripcion="Separa un PDF en archivos más chicos, por rango de páginas."
-        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
+        titulo={nombreSubDe('dividir', idioma)}
+        descripcion={descripcionSubDe('dividir', idioma)}
+        volver={{ href: '/kit/pdf', texto: t(idioma, 'herramientas.nombrePdf') }}
       />
       <DividirPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

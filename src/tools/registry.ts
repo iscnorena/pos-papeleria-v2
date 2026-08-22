@@ -1,6 +1,7 @@
 import type { ComponentType } from 'react';
 
 import type { Rol } from '@/db/schema';
+import { t, type ClaveI18n, type Idioma } from '@/lib/i18n/nucleo';
 import {
   IconoCalculadora,
   IconoEtiqueta,
@@ -108,4 +109,37 @@ export function herramientaPorId(id: string): Herramienta | undefined {
  */
 export function herramientasConVersionPublica(): Herramienta[] {
   return HERRAMIENTAS.filter((h) => h.rutaPublica && h.estado !== 'proxima');
+}
+
+// `nombre`/`descripcion` arriba se quedan en español a propósito (son el dato "de
+// verdad", código interno de identidad de la herramienta) — lo que sí cambia con el
+// idioma es lo que se MUESTRA, vía estos dos mapas + helpers. Si un id no tiene clave
+// (no debería pasar, cada entrada de HERRAMIENTAS trae la suya), cae al texto en español
+// del registro como red de seguridad, en vez de tronar.
+const CLAVE_NOMBRE: Record<string, ClaveI18n> = {
+  'acomoda-impresion': 'herramientas.nombreAcomodaImpresion',
+  rifas: 'herramientas.nombreRifas',
+  libreta: 'herramientas.nombreLibreta',
+  etiquetas: 'herramientas.nombreEtiquetas',
+  cotizador: 'herramientas.nombreCotizador',
+  pdf: 'herramientas.nombrePdf',
+};
+
+const CLAVE_DESCRIPCION: Record<string, ClaveI18n> = {
+  'acomoda-impresion': 'herramientas.descAcomodaImpresion',
+  rifas: 'herramientas.descRifas',
+  libreta: 'herramientas.descLibreta',
+  etiquetas: 'herramientas.descEtiquetas',
+  cotizador: 'herramientas.descCotizador',
+  pdf: 'herramientas.descPdf',
+};
+
+export function nombreDe(id: string, idioma: Idioma): string {
+  const clave = CLAVE_NOMBRE[id];
+  return clave ? t(idioma, clave) : (herramientaPorId(id)?.nombre ?? id);
+}
+
+export function descripcionDe(id: string, idioma: Idioma): string {
+  const clave = CLAVE_DESCRIPCION[id];
+  return clave ? t(idioma, clave) : (herramientaPorId(id)?.descripcion ?? '');
 }

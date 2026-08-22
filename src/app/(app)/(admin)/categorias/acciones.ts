@@ -6,19 +6,25 @@ import { z } from 'zod';
 
 import { db } from '@/db';
 import { productCategories } from '@/db/schema';
+import { obtenerIdioma, t, type Idioma } from '@/lib/i18n/servidor';
 import { erroresDeZod, type EstadoFormulario } from '@/lib/resultado';
 import { exigirRol } from '@/lib/sesion';
 
-const esquema = z.object({
-  id: z.coerce.number().int().positive().optional(),
-  name: z
-    .string()
-    .trim()
-    .min(1, 'La categoría necesita un nombre.')
-    .max(120, 'Nombre demasiado largo.'),
-  description: z.string().trim().max(300, 'Descripción demasiado larga.').optional(),
-  isActive: z.boolean(),
-});
+const esquema = (idioma: Idioma) =>
+  z.object({
+    id: z.coerce.number().int().positive().optional(),
+    name: z
+      .string()
+      .trim()
+      .min(1, t(idioma, 'categorias.errorNombreRequerido'))
+      .max(120, t(idioma, 'admin.nombreDemasiadoLargo')),
+    description: z
+      .string()
+      .trim()
+      .max(300, t(idioma, 'categorias.errorDescripcionDemasiadoLarga'))
+      .optional(),
+    isActive: z.boolean(),
+  });
 
 export async function guardarCategoria(
   _previo: EstadoFormulario,
@@ -26,8 +32,9 @@ export async function guardarCategoria(
 ): Promise<EstadoFormulario> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { error: permiso.error };
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquema.safeParse({
+  const analisis = esquema(idioma).safeParse({
     id: datos.get('id') || undefined,
     name: datos.get('name'),
     description: datos.get('description') || undefined,
@@ -44,10 +51,13 @@ export async function guardarCategoria(
       await db.insert(productCategories).values(valores);
     }
   } catch {
-    return { error: 'No se pudo guardar la categoría. Inténtalo de nuevo.' };
+    return { error: t(idioma, 'categorias.errorNoSePudoGuardar') };
   }
 
   revalidatePath('/categorias');
   revalidatePath('/productos');
-  return { ok: true, mensaje: id ? 'Categoría actualizada.' : 'Categoría creada.' };
+  return {
+    ok: true,
+    mensaje: id ? t(idioma, 'categorias.exitoActualizada') : t(idioma, 'categorias.exitoCreada'),
+  };
 }

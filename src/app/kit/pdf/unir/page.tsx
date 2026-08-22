@@ -5,7 +5,9 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
+import { nombreSubDe, descripcionSubDe } from '@/tools/pdf/registro';
 import { UnirPdf } from '@/tools/pdf/UnirPdf';
 
 // Versión pública de Unir PDF: misma herramienta que /herramientas/pdf/unir, sin sesión,
@@ -27,6 +29,7 @@ export default async function ImprimirPdfUnirPage({
   const publica = await esHerramientaPublica('unir');
   if (!publica) return <HerramientaNoDisponible />;
 
+  const idioma = await obtenerIdioma();
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -43,9 +46,9 @@ export default async function ImprimirPdfUnirPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Unir PDF"
-        descripcion="Junta varios PDF en uno solo, en el orden que quieras."
-        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
+        titulo={nombreSubDe('unir', idioma)}
+        descripcion={descripcionSubDe('unir', idioma)}
+        volver={{ href: '/kit/pdf', texto: t(idioma, 'herramientas.nombrePdf') }}
       />
       <UnirPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

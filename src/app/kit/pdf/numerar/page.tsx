@@ -5,7 +5,9 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
+import { nombreSubDe, descripcionSubDe } from '@/tools/pdf/registro';
 import { NumerarPdf } from '@/tools/pdf/NumerarPdf';
 
 // Versión pública de Numerar páginas: misma herramienta que /herramientas/pdf/numerar,
@@ -27,6 +29,7 @@ export default async function ImprimirPdfNumerarPage({
   const publica = await esHerramientaPublica('numerar');
   if (!publica) return <HerramientaNoDisponible />;
 
+  const idioma = await obtenerIdioma();
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -43,9 +46,9 @@ export default async function ImprimirPdfNumerarPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Numerar páginas"
-        descripcion="Agrega el número de página, centrado abajo, en cada hoja."
-        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
+        titulo={nombreSubDe('numerar', idioma)}
+        descripcion={descripcionSubDe('numerar', idioma)}
+        volver={{ href: '/kit/pdf', texto: t(idioma, 'herramientas.nombrePdf') }}
       />
       <NumerarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

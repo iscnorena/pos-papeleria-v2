@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
+import { useIdioma } from '@/lib/i18n/cliente';
 import {
   CONTENT_WIDTH,
   COLOR_CAJA_DIBUJO,
@@ -52,6 +53,7 @@ function dibujarLineasHorizontales(
 
 export function VistaPreviaCanvas({ config }: { config: HojaLibretaConfig }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { t } = useIdioma();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -163,7 +165,7 @@ export function VistaPreviaCanvas({ config }: { config: HojaLibretaConfig }) {
     <canvas
       ref={canvasRef}
       role="img"
-      aria-label="Vista previa de la hoja de libreta"
+      aria-label={t('libreta.vistaPreviaAriaLabel')}
       className="w-full border border-linea-fuerte bg-white shadow-impresa"
     />
   );

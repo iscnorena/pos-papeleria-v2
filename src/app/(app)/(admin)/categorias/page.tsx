@@ -9,6 +9,7 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { productCategories, products } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { guardarCategoria } from './acciones';
 
@@ -17,6 +18,7 @@ export default async function PantallaCategorias({
 }: {
   searchParams: Promise<{ editar?: string; pagina?: string }>;
 }) {
+  const idioma = await obtenerIdioma();
   const { editar, pagina: paginaTexto } = await searchParams;
   const idEditar = Number(editar);
   const pagina = paginaDeBusqueda(paginaTexto);
@@ -49,14 +51,24 @@ export default async function PantallaCategorias({
   return (
     <section>
       <EncabezadoPantalla
-        titulo="Categorías"
-        descripcion="Agrupan el catálogo para buscar rápido en la caja."
+        titulo={t(idioma, 'categorias.titulo')}
+        descripcion={t(idioma, 'categorias.descripcion')}
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div>
-          <Tabla encabezados={['Nombre', 'Descripción', 'Productos', 'Estado', '']}>
-            {lista.length === 0 && <SinDatos columnas={5}>Todavía no hay categorías.</SinDatos>}
+          <Tabla
+            encabezados={[
+              t(idioma, 'admin.nombre'),
+              t(idioma, 'admin.descripcion'),
+              t(idioma, 'categorias.colProductos'),
+              t(idioma, 'filtros.estado'),
+              '',
+            ]}
+          >
+            {lista.length === 0 && (
+              <SinDatos columnas={5}>{t(idioma, 'categorias.sinCategorias')}</SinDatos>
+            )}
             {lista.map((c) => (
               <Fila key={c.id}>
                 <Celda>{c.name}</Celda>
@@ -64,14 +76,14 @@ export default async function PantallaCategorias({
                 <Celda mono>{c.productos}</Celda>
                 <Celda>
                   {c.isActive ? (
-                    <Distintivo tono="visto">Activa</Distintivo>
+                    <Distintivo tono="visto">{t(idioma, 'categorias.activa')}</Distintivo>
                   ) : (
-                    <Distintivo tono="sello">Inactiva</Distintivo>
+                    <Distintivo tono="sello">{t(idioma, 'categorias.inactiva')}</Distintivo>
                   )}
                 </Celda>
                 <Celda>
                   <Link href={`/categorias?editar=${c.id}`} className="text-boligrafo underline">
-                    Editar
+                    {t(idioma, 'comun.editar')}
                   </Link>
                 </Celda>
               </Fila>
@@ -87,32 +99,36 @@ export default async function PantallaCategorias({
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">
-            {enEdicion ? `Editar «${enEdicion.name}»` : 'Nueva categoría'}
+            {enEdicion
+              ? t(idioma, 'categorias.editarConNombre', { nombre: enEdicion.name })
+              : t(idioma, 'categorias.nuevaCategoria')}
           </h2>
 
           <FormularioCrud
             key={enEdicion?.id ?? 'nueva'}
             accion={guardarCategoria}
-            textoEnviar={enEdicion ? 'Guardar cambios' : 'Crear categoría'}
+            textoEnviar={
+              enEdicion ? t(idioma, 'admin.guardarCambios') : t(idioma, 'categorias.crearCategoria')
+            }
             ocultos={enEdicion ? { id: String(enEdicion.id) } : {}}
             campos={[
               {
                 tipo: 'texto',
                 nombre: 'name',
-                etiqueta: 'Nombre',
+                etiqueta: t(idioma, 'admin.nombre'),
                 requerido: true,
                 valor: enEdicion?.name,
               },
               {
                 tipo: 'texto',
                 nombre: 'description',
-                etiqueta: 'Descripción',
+                etiqueta: t(idioma, 'admin.descripcion'),
                 valor: enEdicion?.description ?? '',
               },
               {
                 tipo: 'casilla',
                 nombre: 'isActive',
-                etiqueta: 'Activa',
+                etiqueta: t(idioma, 'categorias.activa'),
                 valor: enEdicion?.isActive ?? true,
               },
             ]}
@@ -120,7 +136,7 @@ export default async function PantallaCategorias({
 
           {enEdicion && (
             <Link href="/categorias" className="mt-3 block text-fino text-boligrafo underline">
-              Cancelar edición
+              {t(idioma, 'admin.cancelarEdicion')}
             </Link>
           )}
         </aside>

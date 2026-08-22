@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Aviso } from '@/components/ui/Aviso';
 import { Distintivo } from '@/components/ui/Distintivo';
 import { momento } from '@/lib/formato';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { formatear } from '@/lib/money';
 import { marcarProveedorPreferido } from './acciones';
 
@@ -30,13 +31,14 @@ export function ComparativoProveedores({
   costos: CostoProveedor[];
 }) {
   const router = useRouter();
+  const { idioma, t } = useIdioma();
   const [error, setError] = useState<string | null>(null);
   const [enviando, iniciar] = useTransition();
 
   if (costos.length === 0) {
     return (
       <p className="mt-6 border border-linea-fuerte bg-papel-hondo p-4 text-fino text-grafito">
-        Este producto todavía no se ha recibido de ningún proveedor.
+        {t('productos.sinRecepcionesProveedor')}
       </p>
     );
   }
@@ -53,7 +55,7 @@ export function ComparativoProveedores({
   return (
     <div className="mt-6 border border-linea-fuerte bg-white p-4">
       <h3 className="mb-3 font-display text-cuerpo font-semibold text-tinta">
-        Costo por proveedor
+        {t('productos.costoPorProveedor')}
       </h3>
       <div className="flex flex-col gap-2">
         {costos
@@ -72,10 +74,10 @@ export function ComparativoProveedores({
                 {formatear(c.lastCost)}
               </span>
               <span className="text-fino text-grafito">
-                {c.lastCostAt ? momento(c.lastCostAt) : '—'}
+                {c.lastCostAt ? momento(c.lastCostAt, idioma) : '—'}
               </span>
               {c.isPreferred ? (
-                <Distintivo tono="visto">Preferido</Distintivo>
+                <Distintivo tono="visto">{t('productos.preferido')}</Distintivo>
               ) : (
                 <button
                   type="button"
@@ -83,7 +85,7 @@ export function ComparativoProveedores({
                   onClick={() => preferir(c.supplierId)}
                   className="text-fino text-boligrafo underline disabled:opacity-50"
                 >
-                  Marcar preferido
+                  {t('productos.marcarPreferido')}
                 </button>
               )}
             </div>

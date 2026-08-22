@@ -6,6 +6,7 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { POS } from '@/config/pos';
 import type { ProductoDeCaja } from '@/lib/catalogo';
 import { clases } from '@/lib/clases';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { aCentavos, formatear, formatearCantidad } from '@/lib/money';
 import { totalesDe, usarCarrito } from './carrito';
 import { BotonDictadoVoz } from './ModalDictadoVoz';
@@ -20,6 +21,7 @@ import type { VentaRegistrada } from './acciones';
 // la caja sigue armando el ticket.
 
 export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
+  const { t } = useIdioma();
   const [busqueda, setBusqueda] = useState('');
   const [categoria, setCategoria] = useState<number | null>(null);
   const [cobrando, setCobrando] = useState(false);
@@ -125,7 +127,7 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_25rem]">
       {/* ── Catálogo ─────────────────────────────────────────────────────────────── */}
-      <section aria-label="Catálogo">
+      <section aria-label={t('caja.catalogo')}>
         <form
           className="mb-4 flex flex-wrap gap-3"
           onSubmit={(evento) => {
@@ -143,18 +145,18 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
             ref={buscador}
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar por nombre o código…  (F2)"
-            aria-label="Buscar producto"
+            placeholder={t('caja.buscarPlaceholder')}
+            aria-label={t('caja.buscarProducto')}
             autoFocus
             className="min-h-tecla flex-1 border border-linea-fuerte bg-white px-3 text-cuerpo text-tinta"
           />
           <select
-            aria-label="Categoría"
+            aria-label={t('caja.categoria')}
             value={categoria ?? ''}
             onChange={(e) => setCategoria(e.target.value === '' ? null : Number(e.target.value))}
             className="min-h-tecla border border-linea-fuerte bg-white px-3 text-base text-tinta"
           >
-            <option value="">Todas</option>
+            <option value="">{t('comun.todas')}</option>
             {categorias.map(([id, nombre]) => (
               <option key={id} value={id}>
                 {nombre}
@@ -182,20 +184,20 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
                 <span className="line-clamp-2 text-base text-tinta">{producto.nombre}</span>
                 <span className="tabular font-mono text-cuerpo text-tinta">
                   {producto.precioAbierto
-                    ? 'Precio libre'
+                    ? t('caja.precioLibre')
                     : formatear(aCentavos(producto.precio) ?? 0)}
                 </span>
                 {producto.manejaInventario ? (
                   agotado ? (
-                    <Distintivo tono="sello">Sin existencia</Distintivo>
+                    <Distintivo tono="sello">{t('caja.sinExistencia')}</Distintivo>
                   ) : (
                     <span className="font-mono text-micro uppercase text-grafito-claro">
-                      {formatearCantidad(existencia)} en existencia
+                      {t('caja.enExistencia', { n: formatearCantidad(existencia) })}
                     </span>
                   )
                 ) : (
                   <span className="font-mono text-micro uppercase text-grafito-claro">
-                    Servicio
+                    {t('caja.servicio')}
                   </span>
                 )}
               </button>
@@ -203,7 +205,7 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
           })}
           {filtrados.length === 0 && (
             <p className="col-span-full border border-linea bg-white p-6 text-center text-base text-grafito">
-              Nada coincide con «{busqueda}».
+              {t('caja.nadaCoincide', { busqueda })}
             </p>
           )}
         </div>
@@ -211,14 +213,14 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
 
       {/* ── Carrito: cinta de ticket ─────────────────────────────────────────────── */}
       <aside
-        aria-label="Ticket"
+        aria-label={t('caja.ticket')}
         className="flex h-fit w-full max-w-cinta flex-col border border-linea-fuerte bg-white shadow-cinta"
       >
         <header className="flex items-center justify-between border-b border-linea-fuerte px-4 py-2">
-          <h2 className="font-mono text-micro uppercase text-grafito">Ticket</h2>
+          <h2 className="font-mono text-micro uppercase text-grafito">{t('caja.ticket')}</h2>
           {renglones.length > 0 && (
             <button type="button" onClick={vaciar} className="text-fino text-sello underline">
-              Vaciar
+              {t('caja.vaciar')}
             </button>
           )}
         </header>
@@ -226,7 +228,7 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
         <ul className="divide-y divide-linea">
           {renglones.length === 0 && (
             <li className="px-4 py-10 text-center text-base text-grafito">
-              Toca un producto para empezar.
+              {t('caja.tocaProducto')}
             </li>
           )}
           {renglones.map((renglon) => (
@@ -239,16 +241,16 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
         </ul>
 
         <footer className="border-t border-linea-fuerte px-4 py-3">
-          <Linea etiqueta="Subtotal" valor={formatear(totales.subtotal)} />
+          <Linea etiqueta={t('caja.subtotal')} valor={formatear(totales.subtotal)} />
           {POS.tasaImpuesto > 0 && (
-            <Linea etiqueta="Impuesto" valor={formatear(totales.impuesto)} />
+            <Linea etiqueta={t('caja.impuesto')} valor={formatear(totales.impuesto)} />
           )}
           <DescuentoGeneral />
 
           {/* El total en el escalón `total`, resaltado en `marcador`: es el ancla visual de
               la pantalla y tiene que leerse desde el otro lado del mostrador (§4). */}
           <div className="mt-3 flex items-baseline justify-between border-t border-linea-fuerte pt-3">
-            <span className="text-cuerpo text-tinta">Total</span>
+            <span className="text-cuerpo text-tinta">{t('caja.total')}</span>
             <span className="tabular bg-marcador px-2 font-display text-total font-semibold text-tinta">
               {formatear(totales.total)}
             </span>
@@ -260,13 +262,13 @@ export function PuntoDeVenta({ catalogo }: { catalogo: ProductoDeCaja[] }) {
             disabled={!puedeCobrar}
             className="mt-4 min-h-tecla w-full border border-boligrafo-hondo bg-boligrafo text-cuerpo font-medium text-white shadow-impresa hover:bg-boligrafo-hondo disabled:cursor-not-allowed disabled:opacity-50"
           >
-            Cobrar (F12)
+            {t('caja.cobrarF12')}
           </button>
         </footer>
       </aside>
 
       <p className="col-span-full border-t border-linea pt-3 font-mono text-micro uppercase text-grafito-claro">
-        F2 buscar · Enter agrega el primero · +/− cantidad · Supr quita · F12 cobrar · Esc cierra
+        {t('caja.atajos')}
       </p>
 
       <ModalCobro
@@ -299,6 +301,7 @@ function RenglonTicket({
   renglon: ReturnType<typeof usarCarrito.getState>['renglones'][number];
   activo: boolean;
 }) {
+  const { t } = useIdioma();
   const activar = usarCarrito((e) => e.activar);
   const cambiarCantidad = usarCarrito((e) => e.cambiarCantidad);
   const cambiarDescuento = usarCarrito((e) => e.cambiarDescuento);
@@ -321,11 +324,13 @@ function RenglonTicket({
 
       <div className="mt-1 flex items-center gap-2">
         {renglon.precioAbierto ? (
-          <span className="font-mono text-micro uppercase text-grafito-claro">Precio libre</span>
+          <span className="font-mono text-micro uppercase text-grafito-claro">
+            {t('caja.precioLibre')}
+          </span>
         ) : (
           <>
             <label className="sr-only" htmlFor={`cant-${renglon.productId}`}>
-              Cantidad de {renglon.nombre}
+              {t('caja.cantidadDe', { nombre: renglon.nombre })}
             </label>
             <input
               id={`cant-${renglon.productId}`}
@@ -343,24 +348,24 @@ function RenglonTicket({
         )}
 
         <label className="sr-only" htmlFor={`desc-${renglon.productId}`}>
-          Descuento de {renglon.nombre}
+          {t('caja.descuentoDe', { nombre: renglon.nombre })}
         </label>
         <input
           id={`desc-${renglon.productId}`}
           value={(renglon.descuento / 100).toFixed(2)}
           onChange={(e) => cambiarDescuento(renglon.productId, aCentavos(e.target.value) ?? 0)}
           inputMode="decimal"
-          aria-label={`Descuento de ${renglon.nombre}`}
+          aria-label={t('caja.descuentoDe', { nombre: renglon.nombre })}
           className="tabular w-16 border border-linea-fuerte bg-white px-2 py-1 text-right font-mono text-fino"
         />
 
         <button
           type="button"
           onClick={() => quitar(renglon.productId)}
-          aria-label={`Quitar ${renglon.nombre}`}
+          aria-label={t('caja.quitarDe', { nombre: renglon.nombre })}
           className="ml-auto text-fino text-sello underline"
         >
-          Quitar
+          {t('caja.quitar')}
         </button>
       </div>
     </li>
@@ -368,13 +373,14 @@ function RenglonTicket({
 }
 
 function DescuentoGeneral() {
+  const { t } = useIdioma();
   const descuentoGeneral = usarCarrito((e) => e.descuentoGeneral);
   const cambiar = usarCarrito((e) => e.cambiarDescuentoGeneral);
 
   return (
     <div className="flex items-baseline justify-between py-1">
       <label htmlFor="descuento-general" className="text-base text-grafito">
-        Descuento
+        {t('caja.descuento')}
       </label>
       <input
         id="descuento-general"

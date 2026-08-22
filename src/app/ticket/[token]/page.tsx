@@ -5,6 +5,7 @@ import { POS, type MetodoPago } from '@/config/pos';
 import { db } from '@/db';
 import { branches, salePayments, saleItems, sales, users } from '@/db/schema';
 import { momento } from '@/lib/formato';
+import { obtenerIdioma, t, type ClaveI18n } from '@/lib/i18n/servidor';
 import { aCentavos, formatear, formatearCantidad } from '@/lib/money';
 import { BotonesTicket } from './BotonesTicket';
 import './ticket.css';
@@ -14,11 +15,20 @@ import './ticket.css';
 // incremental: con el id, cualquiera recorrería los tickets del negocio contando.
 //
 // Esta ruta queda FUERA del grupo (app) a propósito: no lleva sesión ni navegación, y el
-// `proxy` la deja pasar para que el enlace funcione desde el teléfono del cliente.
+// `proxy` la deja pasar para que el enlace funcione desde el teléfono del cliente. El
+// idioma también es independiente de la sesión de caja que generó la venta: la cookie es
+// de ESTE navegador (el del cliente), así que el selector de `BotonesTicket` es propio.
+
+const ETIQUETA_METODO: Record<MetodoPago, ClaveI18n> = {
+  cash: 'caja.efectivo',
+  card: 'caja.tarjeta',
+  transfer: 'caja.transferencia',
+};
 
 export default async function Ticket({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!/^[0-9a-f]{64}$/.test(token)) notFound();
+  const idioma = await obtenerIdioma();
 
   const [venta] = await db
     .select({
@@ -60,25 +70,27 @@ export default async function Ticket({ params }: { params: Promise<{ token: stri
           <h1 className="negocio">{POS.nombreNegocio}</h1>
           <p>{venta.sucursal}</p>
           {venta.direccion && <p>{venta.direccion}</p>}
-          {venta.telefono && <p>Tel. {venta.telefono}</p>}
+          {venta.telefono && <p>{t(idioma, 'ticket.telefono', { telefono: venta.telefono })}</p>}
         </header>
 
         <hr />
 
         <p className="renglon">
-          <span>Folio</span>
+          <span>{t(idioma, 'ticket.folio')}</span>
           <span>{venta.folio}</span>
         </p>
         <p className="renglon">
-          <span>Fecha</span>
-          <span>{momento(venta.createdAt)}</span>
+          <span>{t(idioma, 'ticket.fecha')}</span>
+          <span>{momento(venta.createdAt, idioma)}</span>
         </p>
         <p className="renglon">
-          <span>Le atendió</span>
+          <span>{t(idioma, 'ticket.leAtendio')}</span>
           <span>{venta.cajera}</span>
         </p>
 
-        {venta.status === 'cancelled' && <p className="cancelada">VENTA CANCELADA</p>}
+        {venta.status === 'cancelled' && (
+          <p className="cancelada">{t(idioma, 'ticket.ventaCancelada')}</p>
+        )}
 
         <hr />
 
@@ -107,23 +119,23 @@ export default async function Ticket({ params }: { params: Promise<{ token: stri
         <hr />
 
         <p className="renglon">
-          <span>Subtotal</span>
+          <span>{t(idioma, 'ticket.subtotal')}</span>
           <span>{formatear(aCentavos(venta.subtotal) ?? 0)}</span>
         </p>
         {(aCentavos(venta.tax) ?? 0) > 0 && (
           <p className="renglon">
-            <span>Impuesto</span>
+            <span>{t(idioma, 'ticket.impuesto')}</span>
             <span>{formatear(aCentavos(venta.tax) ?? 0)}</span>
           </p>
         )}
         {(aCentavos(venta.discount) ?? 0) > 0 && (
           <p className="renglon">
-            <span>Descuento</span>
+            <span>{t(idioma, 'ticket.descuento')}</span>
             <span>−{formatear(aCentavos(venta.discount) ?? 0)}</span>
           </p>
         )}
         <p className="renglon total">
-          <span>TOTAL</span>
+          <span>{t(idioma, 'ticket.total')}</span>
           <span>{formatear(total)}</span>
         </p>
 
@@ -131,20 +143,20 @@ export default async function Ticket({ params }: { params: Promise<{ token: stri
 
         {pagos.map((p) => (
           <p className="renglon" key={p.id}>
-            <span>{POS.metodosPago[p.method as MetodoPago]}</span>
+            <span>{t(idioma, ETIQUETA_METODO[p.method as MetodoPago])}</span>
             <span>{formatear(aCentavos(p.amount) ?? 0)}</span>
           </p>
         ))}
         {entregado > total && (
           <p className="renglon">
-            <span>Cambio</span>
+            <span>{t(idioma, 'ticket.cambio')}</span>
             <span>{formatear(entregado - total)}</span>
           </p>
         )}
 
         <hr />
 
-        <p className="centro pie">{POS.pieTicket}</p>
+        <p className="centro pie">{t(idioma, 'ticket.pie')}</p>
       </article>
     </main>
   );

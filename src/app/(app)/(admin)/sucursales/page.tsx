@@ -9,6 +9,7 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { guardarSucursal } from './acciones';
 
@@ -17,6 +18,7 @@ export default async function PantallaSucursales({
 }: {
   searchParams: Promise<{ editar?: string; pagina?: string }>;
 }) {
+  const idioma = await obtenerIdioma();
   const { editar, pagina: paginaTexto } = await searchParams;
   const idEditar = Number(editar);
   const pagina = paginaDeBusqueda(paginaTexto);
@@ -38,14 +40,26 @@ export default async function PantallaSucursales({
   return (
     <section>
       <EncabezadoPantalla
-        titulo="Sucursales"
-        descripcion="Cada usuario pertenece a una sucursal y vende contra su inventario."
+        titulo={t(idioma, 'sucursales.titulo')}
+        descripcion={t(idioma, 'sucursales.descripcion')}
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_20rem]">
         <div>
-          <Tabla encabezados={['#', 'Nombre', 'Dirección', 'Teléfono', 'WhatsApp', 'Estado', '']}>
-            {lista.length === 0 && <SinDatos columnas={7}>Todavía no hay sucursales.</SinDatos>}
+          <Tabla
+            encabezados={[
+              '#',
+              t(idioma, 'admin.nombre'),
+              t(idioma, 'admin.direccion'),
+              t(idioma, 'admin.telefono'),
+              t(idioma, 'sucursales.colWhatsapp'),
+              t(idioma, 'filtros.estado'),
+              '',
+            ]}
+          >
+            {lista.length === 0 && (
+              <SinDatos columnas={7}>{t(idioma, 'sucursales.sinSucursales')}</SinDatos>
+            )}
             {lista.map((s) => (
               <Fila key={s.id}>
                 <Celda mono>{s.id}</Celda>
@@ -55,14 +69,14 @@ export default async function PantallaSucursales({
                 <Celda mono>{s.whatsappNumber ?? '—'}</Celda>
                 <Celda>
                   {s.isActive ? (
-                    <Distintivo tono="visto">Activa</Distintivo>
+                    <Distintivo tono="visto">{t(idioma, 'sucursales.activa')}</Distintivo>
                   ) : (
-                    <Distintivo tono="sello">Inactiva</Distintivo>
+                    <Distintivo tono="sello">{t(idioma, 'sucursales.inactiva')}</Distintivo>
                   )}
                 </Celda>
                 <Celda>
                   <Link href={`/sucursales?editar=${s.id}`} className="text-boligrafo underline">
-                    Editar
+                    {t(idioma, 'comun.editar')}
                   </Link>
                 </Celda>
               </Fila>
@@ -78,7 +92,9 @@ export default async function PantallaSucursales({
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">
-            {enEdicion ? `Editar «${enEdicion.name}»` : 'Nueva sucursal'}
+            {enEdicion
+              ? t(idioma, 'sucursales.editarConNombre', { nombre: enEdicion.name })
+              : t(idioma, 'sucursales.nuevaSucursal')}
           </h2>
 
           <FormularioCrud
@@ -86,48 +102,50 @@ export default async function PantallaSucursales({
             // no, los `defaultValue` del anterior se quedarían pegados.
             key={enEdicion?.id ?? 'nueva'}
             accion={guardarSucursal}
-            textoEnviar={enEdicion ? 'Guardar cambios' : 'Crear sucursal'}
+            textoEnviar={
+              enEdicion ? t(idioma, 'admin.guardarCambios') : t(idioma, 'sucursales.crearSucursal')
+            }
             ocultos={enEdicion ? { id: String(enEdicion.id) } : {}}
             campos={[
               {
                 tipo: 'texto',
                 nombre: 'name',
-                etiqueta: 'Nombre',
+                etiqueta: t(idioma, 'admin.nombre'),
                 requerido: true,
                 valor: enEdicion?.name,
               },
               {
                 tipo: 'texto',
                 nombre: 'address',
-                etiqueta: 'Dirección',
+                etiqueta: t(idioma, 'admin.direccion'),
                 valor: enEdicion?.address ?? '',
               },
               {
                 tipo: 'texto',
                 nombre: 'phone',
-                etiqueta: 'Teléfono',
+                etiqueta: t(idioma, 'admin.telefono'),
                 valor: enEdicion?.phone ?? '',
               },
               {
                 tipo: 'texto',
                 nombre: 'whatsappNumber',
-                etiqueta: 'WhatsApp para /kit/acomoda-impresion',
+                etiqueta: t(idioma, 'sucursales.whatsappEtiqueta'),
                 valor: enEdicion?.whatsappNumber ?? '',
-                ayuda: 'Formato internacional sin espacios ni signos, ej. 527445008175.',
+                ayuda: t(idioma, 'sucursales.whatsappAyuda'),
               },
               {
                 tipo: 'casilla',
                 nombre: 'isActive',
-                etiqueta: 'Activa',
+                etiqueta: t(idioma, 'sucursales.activa'),
                 valor: enEdicion?.isActive ?? true,
-                ayuda: 'Las sucursales no se borran: se desactivan.',
+                ayuda: t(idioma, 'sucursales.activaAyuda'),
               },
             ]}
           />
 
           {enEdicion && (
             <Link href="/sucursales" className="mt-3 block text-fino text-boligrafo underline">
-              Cancelar edición
+              {t(idioma, 'admin.cancelarEdicion')}
             </Link>
           )}
         </aside>

@@ -5,6 +5,7 @@ import { AuthError } from 'next-auth';
 import { z } from 'zod';
 
 import { signIn } from '@/auth';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { anotarIntento, intentosRecientes, ipDelCliente } from '@/lib/limiteIntentos';
 
 // §5 — límite de intentos del login por PIN: 5 fallos por IP en 15 minutos, con respuesta
@@ -15,12 +16,19 @@ const VENTANA_MINUTOS = 15;
 
 export type EstadoLogin = { error?: string };
 
-const esquemaContrasena = z.object({
-  usuario: z.string().trim().min(1, 'Escribe tu usuario.'),
-  contrasena: z.string().min(1, 'Escribe tu contraseña.'),
-});
+// Los esquemas son funciones (no constantes de módulo) porque el mensaje de cada
+// validación depende del idioma de quien llena el formulario — se arman de nuevo en
+// cada envío con el idioma ya resuelto (ver `obtenerIdioma()` abajo).
+function esquemaContrasena(idioma: Awaited<ReturnType<typeof obtenerIdioma>>) {
+  return z.object({
+    usuario: z.string().trim().min(1, t(idioma, 'login.escribeUsuario')),
+    contrasena: z.string().min(1, t(idioma, 'login.escribeContrasena')),
+  });
+}
 
-const esquemaPin = z.string().regex(/^\d{4,6}$/, 'El PIN son 4 a 6 dígitos.');
+function esquemaPin(idioma: Awaited<ReturnType<typeof obtenerIdioma>>) {
+  return z.string().regex(/^\d{4,6}$/, t(idioma, 'login.pinFormato'));
+}
 
 /** A dónde ir después de entrar. Solo rutas internas: un destino externo sería un salto abierto. */
 function destinoSeguro(siguiente: FormDataEntryValue | null): string {
@@ -32,12 +40,14 @@ export async function entrarConContrasena(
   _previo: EstadoLogin,
   datos: FormData,
 ): Promise<EstadoLogin> {
-  const analisis = esquemaContrasena.safeParse({
+  const idioma = await obtenerIdioma();
+
+  const analisis = esquemaContrasena(idioma).safeParse({
     usuario: datos.get('usuario'),
     contrasena: datos.get('contrasena'),
   });
   if (!analisis.success) {
-    return { error: analisis.error.issues[0]?.message ?? 'Revisa los datos.' };
+    return { error: analisis.error.issues[0]?.message ?? t(idioma, 'login.revisaLosDatos') };
   }
 
   try {
@@ -45,7 +55,7 @@ export async function entrarConContrasena(
   } catch (error) {
     if (error instanceof AuthError) {
       // Mensaje único a propósito: no debe revelar si el usuario existe.
-      return { error: 'Usuario o contraseña incorrectos.' };
+      return { error: t(idioma, 'login.usuarioOContrasenaIncorrectos') };
     }
     throw error;
   }
@@ -54,18 +64,19 @@ export async function entrarConContrasena(
 }
 
 export async function entrarConPin(_previo: EstadoLogin, datos: FormData): Promise<EstadoLogin> {
+  const idioma = await obtenerIdioma();
   const ip = await ipDelCliente();
 
   if ((await intentosRecientes(ip, 'pin', VENTANA_MINUTOS)) >= MAX_INTENTOS) {
-    return { error: 'Demasiados intentos, espera unos minutos.' };
+    return { error: t(idioma, 'login.demasiadosIntentos') };
   }
 
-  const analisis = esquemaPin.safeParse(datos.get('pin'));
+  const analisis = esquemaPin(idioma).safeParse(datos.get('pin'));
   if (!analisis.success) {
     // Un PIN mal formado también gasta intento: si no, probar 0000…9999 saldría gratis
     // mandando cadenas de 3 dígitos.
     await anotarIntento(ip, 'pin');
-    return { error: analisis.error.issues[0]?.message ?? 'PIN incorrecto.' };
+    return { error: analisis.error.issues[0]?.message ?? t(idioma, 'login.pinIncorrecto') };
   }
 
   try {
@@ -73,7 +84,7 @@ export async function entrarConPin(_previo: EstadoLogin, datos: FormData): Promi
   } catch (error) {
     if (error instanceof AuthError) {
       await anotarIntento(ip, 'pin');
-      return { error: 'PIN incorrecto.' };
+      return { error: t(idioma, 'login.pinIncorrecto') };
     }
     throw error;
   }

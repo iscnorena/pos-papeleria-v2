@@ -5,6 +5,7 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
 import { GeneradorRifas } from '@/tools/rifas/GeneradorRifas';
 
@@ -33,6 +34,7 @@ export default async function RifasPublicoPage({
   const publica = await esHerramientaPublica('rifas');
   if (!publica) return <HerramientaNoDisponible />;
 
+  const idioma = await obtenerIdioma();
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -49,9 +51,9 @@ export default async function RifasPublicoPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Números de rifa"
-        descripcion="Genera la hoja de control de una rifa: números, nombre y contacto por boleto."
-        volver={{ href: '/kit', texto: 'Herramientas' }}
+        titulo={t(idioma, 'herramientas.nombreRifas')}
+        descripcion={t(idioma, 'herramientas.descRifas')}
+        volver={{ href: '/kit', texto: t(idioma, 'nav.herramientas') }}
       />
       <GeneradorRifas whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

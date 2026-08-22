@@ -2,6 +2,7 @@ import { asc, eq } from 'drizzle-orm';
 
 import { db } from '@/db';
 import { branches, users } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import type { Sesion } from '@/lib/sesion';
 
 // Filtros por GET: la consulta queda en la URL, así que se puede recargar, compartir y
@@ -24,19 +25,30 @@ export async function FiltrosFecha({
           db.select().from(users).where(eq(users.isActive, true)).orderBy(asc(users.name)),
         ])
       : [[], []];
+  const idioma = await obtenerIdioma();
 
   return (
     <form method="get" className="mb-6 flex flex-wrap items-end gap-3">
-      <Campo etiqueta="Desde" nombre="desde" tipo="date" valor={valores.desde ?? ''} />
-      <Campo etiqueta="Hasta" nombre="hasta" tipo="date" valor={valores.hasta ?? ''} />
+      <Campo
+        etiqueta={t(idioma, 'filtros.desde')}
+        nombre="desde"
+        tipo="date"
+        valor={valores.desde ?? ''}
+      />
+      <Campo
+        etiqueta={t(idioma, 'filtros.hasta')}
+        nombre="hasta"
+        tipo="date"
+        valor={valores.hasta ?? ''}
+      />
 
       {sesion.rol === 'admin' && (
         <>
           <Selector
-            etiqueta="Sucursal"
+            etiqueta={t(idioma, 'filtros.sucursal')}
             nombre="sucursal"
             valor={valores.sucursal ?? ''}
-            vacio="Todas"
+            vacio={t(idioma, 'comun.todas')}
           >
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>
@@ -44,7 +56,12 @@ export async function FiltrosFecha({
               </option>
             ))}
           </Selector>
-          <Selector etiqueta="Cajera" nombre="cajera" valor={valores.cajera ?? ''} vacio="Todas">
+          <Selector
+            etiqueta={t(idioma, 'filtros.cajera')}
+            nombre="cajera"
+            valor={valores.cajera ?? ''}
+            vacio={t(idioma, 'comun.todas')}
+          >
             {cajeras.map((u) => (
               <option key={u.id} value={u.id}>
                 {u.name}
@@ -55,9 +72,14 @@ export async function FiltrosFecha({
       )}
 
       {conEstado && (
-        <Selector etiqueta="Estado" nombre="estado" valor={valores.estado ?? ''} vacio="Todos">
-          <option value="completed">Completadas</option>
-          <option value="cancelled">Canceladas</option>
+        <Selector
+          etiqueta={t(idioma, 'filtros.estado')}
+          nombre="estado"
+          valor={valores.estado ?? ''}
+          vacio={t(idioma, 'filtros.todos')}
+        >
+          <option value="completed">{t(idioma, 'filtros.completadas')}</option>
+          <option value="cancelled">{t(idioma, 'filtros.canceladas')}</option>
         </Selector>
       )}
 
@@ -65,7 +87,7 @@ export async function FiltrosFecha({
         type="submit"
         className="min-h-[2.5rem] border border-boligrafo-hondo bg-boligrafo px-4 font-medium text-white shadow-impresa hover:bg-boligrafo-hondo"
       >
-        Filtrar
+        {t(idioma, 'filtros.filtrar')}
       </button>
     </form>
   );

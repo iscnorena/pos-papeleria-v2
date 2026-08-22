@@ -19,6 +19,7 @@ import { parsearCfdi } from '@/lib/cfdi';
 import { extraerListadoDeTicket } from '@/lib/claudeVision';
 import { calcularCostoConsolidado } from '@/lib/costeo';
 import { momento } from '@/lib/formato';
+import { obtenerIdioma, t, type ClaveI18n, type Idioma } from '@/lib/i18n/servidor';
 import { asegurarInventario } from '@/lib/inventario';
 import { aCentavos, aCentesimas, aPesos } from '@/lib/money';
 import type { EstadoFormulario, Resultado } from '@/lib/resultado';
@@ -33,34 +34,41 @@ import { parsearTicketTexto } from '@/lib/ticketTexto';
 // autoriza, que es el único paso que toca inventario (§Decisiones ya cerradas con el
 // usuario).
 
-const dinero = (etiqueta: string) =>
+const dinero = (idioma: Idioma, etiqueta: string) =>
   z
     .string()
     .trim()
     .transform((texto, ctx) => {
       const centavos = aCentavos(texto);
       if (centavos === null) {
-        ctx.addIssue({ code: 'custom', message: `${etiqueta} no es una cantidad válida.` });
+        ctx.addIssue({
+          code: 'custom',
+          message: t(idioma, 'recepcion.errorNoEsCantidadValida', { etiqueta }),
+        });
         return z.NEVER;
       }
       if (centavos < 0) {
-        ctx.addIssue({ code: 'custom', message: `${etiqueta} no puede ser negativo.` });
+        ctx.addIssue({
+          code: 'custom',
+          message: t(idioma, 'recepcion.errorNoPuedeSerNegativo', { etiqueta }),
+        });
         return z.NEVER;
       }
       return centavos;
     });
 
-const cantidadCampo = z
-  .string()
-  .trim()
-  .transform((texto, ctx) => {
-    const centesimas = aCentesimas(texto);
-    if (centesimas === null || centesimas <= 0) {
-      ctx.addIssue({ code: 'custom', message: 'Cantidad no válida.' });
-      return z.NEVER;
-    }
-    return centesimas;
-  });
+const cantidadCampo = (idioma: Idioma) =>
+  z
+    .string()
+    .trim()
+    .transform((texto, ctx) => {
+      const centesimas = aCentesimas(texto);
+      if (centesimas === null || centesimas <= 0) {
+        ctx.addIssue({ code: 'custom', message: t(idioma, 'comun.cantidadNoValida') });
+        return z.NEVER;
+      }
+      return centesimas;
+    });
 
 /** Recalcula subtotal/impuesto/total a partir de las líneas, para que la validación de
  *  cuadre en `autorizarRecepcion` siempre coincida por construcción. Aplica a `'manual'`,
@@ -93,15 +101,16 @@ async function recalcularTotalesSiManual(receiptId: number): Promise<void> {
  *  qué no se puede editar. Usado por todas las acciones de edición de línea. */
 async function recepcionEditable(
   receiptId: number,
+  idioma: Idioma,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const [recepcion] = await db
     .select({ status: goodsReceipts.status })
     .from(goodsReceipts)
     .where(eq(goodsReceipts.id, receiptId))
     .limit(1);
-  if (!recepcion) return { ok: false, error: 'La recepción no existe.' };
+  if (!recepcion) return { ok: false, error: t(idioma, 'recepcion.errorLaRecepcionNoExiste') };
   if (recepcion.status !== 'draft') {
-    return { ok: false, error: 'Solo se puede editar una recepción en borrador.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSoloBorrador') };
   }
   return { ok: true };
 }
@@ -118,10 +127,11 @@ async function recepcionEditable(
  */
 export async function importarXmlCfdi(datos: FormData): Promise<Resultado<{ id: number }>> {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const archivo = datos.get('archivo');
   if (!(archivo instanceof File) || archivo.size === 0) {
-    return { ok: false, error: 'Selecciona un archivo XML.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSeleccionaXml') };
   }
 
   const xmlTexto = await archivo.text();
@@ -137,7 +147,7 @@ export async function importarXmlCfdi(datos: FormData): Promise<Resultado<{ id: 
   if (!proveedor) {
     return {
       ok: false,
-      error: `El RFC emisor (${comprobante.emisor.rfc}) no corresponde a ningún proveedor configurado.`,
+      error: t(idioma, 'recepcion.errorRfcNoCorresponde', { rfc: comprobante.emisor.rfc }),
     };
   }
 
@@ -151,11 +161,15 @@ export async function importarXmlCfdi(datos: FormData): Promise<Resultado<{ id: 
     .where(and(eq(goodsReceipts.cfdiUuid, comprobante.uuid), ne(goodsReceipts.status, 'discarded')))
     .limit(1);
   if (existente) {
-    const fecha = momento(existente.createdAt);
+    const fecha = momento(existente.createdAt, idioma);
     const folio = existente.cfdiFolio ? ` (folio ${existente.cfdiFolio})` : '';
     return {
       ok: false,
-      error: `Esta factura ya fue importada el ${fecha} en la recepción #${existente.id}${folio}.`,
+      error: t(idioma, 'recepcion.errorFacturaYaImportada', {
+        fecha,
+        id: existente.id,
+        folio,
+      }),
     };
   }
 
@@ -198,7 +212,7 @@ export async function importarXmlCfdi(datos: FormData): Promise<Resultado<{ id: 
           createdByUserId: sesion.userId,
         })
         .returning({ id: goodsReceipts.id });
-      if (!recepcion) throw new Error('No se pudo crear la recepción.');
+      if (!recepcion) throw new Error(t(idioma, 'recepcion.errorNoSePudoCrearRecepcion'));
 
       for (const concepto of comprobante.conceptos) {
         const match = concepto.noIdentificacion
@@ -228,29 +242,34 @@ export async function importarXmlCfdi(datos: FormData): Promise<Resultado<{ id: 
     return { ok: true, data: { id: receiptId } };
   } catch (err) {
     if (err && typeof err === 'object' && 'code' in err && err.code === '23505') {
-      return { ok: false, error: 'Esta factura ya fue importada (UUID duplicado).' };
+      return { ok: false, error: t(idioma, 'recepcion.errorFacturaYaImportadaUuid') };
     }
-    return { ok: false, error: 'No se pudo importar el XML. Inténtalo de nuevo.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorNoSePudoImportarXml') };
   }
 }
 
 /** Proveedor + referencia opcional: cabecera común a captura manual, texto pegado y foto —
  *  ninguna de las tres trae estos datos de un documento fiscal, a diferencia de XML. */
-const esquemaCabeceraLibre = z.object({
-  supplierId: z.coerce.number().int().positive('Elige un proveedor.'),
-  referenceNote: z.string().trim().max(200).optional(),
-});
+const esquemaCabeceraLibre = (idioma: Idioma) =>
+  z.object({
+    supplierId: z.coerce.number().int().positive(t(idioma, 'recepcion.errorEligeProveedor')),
+    referenceNote: z.string().trim().max(200).optional(),
+  });
 
 /** Crea una recepción en borrador con captura manual, sin líneas todavía. */
 export async function crearRecepcionManual(datos: FormData): Promise<Resultado<{ id: number }>> {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquemaCabeceraLibre.safeParse({
+  const analisis = esquemaCabeceraLibre(idioma).safeParse({
     supplierId: datos.get('supplierId'),
     referenceNote: datos.get('referenceNote') || undefined,
   });
   if (!analisis.success) {
-    return { ok: false, error: analisis.error.issues[0]?.message ?? 'Datos no válidos.' };
+    return {
+      ok: false,
+      error: analisis.error.issues[0]?.message ?? t(idioma, 'recepcion.errorDatosNoValidos'),
+    };
   }
   const { supplierId, referenceNote } = analisis.data;
 
@@ -265,7 +284,7 @@ export async function crearRecepcionManual(datos: FormData): Promise<Resultado<{
       referenceNote: referenceNote ?? null,
     })
     .returning({ id: goodsReceipts.id });
-  if (!creada) return { ok: false, error: 'No se pudo crear la recepción.' };
+  if (!creada) return { ok: false, error: t(idioma, 'recepcion.errorNoSePudoCrearRecepcion') };
 
   revalidatePath('/recepcion');
   return { ok: true, data: { id: creada.id } };
@@ -321,29 +340,33 @@ async function crearRecepcionDesdeLineas(
   return { ok: true, data: { id: receiptId } };
 }
 
-const esquemaLineaLibre = z.object({
-  description: z.string().trim().min(1, 'Falta la descripción.').max(200),
-  quantity: cantidadCampo,
-  unitCost: dinero('El costo'),
-});
+const esquemaLineaLibre = (idioma: Idioma) =>
+  z.object({
+    description: z.string().trim().min(1, t(idioma, 'recepcion.errorFaltaDescripcion')).max(200),
+    quantity: cantidadCampo(idioma),
+    unitCost: dinero(idioma, t(idioma, 'recepcion.etiquetaCosto')),
+  });
 
 /** Valida cada línea ya separada por `parsearTicketTexto` con las mismas reglas que
  *  `agregarLineaManual`, señalando el número de línea si alguna falla — todo o nada, igual
  *  que el parseo mismo. */
 function validarLineasLibres(
   lineas: { descripcion: string; cantidadTexto: string; costoTexto: string }[],
+  idioma: Idioma,
 ): Resultado<LineaLibreValidada[]> {
+  const esquema = esquemaLineaLibre(idioma);
   const validadas: LineaLibreValidada[] = [];
   for (let i = 0; i < lineas.length; i++) {
     const linea = lineas[i]!;
-    const analisis = esquemaLineaLibre.safeParse({
+    const analisis = esquema.safeParse({
       description: linea.descripcion,
       quantity: linea.cantidadTexto,
       unitCost: linea.costoTexto,
     });
     if (!analisis.success) {
-      const mensaje = analisis.error.issues[0]?.message ?? 'Línea no válida.';
-      return { ok: false, error: `Línea ${i + 1}: ${mensaje}` };
+      const mensaje =
+        analisis.error.issues[0]?.message ?? t(idioma, 'recepcion.errorLineaNoValida');
+      return { ok: false, error: t(idioma, 'recepcion.errorLineaN', { n: i + 1, mensaje }) };
     }
     validadas.push(analisis.data);
   }
@@ -358,20 +381,24 @@ export async function crearRecepcionDesdeTexto(
   datos: FormData,
 ): Promise<Resultado<{ id: number }>> {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
-  const cabecera = esquemaCabeceraLibre.safeParse({
+  const cabecera = esquemaCabeceraLibre(idioma).safeParse({
     supplierId: datos.get('supplierId'),
     referenceNote: datos.get('referenceNote') || undefined,
   });
   if (!cabecera.success) {
-    return { ok: false, error: cabecera.error.issues[0]?.message ?? 'Datos no válidos.' };
+    return {
+      ok: false,
+      error: cabecera.error.issues[0]?.message ?? t(idioma, 'recepcion.errorDatosNoValidos'),
+    };
   }
 
   const texto = (datos.get('texto') as string | null) ?? '';
-  const parseo = parsearTicketTexto(texto);
+  const parseo = parsearTicketTexto(texto, idioma);
   if (!parseo.ok) return { ok: false, error: parseo.error };
 
-  const lineas = validarLineasLibres(parseo.lineas);
+  const lineas = validarLineasLibres(parseo.lineas, idioma);
   if (!lineas.ok) return lineas;
 
   return crearRecepcionDesdeLineas(
@@ -391,32 +418,36 @@ const TIPOS_IMAGEN_ACEPTADOS = new Set(['image/jpeg', 'image/png', 'image/webp']
  *  igual que la vía de texto pegado — la llamada a la API es la única pieza distinta. */
 export async function crearRecepcionDesdeFoto(datos: FormData): Promise<Resultado<{ id: number }>> {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const [integracion] = await db
     .select({ apiKey: claudeIntegration.apiKey })
     .from(claudeIntegration)
     .limit(1);
   if (!integracion?.apiKey) {
-    return { ok: false, error: 'La integración con Claude no está activada.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorIntegracionNoActivada') };
   }
 
-  const cabecera = esquemaCabeceraLibre.safeParse({
+  const cabecera = esquemaCabeceraLibre(idioma).safeParse({
     supplierId: datos.get('supplierId'),
     referenceNote: datos.get('referenceNote') || undefined,
   });
   if (!cabecera.success) {
-    return { ok: false, error: cabecera.error.issues[0]?.message ?? 'Datos no válidos.' };
+    return {
+      ok: false,
+      error: cabecera.error.issues[0]?.message ?? t(idioma, 'recepcion.errorDatosNoValidos'),
+    };
   }
 
   const archivo = datos.get('archivo');
   if (!(archivo instanceof File) || archivo.size === 0) {
-    return { ok: false, error: 'Selecciona una foto del ticket.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSeleccionaFoto') };
   }
   if (archivo.size > RECEPCION.fotoTicketMaximoBytes) {
-    return { ok: false, error: 'La foto pesa demasiado.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorFotoPesaDemasiado') };
   }
   if (!TIPOS_IMAGEN_ACEPTADOS.has(archivo.type)) {
-    return { ok: false, error: 'Formato de imagen no soportado (usa JPG, PNG o WebP).' };
+    return { ok: false, error: t(idioma, 'recepcion.errorFormatoImagenNoSoportado') };
   }
 
   const base64 = Buffer.from(await archivo.arrayBuffer()).toString('base64');
@@ -424,13 +455,14 @@ export async function crearRecepcionDesdeFoto(datos: FormData): Promise<Resultad
     integracion.apiKey,
     base64,
     archivo.type as 'image/jpeg' | 'image/png' | 'image/webp',
+    idioma,
   );
   if (!extraido.ok) return { ok: false, error: extraido.error };
 
-  const parseo = parsearTicketTexto(extraido.texto);
+  const parseo = parsearTicketTexto(extraido.texto, idioma);
   if (!parseo.ok) return { ok: false, error: parseo.error };
 
-  const lineas = validarLineasLibres(parseo.lineas);
+  const lineas = validarLineasLibres(parseo.lineas, idioma);
   if (!lineas.ok) return lineas;
 
   return crearRecepcionDesdeLineas(
@@ -446,23 +478,28 @@ export async function crearRecepcionDesdeFoto(datos: FormData): Promise<Resultad
 // Edición de líneas (solo mientras la recepción está en borrador)
 // ---------------------------------------------------------------------------------------
 
-const esquemaLinea = z.object({
-  receiptId: z.number().int().positive(),
-  productId: z.number().int().positive().optional(),
-  supplierCode: z.string().trim().max(60).optional(),
-  description: z.string().trim().min(1, 'Falta la descripción.').max(200),
-  quantity: cantidadCampo,
-  unitCost: dinero('El costo'),
-  taxRate: z.number().min(0).max(1).optional(),
-});
+const esquemaLinea = (idioma: Idioma) =>
+  z.object({
+    receiptId: z.number().int().positive(),
+    productId: z.number().int().positive().optional(),
+    supplierCode: z.string().trim().max(60).optional(),
+    description: z.string().trim().min(1, t(idioma, 'recepcion.errorFaltaDescripcion')).max(200),
+    quantity: cantidadCampo(idioma),
+    unitCost: dinero(idioma, t(idioma, 'recepcion.etiquetaCosto')),
+    taxRate: z.number().min(0).max(1).optional(),
+  });
 
 /** Agrega una línea a mano (captura manual, o para completar una recepción XML). */
 export async function agregarLineaManual(entrada: unknown): Promise<Resultado<{ id: number }>> {
   await requerirSesion();
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquemaLinea.safeParse(entrada);
+  const analisis = esquemaLinea(idioma).safeParse(entrada);
   if (!analisis.success) {
-    return { ok: false, error: analisis.error.issues[0]?.message ?? 'Revisa la línea.' };
+    return {
+      ok: false,
+      error: analisis.error.issues[0]?.message ?? t(idioma, 'recepcion.errorRevisaLaLinea'),
+    };
   }
   const {
     receiptId,
@@ -474,7 +511,7 @@ export async function agregarLineaManual(entrada: unknown): Promise<Resultado<{ 
     taxRate = 0,
   } = analisis.data;
 
-  const editable = await recepcionEditable(receiptId);
+  const editable = await recepcionEditable(receiptId, idioma);
   if (!editable.ok) return { ok: false, error: editable.error };
 
   const [recepcion] = await db
@@ -482,7 +519,7 @@ export async function agregarLineaManual(entrada: unknown): Promise<Resultado<{ 
     .from(goodsReceipts)
     .where(eq(goodsReceipts.id, receiptId))
     .limit(1);
-  if (!recepcion) return { ok: false, error: 'La recepción no existe.' };
+  if (!recepcion) return { ok: false, error: t(idioma, 'recepcion.errorLaRecepcionNoExiste') };
 
   const importe = Math.round((unitCost * quantity) / 100);
   const taxAmount = Math.round(importe * taxRate);
@@ -503,7 +540,7 @@ export async function agregarLineaManual(entrada: unknown): Promise<Resultado<{ 
       matchStatus: productId ? 'matched_manual' : 'unmatched',
     })
     .returning({ id: goodsReceiptItems.id });
-  if (!creada) return { ok: false, error: 'No se pudo agregar la línea.' };
+  if (!creada) return { ok: false, error: t(idioma, 'recepcion.errorNoSePudoAgregarLinea') };
 
   if (productId && supplierCode) {
     await db
@@ -520,21 +557,31 @@ export async function agregarLineaManual(entrada: unknown): Promise<Resultado<{ 
   return { ok: true, data: { id: creada.id } };
 }
 
-const esquemaEditarLinea = z.object({
-  lineId: z.number().int().positive(),
-  productId: z.number().int().positive().nullable().optional(),
-  description: z.string().trim().min(1, 'Falta la descripción.').max(200).optional(),
-  quantity: cantidadCampo.optional(),
-  unitCost: dinero('El costo').optional(),
-});
+const esquemaEditarLinea = (idioma: Idioma) =>
+  z.object({
+    lineId: z.number().int().positive(),
+    productId: z.number().int().positive().nullable().optional(),
+    description: z
+      .string()
+      .trim()
+      .min(1, t(idioma, 'recepcion.errorFaltaDescripcion'))
+      .max(200)
+      .optional(),
+    quantity: cantidadCampo(idioma).optional(),
+    unitCost: dinero(idioma, t(idioma, 'recepcion.etiquetaCosto')).optional(),
+  });
 
 /** Edita cantidad/costo/producto/descripción de una línea existente. */
 export async function editarLinea(entrada: unknown): Promise<Resultado<undefined>> {
   await requerirSesion();
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquemaEditarLinea.safeParse(entrada);
+  const analisis = esquemaEditarLinea(idioma).safeParse(entrada);
   if (!analisis.success) {
-    return { ok: false, error: analisis.error.issues[0]?.message ?? 'Revisa la línea.' };
+    return {
+      ok: false,
+      error: analisis.error.issues[0]?.message ?? t(idioma, 'recepcion.errorRevisaLaLinea'),
+    };
   }
   const { lineId, productId, description, quantity, unitCost } = analisis.data;
 
@@ -544,9 +591,9 @@ export async function editarLinea(entrada: unknown): Promise<Resultado<undefined
     .innerJoin(goodsReceipts, eq(goodsReceiptItems.receiptId, goodsReceipts.id))
     .where(eq(goodsReceiptItems.id, lineId))
     .limit(1);
-  if (!fila) return { ok: false, error: 'La línea no existe.' };
+  if (!fila) return { ok: false, error: t(idioma, 'recepcion.errorLineaNoExiste') };
   if (fila.status !== 'draft') {
-    return { ok: false, error: 'Solo se puede editar una recepción en borrador.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSoloBorrador') };
   }
 
   const nuevaCantidad = quantity ?? aCentesimas(fila.item.quantity) ?? 0;
@@ -581,9 +628,10 @@ export async function editarLinea(entrada: unknown): Promise<Resultado<undefined
 /** Elimina una línea. */
 export async function eliminarLinea(entrada: unknown): Promise<Resultado<undefined>> {
   await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const analisis = z.object({ lineId: z.number().int().positive() }).safeParse(entrada);
-  if (!analisis.success) return { ok: false, error: 'Línea no válida.' };
+  if (!analisis.success) return { ok: false, error: t(idioma, 'recepcion.errorLineaNoValida') };
   const { lineId } = analisis.data;
 
   const [fila] = await db
@@ -592,9 +640,9 @@ export async function eliminarLinea(entrada: unknown): Promise<Resultado<undefin
     .innerJoin(goodsReceipts, eq(goodsReceiptItems.receiptId, goodsReceipts.id))
     .where(eq(goodsReceiptItems.id, lineId))
     .limit(1);
-  if (!fila) return { ok: false, error: 'La línea no existe.' };
+  if (!fila) return { ok: false, error: t(idioma, 'recepcion.errorLineaNoExiste') };
   if (fila.status !== 'draft') {
-    return { ok: false, error: 'Solo se puede editar una recepción en borrador.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSoloBorrador') };
   }
 
   await db.delete(goodsReceiptItems).where(eq(goodsReceiptItems.id, lineId));
@@ -608,11 +656,12 @@ export async function eliminarLinea(entrada: unknown): Promise<Resultado<undefin
  *  (proveedor, supplierCode) → producto para que la próxima factura empareje sola. */
 export async function vincularProducto(entrada: unknown): Promise<Resultado<undefined>> {
   await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const analisis = z
     .object({ lineId: z.number().int().positive(), productId: z.number().int().positive() })
     .safeParse(entrada);
-  if (!analisis.success) return { ok: false, error: 'Datos no válidos.' };
+  if (!analisis.success) return { ok: false, error: t(idioma, 'recepcion.errorDatosNoValidos') };
   const { lineId, productId } = analisis.data;
 
   const [fila] = await db
@@ -625,9 +674,9 @@ export async function vincularProducto(entrada: unknown): Promise<Resultado<unde
     .innerJoin(goodsReceipts, eq(goodsReceiptItems.receiptId, goodsReceipts.id))
     .where(eq(goodsReceiptItems.id, lineId))
     .limit(1);
-  if (!fila) return { ok: false, error: 'La línea no existe.' };
+  if (!fila) return { ok: false, error: t(idioma, 'recepcion.errorLineaNoExiste') };
   if (fila.status !== 'draft') {
-    return { ok: false, error: 'Solo se puede editar una recepción en borrador.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSoloBorrador') };
   }
 
   await db
@@ -654,6 +703,7 @@ export async function crearProductoDesdeLinea(
   entrada: unknown,
 ): Promise<Resultado<{ productId: number }>> {
   await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const analisis = z
     .object({
@@ -662,7 +712,7 @@ export async function crearProductoDesdeLinea(
       code: z.string().trim().max(60).optional(),
     })
     .safeParse(entrada);
-  if (!analisis.success) return { ok: false, error: 'Datos no válidos.' };
+  if (!analisis.success) return { ok: false, error: t(idioma, 'recepcion.errorDatosNoValidos') };
   const { lineId, categoryId, code } = analisis.data;
 
   const [fila] = await db
@@ -675,9 +725,9 @@ export async function crearProductoDesdeLinea(
     .innerJoin(goodsReceipts, eq(goodsReceiptItems.receiptId, goodsReceipts.id))
     .where(eq(goodsReceiptItems.id, lineId))
     .limit(1);
-  if (!fila) return { ok: false, error: 'La línea no existe.' };
+  if (!fila) return { ok: false, error: t(idioma, 'recepcion.errorLineaNoExiste') };
   if (fila.status !== 'draft') {
-    return { ok: false, error: 'Solo se puede editar una recepción en borrador.' };
+    return { ok: false, error: t(idioma, 'recepcion.errorSoloBorrador') };
   }
 
   const [creado] = await db
@@ -690,7 +740,7 @@ export async function crearProductoDesdeLinea(
       salePrice: '0',
     })
     .returning({ id: products.id });
-  if (!creado) return { ok: false, error: 'No se pudo crear el producto.' };
+  if (!creado) return { ok: false, error: t(idioma, 'recepcion.errorNoSePudoCrearProducto') };
 
   await asegurarInventario(creado.id);
 
@@ -762,10 +812,10 @@ class ErrorAutorizacion extends Error {
   }
 }
 
-const MENSAJES_ERROR_AUTORIZACION: Record<CodigoErrorAutorizacion, string> = {
-  'sin-lineas': 'La recepción no tiene líneas.',
-  'lineas-sin-vincular': 'Hay líneas sin producto vinculado.',
-  descuadre: 'La suma de las líneas no cuadra con el total de la factura.',
+const CLAVE_ERROR_AUTORIZACION: Record<CodigoErrorAutorizacion, ClaveI18n> = {
+  'sin-lineas': 'recepcion.errorSinLineas',
+  'lineas-sin-vincular': 'recepcion.errorLineasSinVincular',
+  descuadre: 'recepcion.errorDescuadre',
 };
 
 /**
@@ -781,9 +831,10 @@ export async function autorizarRecepcion(
 ): Promise<EstadoFormulario> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { error: permiso.error };
+  const idioma = await obtenerIdioma();
 
   const analisis = z.coerce.number().int().positive().safeParse(datos.get('receiptId'));
-  if (!analisis.success) return { error: 'Recepción no válida.' };
+  if (!analisis.success) return { error: t(idioma, 'recepcion.errorRecepcionNoValida') };
   const receiptId = analisis.data;
 
   let resultado: 'autorizada' | 'ya-resuelta';
@@ -873,19 +924,18 @@ export async function autorizarRecepcion(
     });
   } catch (err) {
     if (err instanceof ErrorAutorizacion) {
-      return { error: MENSAJES_ERROR_AUTORIZACION[err.codigo] };
+      return { error: t(idioma, CLAVE_ERROR_AUTORIZACION[err.codigo]) };
     }
-    return { error: 'No se pudo autorizar la recepción. Inténtalo de nuevo.' };
+    return { error: t(idioma, 'recepcion.errorNoSePudoAutorizar') };
   }
 
-  if (resultado === 'ya-resuelta')
-    return { error: 'Esta recepción ya fue autorizada o descartada.' };
+  if (resultado === 'ya-resuelta') return { error: t(idioma, 'recepcion.errorYaResuelta') };
 
   revalidatePath('/recepcion');
   revalidatePath(`/recepcion/${receiptId}`);
   revalidatePath('/inventario');
   revalidatePath('/productos');
-  return { ok: true, mensaje: 'Recepción autorizada. Inventario actualizado.' };
+  return { ok: true, mensaje: t(idioma, 'recepcion.exitoAutorizada') };
 }
 
 /** Descarta una pre-carga: nunca toca inventario. El UUID queda libre automáticamente (el
@@ -896,9 +946,10 @@ export async function descartarRecepcion(
   datos: FormData,
 ): Promise<EstadoFormulario> {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const analisis = z.coerce.number().int().positive().safeParse(datos.get('receiptId'));
-  if (!analisis.success) return { error: 'Recepción no válida.' };
+  if (!analisis.success) return { error: t(idioma, 'recepcion.errorRecepcionNoValida') };
   const receiptId = analisis.data;
   const discardReason = (datos.get('discardReason') as string | null)?.trim() || null;
 
@@ -913,11 +964,11 @@ export async function descartarRecepcion(
     .where(and(eq(goodsReceipts.id, receiptId), eq(goodsReceipts.status, 'draft')))
     .returning({ id: goodsReceipts.id });
 
-  if (descartadas.length === 0) return { error: 'Esta recepción ya fue autorizada o descartada.' };
+  if (descartadas.length === 0) return { error: t(idioma, 'recepcion.errorYaResuelta') };
 
   revalidatePath('/recepcion');
   revalidatePath(`/recepcion/${receiptId}`);
-  return { ok: true, mensaje: 'Recepción descartada.' };
+  return { ok: true, mensaje: t(idioma, 'recepcion.exitoDescartada') };
 }
 
 // ---------------------------------------------------------------------------------------
@@ -935,18 +986,23 @@ export async function estadoIntegracionClaude(): Promise<{ activa: boolean }> {
   return { activa: Boolean(fila?.apiKey) };
 }
 
-const esquemaClaveApi = z.object({
-  apiKey: z.string().trim().min(10, 'La clave no parece válida.'),
-});
+const esquemaClaveApi = (idioma: Idioma) =>
+  z.object({
+    apiKey: z.string().trim().min(10, t(idioma, 'recepcion.errorClaveNoValida')),
+  });
 
 /** Guarda (o reemplaza) la llave de la integración. Admin-only. */
 export async function guardarClaveApiClaude(datos: FormData): Promise<Resultado<undefined>> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { ok: false, error: permiso.error };
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquemaClaveApi.safeParse({ apiKey: datos.get('apiKey') });
+  const analisis = esquemaClaveApi(idioma).safeParse({ apiKey: datos.get('apiKey') });
   if (!analisis.success) {
-    return { ok: false, error: analisis.error.issues[0]?.message ?? 'Clave no válida.' };
+    return {
+      ok: false,
+      error: analisis.error.issues[0]?.message ?? t(idioma, 'recepcion.errorClaveInvalida'),
+    };
   }
 
   await db

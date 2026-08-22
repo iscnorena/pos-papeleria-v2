@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { desactivarIntegracionClaude, guardarClaveApiClaude } from '../acciones';
 
 // Activación admin-only de la vía "Subir foto": mientras no haya llave guardada en
@@ -14,6 +15,7 @@ import { desactivarIntegracionClaude, guardarClaveApiClaude } from '../acciones'
 // configurada o no.
 
 export function ModalClaveClaudeApi({ activa }: { activa: boolean }) {
+  const { t } = useIdioma();
   const router = useRouter();
   const [abierto, setAbierto] = useState(false);
   const [apiKey, setApiKey] = useState('');
@@ -61,21 +63,16 @@ export function ModalClaveClaudeApi({ activa }: { activa: boolean }) {
         onClick={() => setAbierto(true)}
         className="text-fino text-boligrafo underline underline-offset-2"
       >
-        {activa
-          ? 'Carga por foto activa · configurar'
-          : '¿Subes fotos seguido? Actívalo automático'}
+        {activa ? t('recepcion.cargaPorFotoActivaConfigurar') : t('recepcion.subesFotosSeguido')}
       </button>
 
-      <Modal abierto={abierto} onCerrar={cerrar} titulo="Integración con Claude (carga por foto)">
+      <Modal abierto={abierto} onCerrar={cerrar} titulo={t('recepcion.integracionClaudeTitulo')}>
         <div className="flex flex-col gap-4">
-          <p className="text-fino text-grafito">
-            Guarda una clave de API de Claude para que subir la foto de un ticket cree la pre-carga
-            automáticamente, sin pasar por la app de Claude a mano.
-          </p>
+          <p className="text-fino text-grafito">{t('recepcion.guardaClaveDesc')}</p>
 
           <div className="flex flex-col gap-1">
             <label htmlFor="clave-claude-api" className="text-fino font-medium text-tinta">
-              {activa ? 'Nueva clave de API (reemplaza la guardada)' : 'Clave de API'}
+              {activa ? t('recepcion.nuevaClaveApi') : t('recepcion.claveApi')}
             </label>
             <input
               id="clave-claude-api"
@@ -92,11 +89,11 @@ export function ModalClaveClaudeApi({ activa }: { activa: boolean }) {
 
           <div className="flex gap-2">
             <Boton onClick={guardar} disabled={enviando || apiKey.trim() === ''} className="flex-1">
-              {enviando ? 'Guardando…' : 'Guardar'}
+              {enviando ? t('comun.guardando') : t('comun.guardar')}
             </Boton>
             {activa && (
               <Boton variante="secundaria" onClick={desactivar} disabled={enviando}>
-                Desactivar
+                {t('recepcion.desactivar')}
               </Boton>
             )}
           </div>

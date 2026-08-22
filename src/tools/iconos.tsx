@@ -136,6 +136,18 @@ export function IconoEscaner() {
   );
 }
 
+// Del selector de idioma (src/components/ui/SelectorIdioma.tsx) — un globo, universal
+// para "idioma/región" sin depender de banderas de un país específico.
+export function IconoIdioma() {
+  return (
+    <svg {...comunes}>
+      <circle cx="12" cy="12" r="9" />
+      <ellipse cx="12" cy="12" rx="4" ry="9" />
+      <path d="M3 12h18" />
+    </svg>
+  );
+}
+
 export function IconoNumerarPdf() {
   return (
     <svg {...comunes}>

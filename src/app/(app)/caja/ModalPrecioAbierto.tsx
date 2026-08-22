@@ -7,6 +7,7 @@ import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { POS } from '@/config/pos';
 import type { ProductoDeCaja } from '@/lib/catalogo';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { aCentavos, formatear } from '@/lib/money';
 
 // Productos de precio abierto (ej. impresión a color) no tienen un precio fijo: se pide
@@ -21,17 +22,18 @@ export function ModalPrecioAbierto({
   onCerrar: () => void;
   onConfirmar: (precioCentavos: number) => void;
 }) {
+  const { t } = useIdioma();
   const [importeTexto, setImporteTexto] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   function confirmar() {
     const centavos = aCentavos(importeTexto);
     if (centavos === null || centavos <= 0) {
-      setError('Escribe un importe válido.');
+      setError(t('caja.escribeImporteValido'));
       return;
     }
     if (centavos > POS.precioAbiertoMaximo) {
-      setError(`El importe no puede superar ${formatear(POS.precioAbiertoMaximo)}.`);
+      setError(t('caja.importeNoPuedeSuperar', { monto: formatear(POS.precioAbiertoMaximo) }));
       return;
     }
     onConfirmar(centavos);
@@ -47,7 +49,7 @@ export function ModalPrecioAbierto({
         setError(null);
         onCerrar();
       }}
-      titulo={producto ? `Precio de «${producto.nombre}»` : 'Precio'}
+      titulo={producto ? t('caja.precioDe', { nombre: producto.nombre }) : t('caja.precio')}
     >
       {/* Sin producto no hay nada que pedir: además, dejar el campo "Importe" montado
           siempre duplicaría el de ModalCobro y las pruebas que lo buscan por su etiqueta
@@ -62,7 +64,7 @@ export function ModalPrecioAbierto({
           }}
         >
           <label className="sr-only" htmlFor="importe-precio-abierto">
-            Importe
+            {t('caja.importe')}
           </label>
           <input
             id="importe-precio-abierto"
@@ -70,7 +72,7 @@ export function ModalPrecioAbierto({
             onChange={(e) => setImporteTexto(e.target.value)}
             inputMode="decimal"
             autoFocus
-            placeholder="Importe"
+            placeholder={t('caja.importe')}
             className="tabular min-h-tecla w-full border border-linea-fuerte bg-white px-3 text-right font-mono text-cifra"
           />
 
@@ -82,10 +84,10 @@ export function ModalPrecioAbierto({
 
           <div className="mt-5 flex gap-2">
             <Boton onClick={confirmar} className="flex-1">
-              Agregar
+              {t('caja.agregar')}
             </Boton>
             <Boton variante="secundaria" onClick={onCerrar}>
-              Cancelar
+              {t('comun.cancelar')}
             </Boton>
           </div>
         </div>

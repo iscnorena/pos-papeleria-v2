@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
+import { useIdioma } from '@/lib/i18n/cliente';
 import type { ImagenDeBanco } from '@/lib/bancosImagenes';
 
 // Igual que `BuscadorBancos.tsx` (herramienta interna, §7.6), pero contra las rutas
@@ -25,6 +26,7 @@ export function BuscadorBancosPublico({
   onCerrar: () => void;
   onAgregar: (imagenes: Blob[]) => void;
 }) {
+  const { t } = useIdioma();
   const [proveedor, setProveedor] = useState<string>('unsplash');
   const [texto, setTexto] = useState('');
   const [resultados, setResultados] = useState<ImagenDeBanco[]>([]);
@@ -42,10 +44,10 @@ export function BuscadorBancosPublico({
         `/api/kit/bancos-imagenes?proveedor=${proveedor}&texto=${encodeURIComponent(texto)}&cuantos=9`,
       );
       const datos = (await respuesta.json()) as { resultados?: ImagenDeBanco[]; error?: string };
-      if (!respuesta.ok) setError(datos.error ?? 'No se pudo buscar.');
+      if (!respuesta.ok) setError(datos.error ?? t('acomoda.noSePudoBuscar'));
       else setResultados(datos.resultados ?? []);
     } catch {
-      setError('No se pudo buscar. Revisa la conexión.');
+      setError(t('acomoda.noSePudoBuscarConexion'));
     } finally {
       setCargando(false);
     }
@@ -67,17 +69,17 @@ export function BuscadorBancosPublico({
       );
       onAgregar(blobs);
     } catch {
-      setError('No se pudieron traer las imágenes. Intenta de nuevo.');
+      setError(t('acomoda.noSePudieronTraerImagenesReintenta'));
     } finally {
       setCargando(false);
     }
   }
 
   return (
-    <Modal abierto={abierto} onCerrar={onCerrar} titulo="Buscar imágenes gratis">
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo={t('acomoda.buscarImagenesGratis')}>
       <div className="flex flex-col gap-2">
         <select
-          aria-label="Banco de imágenes"
+          aria-label={t('acomoda.bancoDeImagenes')}
           value={proveedor}
           onChange={(e) => setProveedor(e.target.value)}
           className="min-h-tecla border border-linea-fuerte bg-white px-2 text-base"
@@ -91,7 +93,7 @@ export function BuscadorBancosPublico({
 
         <div className="flex gap-2">
           <input
-            aria-label="Qué buscar"
+            aria-label={t('acomoda.queBuscar')}
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
             onKeyDown={(e) => {
@@ -100,7 +102,7 @@ export function BuscadorBancosPublico({
                 void buscar();
               }
             }}
-            placeholder="Ej. flores, paisaje, perros…"
+            placeholder={t('acomoda.placeholderFloresPaisaje')}
             className="min-h-tecla flex-1 border border-linea-fuerte bg-white px-2 text-base"
           />
           <Boton
@@ -108,7 +110,7 @@ export function BuscadorBancosPublico({
             onClick={() => void buscar()}
             disabled={cargando || texto.trim() === ''}
           >
-            Buscar
+            {t('comun.buscar')}
           </Boton>
         </div>
       </div>
@@ -156,10 +158,10 @@ export function BuscadorBancosPublico({
           onClick={() => void agregarMarcadas()}
           disabled={marcadas.size === 0 || cargando}
         >
-          Agregar {marcadas.size > 0 ? `(${marcadas.size})` : ''}
+          {t('caja.agregar')} {marcadas.size > 0 ? `(${marcadas.size})` : ''}
         </Boton>
         <Boton tamano="tecla" variante="secundaria" onClick={onCerrar}>
-          Cerrar
+          {t('comun.cerrar')}
         </Boton>
       </div>
     </Modal>

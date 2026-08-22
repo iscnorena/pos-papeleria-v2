@@ -1,26 +1,38 @@
 import { ZONA_HORARIA } from '@/config/pos';
+import type { Idioma } from '@/lib/i18n/nucleo';
 
-// §2 — la zona de presentación es `America/Mexico_City`, en una constante única. Nunca se
-// usa la hora del servidor para mostrar ni para cortar el día.
+// §2 — la zona de presentación es `America/Mexico_City`, siempre, sin importar el idioma
+// de la interfaz (es la zona real del negocio). Lo que SÍ cambia con el idioma es cómo se
+// LEEN esos mismos instantes: "lunes, 20 de agosto" vs. "Monday, August 20" — por eso
+// `momento`/`fechaLarga` arman el `Intl.DateTimeFormat` según el idioma en vez de usar una
+// constante de módulo fija en `'es-MX'` como antes.
 
-const FECHA_HORA = new Intl.DateTimeFormat('es-MX', {
-  timeZone: ZONA_HORARIA,
-  day: '2-digit',
-  month: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-});
+const LOCALE_INTL: Record<Idioma, string> = { es: 'es-MX', en: 'en-US' };
 
-const FECHA_LARGA = new Intl.DateTimeFormat('es-MX', {
-  timeZone: ZONA_HORARIA,
-  weekday: 'long',
-  day: 'numeric',
-  month: 'long',
-  year: 'numeric',
-});
+function formatoFechaHora(idioma: Idioma): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(LOCALE_INTL[idioma], {
+    timeZone: ZONA_HORARIA,
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
-export function momento(fecha: Date | null | undefined): string {
-  return fecha ? FECHA_HORA.format(fecha) : '—';
+function formatoFechaLarga(idioma: Idioma): Intl.DateTimeFormat {
+  return new Intl.DateTimeFormat(LOCALE_INTL[idioma], {
+    timeZone: ZONA_HORARIA,
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+}
+
+/** `idioma` por default en `'es'` para no obligar a tocar cada llamador de golpe — se va
+ *  actualizando a pasar el idioma real conforme se traduce cada pantalla. */
+export function momento(fecha: Date | null | undefined, idioma: Idioma = 'es'): string {
+  return fecha ? formatoFechaHora(idioma).format(fecha) : '—';
 }
 
 /** "1.2 MB", "340 KB" — para mostrar el tamaño de un archivo que el cliente subió. */
@@ -30,8 +42,8 @@ export function tamanoArchivo(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function fechaLarga(fecha: Date): string {
-  return FECHA_LARGA.format(fecha);
+export function fechaLarga(fecha: Date, idioma: Idioma = 'es'): string {
+  return formatoFechaLarga(idioma).format(fecha);
 }
 
 /**

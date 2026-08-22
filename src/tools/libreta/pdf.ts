@@ -1,6 +1,7 @@
 import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 
+import { t, type Idioma } from '@/lib/i18n/nucleo';
 import { numerarPdf } from '@/tools/pdf/numerar';
 import {
   CONTENT_WIDTH,
@@ -185,6 +186,7 @@ export type ResultadoHojaLibreta = {
 
 export async function generarHojaLibreta(
   config: HojaLibretaConfig,
+  idioma: Idioma,
   onProgress?: (actual: number, total: number) => void,
 ): Promise<ResultadoHojaLibreta> {
   const documento = await PDFDocument.create();
@@ -194,11 +196,11 @@ export async function generarHojaLibreta(
   const sanear = (campo: string, texto: string, fuente: PDFFont) =>
     sanearCampo(campo, texto, fuente, camposModificados);
 
-  const nombre = sanear('Nombre del alumno', config.nombre, bold);
-  const maestro = sanear('Nombre del maestro', config.maestro, regular);
-  const materia = sanear('Materia', config.materia, regular);
-  const fecha = sanear('Fecha', config.fecha, regular);
-  const gradoGrupo = sanear('Grado y grupo', config.gradoGrupo, regular);
+  const nombre = sanear(t(idioma, 'libreta.nombreDelAlumno'), config.nombre, bold);
+  const maestro = sanear(t(idioma, 'libreta.nombreDelMaestro'), config.maestro, regular);
+  const materia = sanear(t(idioma, 'libreta.materia'), config.materia, regular);
+  const fecha = sanear(t(idioma, 'comun.fecha'), config.fecha, regular);
+  const gradoGrupo = sanear(t(idioma, 'libreta.gradoYGrupo'), config.gradoGrupo, regular);
 
   const lineas = lineasEncabezado({
     nombre,

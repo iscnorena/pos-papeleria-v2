@@ -2,6 +2,7 @@
 
 import { useActionState } from 'react';
 
+import { useIdioma } from '@/lib/i18n/cliente';
 import { FORMULARIO_INICIAL, type EstadoFormulario } from '@/lib/resultado';
 import { ajustarExistencia } from './acciones';
 
@@ -16,6 +17,7 @@ export function AjusteExistencia({
   branchId: number;
   stock: string;
 }) {
+  const { t } = useIdioma();
   const [estado, enviar, enviando] = useActionState<EstadoFormulario, FormData>(
     ajustarExistencia,
     FORMULARIO_INICIAL,
@@ -26,7 +28,7 @@ export function AjusteExistencia({
       <input type="hidden" name="productId" value={productId} />
       <input type="hidden" name="branchId" value={branchId} />
       <label className="sr-only" htmlFor={`stock-${productId}-${branchId}`}>
-        Existencia
+        {t('dashboard.colExistencia')}
       </label>
       <input
         id={`stock-${productId}-${branchId}`}
@@ -40,7 +42,7 @@ export function AjusteExistencia({
         disabled={enviando}
         className="border border-linea-fuerte bg-white px-2 py-1 text-fino font-medium text-tinta shadow-impresa hover:bg-papel-hondo disabled:opacity-50"
       >
-        {enviando ? '…' : 'Ajustar'}
+        {enviando ? '…' : t('inventario.ajustar')}
       </button>
       {estado.error && <span className="text-fino text-sello">{estado.error}</span>}
       {estado.errores?.stock && (

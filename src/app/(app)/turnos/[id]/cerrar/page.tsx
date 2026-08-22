@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { db } from '@/db';
 import { cashRegisterShifts } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { aCentavos } from '@/lib/money';
 import { requerirSesion } from '@/lib/sesion';
 import { calcularCorte } from '@/lib/turnos';
@@ -11,6 +12,7 @@ import { FormularioCierre } from './FormularioCierre';
 
 export default async function PantallaCierre({ params }: { params: Promise<{ id: string }> }) {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
   const { id } = await params;
   const turnoId = Number(id);
   if (!Number.isInteger(turnoId)) notFound();
@@ -32,8 +34,8 @@ export default async function PantallaCierre({ params }: { params: Promise<{ id:
   return (
     <section className="max-w-lg">
       <EncabezadoPantalla
-        titulo={`Cerrar turno #${turno.id}`}
-        descripcion="Cuenta el efectivo del cajón y anótalo. Cerrar es irreversible."
+        titulo={t(idioma, 'turnos.cerrarTituloConId', { id: turno.id })}
+        descripcion={t(idioma, 'turnos.cerrarDescripcion')}
       />
       <FormularioCierre
         shiftId={turno.id}

@@ -17,22 +17,23 @@ import {
 } from '@/db/schema';
 import { costoVarioSignificativamente } from '@/lib/costeo';
 import { momento } from '@/lib/formato';
+import { obtenerIdioma, t, type ClaveI18n } from '@/lib/i18n/servidor';
 import { aCentavos, formatear } from '@/lib/money';
 import { requerirSesion } from '@/lib/sesion';
 import { AccionesRecepcion } from './AccionesRecepcion';
 import { ResolverLineas, type LineaRecepcion } from './ResolverLineas';
 
 const ESTADO_TONO = { draft: 'marcador', authorized: 'visto', discarded: 'sello' } as const;
-const ESTADO_TEXTO = {
-  draft: 'Borrador',
-  authorized: 'Autorizada',
-  discarded: 'Descartada',
-} as const;
-const ORIGEN_TEXTO: Record<OrigenRecepcion, string> = {
-  xml: 'Importada de XML',
-  manual: 'Captura manual',
-  texto: 'Pegada desde texto',
-  foto: 'Foto leída por Claude',
+const ESTADO_TEXTO: Record<'draft' | 'authorized' | 'discarded', ClaveI18n> = {
+  draft: 'recepcion.borrador',
+  authorized: 'recepcion.autorizada',
+  discarded: 'recepcion.descartada',
+};
+const ORIGEN_TEXTO: Record<OrigenRecepcion, ClaveI18n> = {
+  xml: 'recepcion.origenImportadaXml',
+  manual: 'recepcion.origenCapturaManual',
+  texto: 'recepcion.origenPegadaTexto',
+  foto: 'recepcion.origenFotoLeidaClaude',
 };
 
 export default async function PantallaDetalleRecepcion({
@@ -41,6 +42,7 @@ export default async function PantallaDetalleRecepcion({
   params: Promise<{ id: string }>;
 }) {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
   const { id: idTexto } = await params;
   const id = Number(idTexto);
   if (!Number.isInteger(id) || id <= 0) notFound();
@@ -142,51 +144,60 @@ export default async function PantallaDetalleRecepcion({
   return (
     <section>
       <EncabezadoPantalla
-        titulo={`Recepción #${recepcion.id}`}
-        descripcion={`${recepcion.supplierName} · ${ORIGEN_TEXTO[recepcion.source]}`}
+        titulo={t(idioma, 'recepcion.tituloDetalle', { id: recepcion.id })}
+        descripcion={`${recepcion.supplierName} · ${t(idioma, ORIGEN_TEXTO[recepcion.source])}`}
       >
         <span data-testid="estado-recepcion">
           <Distintivo tono={ESTADO_TONO[recepcion.status]}>
-            {ESTADO_TEXTO[recepcion.status]}
+            {t(idioma, ESTADO_TEXTO[recepcion.status])}
           </Distintivo>
         </span>
       </EncabezadoPantalla>
 
       <dl className="mb-6 grid gap-px border border-linea-fuerte bg-linea-fuerte sm:grid-cols-4">
         <Dato
-          etiqueta="Folio"
+          etiqueta={t(idioma, 'recepcion.folio')}
           valor={
             recepcion.cfdiFolio
               ? `${recepcion.cfdiSeries ?? ''}-${recepcion.cfdiFolio}`
               : (recepcion.referenceNote ?? '—')
           }
         />
-        <Dato etiqueta="UUID" valor={recepcion.cfdiUuid ?? '—'} mono />
+        <Dato etiqueta={t(idioma, 'recepcion.uuid')} valor={recepcion.cfdiUuid ?? '—'} mono />
         <Dato
-          etiqueta="Fecha factura"
-          valor={recepcion.cfdiIssuedAt ? momento(recepcion.cfdiIssuedAt) : '—'}
+          etiqueta={t(idioma, 'recepcion.fechaFactura')}
+          valor={recepcion.cfdiIssuedAt ? momento(recepcion.cfdiIssuedAt, idioma) : '—'}
         />
         <Dato
-          etiqueta="Creada por"
-          valor={`${recepcion.createdByName} · ${momento(recepcion.createdAt)}`}
+          etiqueta={t(idioma, 'recepcion.creadaPor')}
+          valor={`${recepcion.createdByName} · ${momento(recepcion.createdAt, idioma)}`}
         />
-        <Dato etiqueta="Subtotal" valor={formatear(aCentavos(recepcion.subtotal) ?? 0)} />
-        <Dato etiqueta="Impuesto" valor={formatear(aCentavos(recepcion.tax) ?? 0)} />
-        <Dato etiqueta="Total" valor={formatear(aCentavos(recepcion.total) ?? 0)} />
+        <Dato
+          etiqueta={t(idioma, 'caja.subtotal')}
+          valor={formatear(aCentavos(recepcion.subtotal) ?? 0)}
+        />
+        <Dato
+          etiqueta={t(idioma, 'caja.impuesto')}
+          valor={formatear(aCentavos(recepcion.tax) ?? 0)}
+        />
+        <Dato
+          etiqueta={t(idioma, 'caja.total')}
+          valor={formatear(aCentavos(recepcion.total) ?? 0)}
+        />
         <Dato
           etiqueta={
             recepcion.status === 'authorized'
-              ? 'Autorizada por'
+              ? t(idioma, 'recepcion.autorizadaPor')
               : recepcion.status === 'discarded'
-                ? 'Descartada'
-                : 'Estado'
+                ? t(idioma, 'recepcion.descartada')
+                : t(idioma, 'filtros.estado')
           }
           valor={
             recepcion.status === 'authorized' && recepcion.authorizedByName
-              ? `${recepcion.authorizedByName} · ${momento(recepcion.authorizedAt)}`
+              ? `${recepcion.authorizedByName} · ${momento(recepcion.authorizedAt, idioma)}`
               : recepcion.status === 'discarded'
-                ? `${momento(recepcion.discardedAt)}${recepcion.discardReason ? ` — ${recepcion.discardReason}` : ''}`
-                : 'Pendiente de revisión'
+                ? `${momento(recepcion.discardedAt, idioma)}${recepcion.discardReason ? ` — ${recepcion.discardReason}` : ''}`
+                : t(idioma, 'recepcion.pendienteRevision')
           }
         />
       </dl>

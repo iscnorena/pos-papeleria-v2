@@ -2,6 +2,7 @@ import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { FiltrosFecha } from '@/components/FiltrosFecha';
 import { Celda, Fila, SinDatos, Tabla } from '@/components/Tabla';
 import { diaDelNegocio } from '@/lib/fechas';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { aCentavos, formatear } from '@/lib/money';
 import {
   desglosePorMetodo,
@@ -22,6 +23,7 @@ export default async function PantallaReportes({
 }) {
   // El layout de `(admin)` ya exige el rol; esto es para tener la sesión a mano.
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
   const busqueda = await searchParams;
 
   const hoy = diaDelNegocio();
@@ -37,34 +39,46 @@ export default async function PantallaReportes({
 
   const [totales, porMetodo, porSucursal, porCajera] = await Promise.all([
     totalesDe(filtros, sesion),
-    desglosePorMetodo(filtros, sesion),
+    desglosePorMetodo(filtros, sesion, idioma),
     totalesPorSucursal(filtros, sesion),
     totalesPorCajera(filtros, sesion),
   ]);
 
   // El CSV lleva las tres secciones del reporte, no solo los totales: es lo que se pega en
-  // una hoja de cálculo para revisar el mes.
+  // una hoja de cálculo para revisar el mes. Separador `;` y BOM: ver comentario en
+  // BotonCsv.tsx — es para Excel en México/español, no cambia con el idioma de la interfaz.
   const enPesos = (texto: string | null) => ((aCentavos(texto ?? '0') ?? 0) / 100).toFixed(2);
+  const csvResumen = t(idioma, 'reportes.csvResumen');
+  const csvMetodoPago = t(idioma, 'reportes.csvMetodoPago');
+  const csvSucursal = t(idioma, 'filtros.sucursal');
+  const csvCajera = t(idioma, 'filtros.cajera');
   const filasCsv: (string | number)[][] = [
-    ['Resumen', 'Ventas', String(totales.ventas)],
-    ['Resumen', 'Ingreso', (totales.ingreso / 100).toFixed(2)],
-    ['Resumen', 'Costo', (totales.costo / 100).toFixed(2)],
-    ['Resumen', 'Ganancia', (totales.ganancia / 100).toFixed(2)],
-    ['Resumen', 'Canceladas', String(totales.canceladas)],
-    ...porMetodo.map((m) => ['Método de pago', m.nombre, (m.total / 100).toFixed(2)]),
-    ...porSucursal.map((s) => ['Sucursal', s.etiqueta, enPesos(s.ingreso)]),
-    ...porCajera.map((c) => ['Cajera', c.etiqueta, enPesos(c.ingreso)]),
+    [csvResumen, t(idioma, 'turnos.ventas'), String(totales.ventas)],
+    [csvResumen, t(idioma, 'turnos.ingreso'), (totales.ingreso / 100).toFixed(2)],
+    [csvResumen, t(idioma, 'reportes.costo'), (totales.costo / 100).toFixed(2)],
+    [csvResumen, t(idioma, 'turnos.ganancia'), (totales.ganancia / 100).toFixed(2)],
+    [csvResumen, t(idioma, 'filtros.canceladas'), String(totales.canceladas)],
+    ...porMetodo.map((m) => [csvMetodoPago, m.nombre, (m.total / 100).toFixed(2)]),
+    ...porSucursal.map((s) => [csvSucursal, s.etiqueta, enPesos(s.ingreso)]),
+    ...porCajera.map((c) => [csvCajera, c.etiqueta, enPesos(c.ingreso)]),
   ];
 
   return (
     <section>
       <EncabezadoPantalla
-        titulo="Reportes"
-        descripcion={`Del ${filtros.desde} al ${filtros.hasta}, en día natural de la Ciudad de México.`}
+        titulo={t(idioma, 'reportes.titulo')}
+        descripcion={t(idioma, 'reportes.descripcion', {
+          desde: filtros.desde ?? hoy,
+          hasta: filtros.hasta ?? hoy,
+        })}
       >
         <BotonCsv
           nombre={`reporte-${filtros.desde}-a-${filtros.hasta}`}
-          encabezados={['Sección', 'Concepto', 'Importe']}
+          encabezados={[
+            t(idioma, 'reportes.csvSeccion'),
+            t(idioma, 'reportes.csvConcepto'),
+            t(idioma, 'caja.importe'),
+          ]}
           filas={filasCsv}
         />
       </EncabezadoPantalla>
@@ -72,15 +86,23 @@ export default async function PantallaReportes({
       <FiltrosFecha sesion={sesion} valores={busqueda} />
 
       <dl className="mb-8 grid gap-px border border-linea-fuerte bg-linea-fuerte sm:grid-cols-5">
-        <Cifra etiqueta="Ventas" valor={String(totales.ventas)} />
-        <Cifra etiqueta="Ingreso" valor={formatear(totales.ingreso)} />
-        <Cifra etiqueta="Costo" valor={formatear(totales.costo)} />
-        <Cifra etiqueta="Ganancia" valor={formatear(totales.ganancia)} />
-        <Cifra etiqueta="Canceladas" valor={String(totales.canceladas)} />
+        <Cifra etiqueta={t(idioma, 'turnos.ventas')} valor={String(totales.ventas)} />
+        <Cifra etiqueta={t(idioma, 'turnos.ingreso')} valor={formatear(totales.ingreso)} />
+        <Cifra etiqueta={t(idioma, 'reportes.costo')} valor={formatear(totales.costo)} />
+        <Cifra etiqueta={t(idioma, 'turnos.ganancia')} valor={formatear(totales.ganancia)} />
+        <Cifra etiqueta={t(idioma, 'filtros.canceladas')} valor={String(totales.canceladas)} />
       </dl>
 
-      <h2 className="mb-3 font-display text-cuerpo font-semibold text-tinta">Por método de pago</h2>
-      <Tabla encabezados={['Método', 'Transacciones', 'Total']}>
+      <h2 className="mb-3 font-display text-cuerpo font-semibold text-tinta">
+        {t(idioma, 'reportes.porMetodoPago')}
+      </h2>
+      <Tabla
+        encabezados={[
+          t(idioma, 'turnos.colMetodo'),
+          t(idioma, 'turnos.colTransacciones'),
+          t(idioma, 'turnos.colTotal'),
+        ]}
+      >
         {porMetodo.map((m) => (
           <Fila key={m.metodo}>
             <Celda>{m.nombre}</Celda>
@@ -94,11 +116,23 @@ export default async function PantallaReportes({
         ))}
       </Tabla>
 
-      <h2 className="mb-3 mt-8 font-display text-cuerpo font-semibold text-tinta">Por sucursal</h2>
-      <TablaAgrupada filas={porSucursal} vacio="Sin ventas en el rango." />
+      <h2 className="mb-3 mt-8 font-display text-cuerpo font-semibold text-tinta">
+        {t(idioma, 'reportes.porSucursal')}
+      </h2>
+      <TablaAgrupada
+        filas={porSucursal}
+        vacio={t(idioma, 'reportes.sinVentasRango')}
+        idioma={idioma}
+      />
 
-      <h2 className="mb-3 mt-8 font-display text-cuerpo font-semibold text-tinta">Por cajera</h2>
-      <TablaAgrupada filas={porCajera} vacio="Sin ventas en el rango." />
+      <h2 className="mb-3 mt-8 font-display text-cuerpo font-semibold text-tinta">
+        {t(idioma, 'reportes.porCajera')}
+      </h2>
+      <TablaAgrupada
+        filas={porCajera}
+        vacio={t(idioma, 'reportes.sinVentasRango')}
+        idioma={idioma}
+      />
     </section>
   );
 }
@@ -106,6 +140,7 @@ export default async function PantallaReportes({
 function TablaAgrupada({
   filas,
   vacio,
+  idioma,
 }: {
   filas: {
     etiqueta: string;
@@ -115,9 +150,18 @@ function TablaAgrupada({
     ganancia: string | null;
   }[];
   vacio: string;
+  idioma: Awaited<ReturnType<typeof obtenerIdioma>>;
 }) {
   return (
-    <Tabla encabezados={['', 'Ventas', 'Ingreso', 'Costo', 'Ganancia']}>
+    <Tabla
+      encabezados={[
+        '',
+        t(idioma, 'turnos.ventas'),
+        t(idioma, 'turnos.ingreso'),
+        t(idioma, 'reportes.costo'),
+        t(idioma, 'turnos.ganancia'),
+      ]}
+    >
       {filas.length === 0 && <SinDatos columnas={5}>{vacio}</SinDatos>}
       {filas.map((f) => (
         <Fila key={f.etiqueta}>

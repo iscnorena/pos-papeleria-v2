@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 
 import { db } from '@/db';
 import { toolSettings } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { exigirRol } from '@/lib/sesion';
 
 // Un solo interruptor por herramienta, compartido por todas las pantallas de
@@ -24,6 +25,7 @@ export async function alternarVisibilidadPublica(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { ok: false, error: permiso.error };
+  const idioma = await obtenerIdioma();
 
   try {
     await db
@@ -34,7 +36,7 @@ export async function alternarVisibilidadPublica(
         set: { isPublic: publica, updatedAt: new Date() },
       });
   } catch {
-    return { ok: false, error: 'No se pudo guardar. Inténtalo de nuevo.' };
+    return { ok: false, error: t(idioma, 'herramientas.errorNoSePudoGuardar') };
   }
 
   revalidatePath(rutaPublica);

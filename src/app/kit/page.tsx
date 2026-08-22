@@ -3,9 +3,10 @@ import {
   IndiceHerramientasPublico,
   type ItemIndicePublico,
 } from '@/components/IndiceHerramientasPublico';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { idsPrivadosEntre } from '@/lib/toolSettings';
 import { subHerramientasPdfListas } from '@/tools/pdf/registro';
-import { herramientasConVersionPublica } from '@/tools/registry';
+import { herramientasConVersionPublica, nombreDe, descripcionDe } from '@/tools/registry';
 
 // Índice de herramientas gratuitas, sin sesión. Candidatas por `rutaPublica` en el
 // registro, pero la lista final la decide `tool_settings` (el interruptor que cada admin
@@ -24,6 +25,7 @@ import { herramientasConVersionPublica } from '@/tools/registry';
 export const dynamic = 'force-dynamic';
 
 export default async function ImprimirPage() {
+  const idioma = await obtenerIdioma();
   const candidatas = herramientasConVersionPublica();
   const idsPrivados = await idsPrivadosEntre(candidatas.map((h) => h.id));
 
@@ -36,18 +38,18 @@ export default async function ImprimirPage() {
 
   const items: ItemIndicePublico[] = herramientas.map((h) => ({
     id: h.id,
-    nombre: h.nombre,
-    descripcion: h.descripcion,
+    nombre: nombreDe(h.id, idioma),
+    descripcion: descripcionDe(h.id, idioma),
     icono: h.icono,
     rutaPublica: h.rutaPublica!,
   }));
 
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
-      <CabeceraPublica titulo="Herramientas gratis, sin necesidad de cuenta" />
+      <CabeceraPublica titulo={t(idioma, 'herramientas.tituloGratis')} />
       <IndiceHerramientasPublico
         items={items}
-        mensajeVacio="Por el momento no hay herramientas disponibles."
+        mensajeVacio={t(idioma, 'herramientas.sinDisponiblesPublico')}
       />
     </div>
   );

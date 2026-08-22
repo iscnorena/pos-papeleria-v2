@@ -1,6 +1,7 @@
 'use client';
 
 import { Boton } from '@/components/ui/Boton';
+import { useIdioma } from '@/lib/i18n/cliente';
 
 // §Fase 5 — exportar a CSV **desde el cliente**: nada de generar archivos en el servidor,
 // que en Vercel no tiene dónde escribirlos (§1.1).
@@ -20,6 +21,8 @@ export function BotonCsv({
   encabezados: string[];
   filas: (string | number)[][];
 }) {
+  const { t } = useIdioma();
+
   function descargar() {
     const lineas = [encabezados, ...filas].map((fila) => fila.map(campo).join(';'));
 
@@ -42,7 +45,7 @@ export function BotonCsv({
 
   return (
     <Boton variante="secundaria" onClick={descargar} disabled={filas.length === 0}>
-      Exportar CSV
+      {t('reportes.exportarCsv')}
     </Boton>
   );
 }

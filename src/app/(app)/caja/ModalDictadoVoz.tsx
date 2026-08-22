@@ -8,6 +8,7 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { Modal } from '@/components/ui/Modal';
 import type { ProductoDeCaja } from '@/lib/catalogo';
 import { clases } from '@/lib/clases';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { formatearCantidad } from '@/lib/money';
 import { mejoresCoincidencias } from '@/lib/similitudTexto';
 import { resolverItemsDeVoz, type EstadoItemVoz } from '@/lib/vozTicket';
@@ -48,6 +49,7 @@ function sinSuscripcion(): () => void {
 }
 
 export function BotonDictadoVoz({ catalogo }: { catalogo: ProductoDeCaja[] }) {
+  const { t } = useIdioma();
   const [abierto, setAbierto] = useState(false);
   const [grabando, setGrabando] = useState(false);
   const [parcial, setParcial] = useState('');
@@ -122,12 +124,11 @@ export function BotonDictadoVoz({ catalogo }: { catalogo: ProductoDeCaja[] }) {
 
     instancia.onerror = (evento) => {
       const mensajes: Record<string, string> = {
-        'not-allowed':
-          'Permiso de micrófono denegado. Actívalo en el navegador e intenta de nuevo.',
-        'no-speech': 'No se escuchó nada. Intenta de nuevo más cerca del micrófono.',
-        network: 'Sin conexión para reconocer voz. Revisa tu internet.',
+        'not-allowed': t('caja.vozPermisoDenegado'),
+        'no-speech': t('caja.vozNoSeEscucho'),
+        network: t('caja.vozSinConexion'),
       };
-      setErrorMic(mensajes[evento.error] ?? 'No se pudo grabar. Intenta de nuevo.');
+      setErrorMic(mensajes[evento.error] ?? t('caja.vozNoSePudoGrabar'));
       setGrabando(false);
     };
 
@@ -206,19 +207,19 @@ export function BotonDictadoVoz({ catalogo }: { catalogo: ProductoDeCaja[] }) {
             grabando ? 'bg-white' : 'bg-sello',
           )}
         />
-        {grabando ? 'Escuchando… (toca para terminar)' : 'Dictar pedido'}
+        {grabando ? t('caja.escuchandoToca') : t('caja.dictarPedido')}
       </button>
 
-      <Modal abierto={abierto} onCerrar={cerrar} titulo="Dictado del pedido">
+      <Modal abierto={abierto} onCerrar={cerrar} titulo={t('caja.dictadoPedido')}>
         <div className="max-h-[65vh] overflow-y-auto">
           {grabando && (
             <div className="mb-4 border border-sello-hondo bg-sello-tenue p-3">
               <p className="flex items-center gap-2 text-fino font-medium text-sello-hondo">
                 <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-sello-hondo" />
-                Escuchando…
+                {t('caja.escuchando')}
               </p>
               <p className="mt-1 min-h-[1.5em] text-base text-tinta">
-                {parcial || 'Di lo que lleva el cliente…'}
+                {parcial || t('caja.diLoQueLleva')}
               </p>
             </div>
           )}
@@ -227,8 +228,7 @@ export function BotonDictadoVoz({ catalogo }: { catalogo: ProductoDeCaja[] }) {
 
           {!grabando && lineas.length === 0 && !errorMic && (
             <p className="border border-linea-fuerte bg-papel-hondo p-4 text-base text-grafito">
-              Toca «Dictar pedido» y di, por ejemplo: «lleva un borrador marca Dixon, lleva 4
-              libretas raya marca Swing».
+              {t('caja.ejemploDictado')}
             </p>
           )}
 
@@ -251,12 +251,12 @@ export function BotonDictadoVoz({ catalogo }: { catalogo: ProductoDeCaja[] }) {
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-linea pt-4">
           {!grabando && (
             <Boton type="button" variante="secundaria" onClick={empezarGrabacion}>
-              {lineas.length > 0 ? 'Grabar más' : 'Dictar pedido'}
+              {lineas.length > 0 ? t('caja.grabarMas') : t('caja.dictarPedido')}
             </Boton>
           )}
           {lineas.length > 0 && (
             <Boton type="button" disabled={!hayListasParaAgregar} onClick={agregarTodasLasListas}>
-              Agregar todo al ticket
+              {t('caja.agregarTodoAlTicket')}
             </Boton>
           )}
           <button
@@ -264,7 +264,7 @@ export function BotonDictadoVoz({ catalogo }: { catalogo: ProductoDeCaja[] }) {
             onClick={cerrar}
             className="ml-auto text-fino text-boligrafo underline"
           >
-            Cerrar
+            {t('comun.cerrar')}
           </button>
         </div>
       </Modal>
@@ -285,6 +285,7 @@ function LineaDictado({
   onDescartar: () => void;
   onAgregar: () => void;
 }) {
+  const { t } = useIdioma();
   const [busqueda, setBusqueda] = useState('');
   const producto = catalogo.find((p) => p.id === linea.productoId) ?? null;
 
@@ -303,38 +304,38 @@ function LineaDictado({
           «{linea.descripcionOriginal}»
           {linea.estado === 'resuelta' && (
             <Distintivo tono="visto" className="ml-2">
-              Reconocido
+              {t('caja.reconocido')}
             </Distintivo>
           )}
           {linea.estado === 'ambigua' && (
             <Distintivo tono="marcador" className="ml-2">
-              Elige uno
+              {t('caja.eligeUno')}
             </Distintivo>
           )}
           {linea.estado === 'no_reconocida' && (
             <Distintivo tono="sello" className="ml-2">
-              No reconocido
+              {t('caja.noReconocido')}
             </Distintivo>
           )}
         </span>
         <button type="button" onClick={onDescartar} className="text-fino text-sello underline">
-          Descartar
+          {t('caja.descartar')}
         </button>
       </div>
 
       {producto ? (
         <p className="mt-2 text-base text-tinta">
-          Producto: <span className="font-medium">{producto.nombre}</span>
+          {t('caja.producto')} <span className="font-medium">{producto.nombre}</span>
           {producto.precioAbierto && (
             <span className="ml-2 text-fino text-grafito">
-              (precio libre — agrégalo tocándolo en el catálogo)
+              {t('caja.precioLibreAgregaloEnCatalogo')}
             </span>
           )}
         </p>
       ) : (
         linea.candidatos.length > 0 && (
           <div className="mt-2 flex flex-col gap-1">
-            <p className="text-fino text-grafito">Candidatos:</p>
+            <p className="text-fino text-grafito">{t('caja.candidatos')}</p>
             {linea.candidatos.map((c) => (
               <button
                 key={c.item.id}
@@ -351,7 +352,7 @@ function LineaDictado({
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
         <label className="text-fino font-medium text-tinta" htmlFor={`cant-voz-${linea.id}`}>
-          Cantidad
+          {t('caja.cantidad')}
         </label>
         <input
           id={`cant-voz-${linea.id}`}
@@ -364,18 +365,20 @@ function LineaDictado({
             faltaCantidad ? 'border-sello' : 'border-linea-fuerte',
           )}
         />
-        {faltaCantidad && <span className="text-fino text-sello">No se dictó cantidad</span>}
+        {faltaCantidad && (
+          <span className="text-fino text-sello">{t('caja.noSeDictoCantidad')}</span>
+        )}
 
         <button
           type="button"
           onClick={() => onCambiar({ buscando: !linea.buscando })}
           className="ml-auto text-fino text-boligrafo underline"
         >
-          {producto ? 'Cambiar producto' : 'Buscar producto'}
+          {producto ? t('caja.cambiarProducto') : t('caja.buscarProducto')}
         </button>
 
         <Boton type="button" tamano="normal" disabled={!listaParaAgregar} onClick={onAgregar}>
-          Agregar
+          {t('caja.agregar')}
         </Boton>
       </div>
 
@@ -384,7 +387,7 @@ function LineaDictado({
           <input
             value={busqueda}
             onChange={(e) => setBusqueda(e.target.value)}
-            placeholder="Buscar producto por nombre…"
+            placeholder={t('caja.buscarProductoPorNombre')}
             className="min-h-[2.25rem] border border-linea-fuerte bg-white px-2 text-fino text-tinta"
           />
           {resultadosBusqueda.map((c) => (

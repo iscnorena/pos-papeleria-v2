@@ -8,15 +8,15 @@ import { Boton } from '@/components/ui/Boton';
 import { reordenar } from '@/lib/arreglos';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import { tamanoArchivo } from '@/lib/formato';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { cargarPdf, unirPdfs, type ArchivoPdf } from './unir';
 
 // Componente único, compartido por la ruta interna (/herramientas/pdf/unir, con sesión) y
 // la pública (/kit/pdf/unir, sin sesión) — mismo patrón que GeneradorRifas: el botón
 // de WhatsApp solo aparece si se recibe `whatsappNumber`.
 
-const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya unido.';
-
 export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
+  const { t } = useIdioma();
   const [archivos, setArchivos] = useState<ArchivoPdf[]>([]);
   const [generando, setGenerando] = useState(false);
   const [enviando, setEnviando] = useState(false);
@@ -31,7 +31,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
     const cabida = PDF.unirArchivosMaximo - archivos.length;
     if (cabida <= 0) {
       setAviso({
-        texto: `Ya tienes el máximo de ${PDF.unirArchivosMaximo} archivos.`,
+        texto: t('pdf.maximoDeArchivos', { max: PDF.unirArchivosMaximo }),
         tono: 'error',
       });
       return;
@@ -39,7 +39,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
     const recortada = pdfs.slice(0, cabida);
     if (recortada.length < pdfs.length) {
       setAviso({
-        texto: `Solo se agregaron ${recortada.length}: el máximo es ${PDF.unirArchivosMaximo} archivos.`,
+        texto: t('pdf.soloSeAgregaron', { n: recortada.length, max: PDF.unirArchivosMaximo }),
         tono: 'neutro',
       });
     }
@@ -49,8 +49,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
       setArchivos((actuales) => [...actuales, ...cargados]);
     } catch {
       setAviso({
-        texto:
-          'Alguno de esos archivos no es un PDF válido (o está dañado). Revisa e intenta de nuevo.',
+        texto: t('pdf.archivosInvalidos'),
         tono: 'error',
       });
     }
@@ -80,7 +79,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
       enlace.click();
       URL.revokeObjectURL(url);
     } catch {
-      setAviso({ texto: 'No se pudo unir los PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoUnir'), tono: 'error' });
     } finally {
       setGenerando(false);
     }
@@ -95,12 +94,12 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
       await compartirPdfPorWhatsapp({
         archivos: [{ bytes, nombreArchivo: `unido-${Date.now()}.pdf` }],
         whatsappNumber,
-        tituloCompartir: 'PDF unido',
-        textoCompartir: TEXTO_WHATSAPP,
-        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+        tituloCompartir: t('pdf.whatsappTituloUnido'),
+        textoCompartir: t('pdf.whatsappTextoUnido'),
+        textoRespaldo: t('pdf.whatsappRespaldo', { texto: t('pdf.whatsappTextoUnido') }),
       });
     } catch {
-      setAviso({ texto: 'No se pudo unir los PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoUnir'), tono: 'error' });
     } finally {
       setEnviando(false);
     }
@@ -109,13 +108,11 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">Tus PDF</h2>
-        <p className="mb-3 text-fino text-grafito">
-          Se procesan aquí mismo, en tu navegador: nunca suben a nuestros servidores.
-        </p>
+        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">{t('pdf.tusPdf')}</h2>
+        <p className="mb-3 text-fino text-grafito">{t('pdf.seProcesaPlural')}</p>
 
         <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
-          Agregar PDF
+          {t('pdf.agregarPdf')}
           <input
             type="file"
             accept="application/pdf,.pdf"
@@ -139,13 +136,13 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
                   <span className="flex-1 truncate text-fino text-tinta">
                     {archivo.nombre}
                     <span className="block text-micro text-grafito-claro">
-                      {archivo.paginas} {archivo.paginas === 1 ? 'página' : 'páginas'} ·{' '}
-                      {tamanoArchivo(archivo.bytes.byteLength)}
+                      {archivo.paginas} {archivo.paginas === 1 ? t('pdf.pagina') : t('pdf.paginas')}{' '}
+                      · {tamanoArchivo(archivo.bytes.byteLength)}
                     </span>
                   </span>
                   <button
                     type="button"
-                    aria-label={`Subir ${archivo.nombre}`}
+                    aria-label={t('pdf.subirArchivo', { nombre: archivo.nombre })}
                     disabled={indice === 0}
                     onClick={() => moverArchivo(indice, -1)}
                     className="px-2 py-1 text-base text-tinta disabled:opacity-30"
@@ -154,7 +151,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
                   </button>
                   <button
                     type="button"
-                    aria-label={`Bajar ${archivo.nombre}`}
+                    aria-label={t('pdf.bajarArchivo', { nombre: archivo.nombre })}
                     disabled={indice === archivos.length - 1}
                     onClick={() => moverArchivo(indice, 1)}
                     className="px-2 py-1 text-base text-tinta disabled:opacity-30"
@@ -163,7 +160,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
                   </button>
                   <button
                     type="button"
-                    aria-label={`Quitar ${archivo.nombre}`}
+                    aria-label={t('pdf.quitarArchivo', { nombre: archivo.nombre })}
                     onClick={() => quitarArchivo(archivo.id)}
                     className="px-2 py-1 text-base text-sello"
                   >
@@ -173,9 +170,13 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
               ))}
             </ul>
             <p className="mt-2 text-fino text-grafito">
-              {archivos.length} {archivos.length === 1 ? 'archivo' : 'archivos'}, {totalPaginas}{' '}
-              {totalPaginas === 1 ? 'página' : 'páginas'} en total.
-              {archivos.length === 1 && ' Agrega al menos otro PDF para poder unir.'}
+              {t('pdf.totalEnArchivos', {
+                n: archivos.length,
+                palabraArchivo: archivos.length === 1 ? t('pdf.archivo') : t('pdf.archivos'),
+                total: totalPaginas,
+                palabraPagina: totalPaginas === 1 ? t('pdf.pagina') : t('pdf.paginas'),
+              })}
+              {archivos.length === 1 && ` ${t('pdf.agregaOtroPdf')}`}
             </p>
           </>
         )}
@@ -191,7 +192,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
           disabled={archivos.length < 2 || generando || enviando}
           onClick={() => void unirYDescargar()}
         >
-          {generando ? 'Uniendo…' : 'Unir y descargar'}
+          {generando ? t('pdf.uniendo') : t('pdf.unirYDescargar')}
         </Boton>
         {whatsappNumber && (
           <Boton
@@ -200,7 +201,7 @@ export function UnirPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
             disabled={archivos.length < 2 || generando || enviando}
             onClick={() => void unirYEnviarPorWhatsapp()}
           >
-            {enviando ? 'Uniendo…' : 'Enviar por WhatsApp'}
+            {enviando ? t('pdf.uniendo') : t('pdf.enviarPorWhatsapp')}
           </Boton>
         )}
       </div>

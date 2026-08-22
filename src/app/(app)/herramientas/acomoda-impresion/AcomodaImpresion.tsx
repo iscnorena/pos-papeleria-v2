@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from 'react';
 
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { formatear } from '@/lib/money';
 import {
   CONFIG_POR_DEFECTO,
@@ -45,6 +46,7 @@ const LAYOUTS: { etiqueta: string; filas: number; columnas: number }[] = [
 const CLAVE_PRECIOS = 'acomoda-impresion.precios';
 
 export function AcomodaImpresion() {
+  const { t } = useIdioma();
   const [config, setConfig] = useState<Config>(CONFIG_POR_DEFECTO);
   const [imagenes, setImagenes] = useState<ImagenDelLote[]>([]);
   const [pagina, setPagina] = useState(0);
@@ -111,7 +113,7 @@ export function AcomodaImpresion() {
       enlace.click();
       URL.revokeObjectURL(url);
     } catch {
-      setAviso('No se pudo generar el PDF. Revisa que las imágenes sean JPG o PNG.');
+      setAviso(t('acomoda.errorGenerarPdfImagenes'));
     } finally {
       setGenerando(false);
     }
@@ -121,10 +123,10 @@ export function AcomodaImpresion() {
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
       {/* ── Columna izquierda ────────────────────────────────────────────────────── */}
       <div className="flex max-h-[80vh] flex-col gap-5 overflow-y-auto pr-2">
-        <Seccion titulo="Imágenes">
+        <Seccion titulo={t('acomoda.imagenes')}>
           <div className="flex flex-wrap gap-2">
             <label className="cursor-pointer border border-boligrafo-hondo bg-boligrafo px-3 py-1.5 text-base font-medium text-white shadow-impresa">
-              Agregar
+              {t('caja.agregar')}
               <input
                 type="file"
                 accept="image/*"
@@ -137,7 +139,7 @@ export function AcomodaImpresion() {
               />
             </label>
             <Boton variante="secundaria" onClick={() => setBuscando(true)}>
-              Buscar
+              {t('comun.buscar')}
             </Boton>
             <Boton
               variante="secundaria"
@@ -147,7 +149,7 @@ export function AcomodaImpresion() {
               }}
               disabled={imagenes.length === 0}
             >
-              Limpiar
+              {t('acomoda.limpiar')}
             </Boton>
           </div>
 
@@ -162,7 +164,7 @@ export function AcomodaImpresion() {
           >
             {imagenes.length === 0 && (
               <p className="col-span-3 py-6 text-center text-fino text-grafito">
-                Suelta imágenes aquí
+                {t('acomoda.sueltaImagenesAqui')}
               </p>
             )}
             {imagenes.map((imagen, indice) => (
@@ -201,8 +203,8 @@ export function AcomodaImpresion() {
           </div>
         </Seccion>
 
-        <Seccion titulo="Configuración">
-          <Etiqueta texto="Layout">
+        <Seccion titulo={t('acomoda.configuracion')}>
+          <Etiqueta texto={t('acomoda.layout')}>
             <select
               value={`${config.filas}x${config.columnas}`}
               onChange={(e) => {
@@ -218,13 +220,13 @@ export function AcomodaImpresion() {
               ))}
               {/* §7.7 — retícula personalizada, además de los cinco layouts fijos. */}
               <option value={`${config.filas}x${config.columnas}`}>
-                {`Personalizada (${config.filas}×${config.columnas})`}
+                {t('acomoda.personalizada', { filas: config.filas, columnas: config.columnas })}
               </option>
             </select>
           </Etiqueta>
 
           <div className="grid grid-cols-2 gap-2">
-            <Etiqueta texto="Filas">
+            <Etiqueta texto={t('acomoda.filas')}>
               <Numero
                 valor={config.filas}
                 paso={1}
@@ -232,7 +234,7 @@ export function AcomodaImpresion() {
                 onCambio={(v) => aplicarConfig({ filas: v })}
               />
             </Etiqueta>
-            <Etiqueta texto="Columnas">
+            <Etiqueta texto={t('acomoda.columnas')}>
               <Numero
                 valor={config.columnas}
                 paso={1}
@@ -242,7 +244,7 @@ export function AcomodaImpresion() {
             </Etiqueta>
           </div>
 
-          <Etiqueta texto="Papel">
+          <Etiqueta texto={t('acomoda.papel')}>
             <select
               value={config.papel}
               onChange={(e) => aplicarConfig({ papel: e.target.value as Papel })}
@@ -254,23 +256,23 @@ export function AcomodaImpresion() {
             </select>
           </Etiqueta>
 
-          <Etiqueta texto="Orientación">
+          <Etiqueta texto={t('acomoda.orientacion')}>
             <select
               value={config.orientacion}
               onChange={(e) => aplicarConfig({ orientacion: e.target.value as Orientacion })}
               className="w-full border border-linea-fuerte bg-white px-2 py-1.5 text-base"
             >
-              <option value="Vertical">Vertical</option>
-              <option value="Horizontal">Horizontal</option>
+              <option value="Vertical">{t('acomoda.vertical')}</option>
+              <option value="Horizontal">{t('acomoda.horizontal')}</option>
             </select>
           </Etiqueta>
 
           <details className="border border-linea px-2 py-1.5">
             <summary className="cursor-pointer text-base text-tinta">
-              Márgenes y espaciado (pulgadas)
+              {t('acomoda.margenesEspaciado')}
             </summary>
             <div className="mt-2 grid grid-cols-2 gap-2">
-              <Etiqueta texto="Izquierdo">
+              <Etiqueta texto={t('acomoda.izquierdo')}>
                 <Numero
                   valor={config.margenIzq}
                   paso={0.05}
@@ -278,7 +280,7 @@ export function AcomodaImpresion() {
                   onCambio={(v) => aplicarConfig({ margenIzq: v })}
                 />
               </Etiqueta>
-              <Etiqueta texto="Derecho">
+              <Etiqueta texto={t('acomoda.derecho')}>
                 <Numero
                   valor={config.margenDer}
                   paso={0.05}
@@ -286,7 +288,7 @@ export function AcomodaImpresion() {
                   onCambio={(v) => aplicarConfig({ margenDer: v })}
                 />
               </Etiqueta>
-              <Etiqueta texto="Superior">
+              <Etiqueta texto={t('acomoda.superior')}>
                 <Numero
                   valor={config.margenSup}
                   paso={0.05}
@@ -294,7 +296,7 @@ export function AcomodaImpresion() {
                   onCambio={(v) => aplicarConfig({ margenSup: v })}
                 />
               </Etiqueta>
-              <Etiqueta texto="Inferior">
+              <Etiqueta texto={t('acomoda.inferior')}>
                 <Numero
                   valor={config.margenInf}
                   paso={0.05}
@@ -302,7 +304,7 @@ export function AcomodaImpresion() {
                   onCambio={(v) => aplicarConfig({ margenInf: v })}
                 />
               </Etiqueta>
-              <Etiqueta texto="Espaciado">
+              <Etiqueta texto={t('acomoda.espaciado')}>
                 <Numero
                   valor={config.espaciado}
                   paso={0.05}
@@ -310,7 +312,7 @@ export function AcomodaImpresion() {
                   onCambio={(v) => aplicarConfig({ espaciado: v })}
                 />
               </Etiqueta>
-              <Etiqueta texto="DPI">
+              <Etiqueta texto={t('acomoda.dpi')}>
                 <Numero
                   valor={config.dpi}
                   paso={50}
@@ -323,36 +325,36 @@ export function AcomodaImpresion() {
           </details>
 
           <Casilla
-            texto="Mostrar guías de corte"
+            texto={t('acomoda.mostrarGuiasCorte')}
             valor={config.mostrarGuias}
             onCambio={(v) => aplicarConfig({ mostrarGuias: v })}
           />
           <Casilla
-            texto="Girar imágenes"
+            texto={t('acomoda.girarImagenes')}
             valor={config.rotar}
             onCambio={(v) => aplicarConfig({ rotar: v })}
           />
           <Casilla
-            texto="Maximizar imágenes"
+            texto={t('acomoda.maximizarImagenes')}
             valor={config.maximizar}
             onCambio={(v) => aplicarConfig({ maximizar: v })}
           />
           <Casilla
-            texto="Usar tamaño fijo"
+            texto={t('acomoda.usarTamanoFijo')}
             valor={config.usarTamanoFijo}
             onCambio={(v) => aplicarConfig({ usarTamanoFijo: v })}
           />
 
           {config.usarTamanoFijo && (
             <div className="grid grid-cols-2 gap-2">
-              <Etiqueta texto="Ancho (cm)">
+              <Etiqueta texto={t('acomoda.anchoCm')}>
                 <Numero
                   valor={config.anchoFijoCm}
                   paso={0.5}
                   onCambio={(v) => aplicarConfig({ anchoFijoCm: v })}
                 />
               </Etiqueta>
-              <Etiqueta texto="Alto (cm)">
+              <Etiqueta texto={t('acomoda.altoCm')}>
                 <Numero
                   valor={config.altoFijoCm}
                   paso={0.5}
@@ -363,19 +365,14 @@ export function AcomodaImpresion() {
           )}
 
           {/* §7.7 — el original dejaba que se desbordara en silencio. */}
-          {desborda && (
-            <Aviso tono="error">
-              El tamaño fijo no cabe en la celda: la imagen se va a salir. Baja el tamaño o usa
-              menos celdas por hoja.
-            </Aviso>
-          )}
+          {desborda && <Aviso tono="error">{t('acomoda.tamanoFijoDesborda')}</Aviso>}
         </Seccion>
 
-        <Seccion titulo="Presets">
+        <Seccion titulo={t('acomoda.presets')}>
           <Presets config={config} onCargar={(c) => aplicarConfig(c)} onAviso={setAviso} />
         </Seccion>
 
-        <Seccion titulo="Precios">
+        <Seccion titulo={t('acomoda.precios')}>
           <div className="flex gap-2">
             <button
               type="button"
@@ -387,7 +384,7 @@ export function AcomodaImpresion() {
                   : 'flex-1 border border-linea-fuerte bg-white px-2 py-1.5 text-base text-tinta'
               }
             >
-              Color
+              {t('acomoda.color')}
             </button>
             <button
               type="button"
@@ -399,12 +396,12 @@ export function AcomodaImpresion() {
                   : 'flex-1 border border-linea-fuerte bg-white px-2 py-1.5 text-base text-tinta'
               }
             >
-              Blanco y negro
+              {t('acomoda.blancoYNegro')}
             </button>
           </div>
 
           <p className="mt-3 flex items-baseline justify-between">
-            <span className="text-cuerpo text-grafito">Total:</span>
+            <span className="text-cuerpo text-grafito">{t('acomoda.total')}</span>
             <span
               data-prueba="total"
               className="tabular font-display text-cifra font-semibold text-tinta"
@@ -418,7 +415,7 @@ export function AcomodaImpresion() {
             className="mt-2 w-full"
             onClick={() => setEditandoPrecios((v) => !v)}
           >
-            Configurar precios
+            {t('acomoda.configurarPrecios')}
           </Boton>
 
           {editandoPrecios && (
@@ -439,7 +436,7 @@ export function AcomodaImpresion() {
           disabled={imagenes.length === 0 || generando}
           onClick={() => void descargarPdf()}
         >
-          {generando ? 'Generando…' : 'Generar PDF'}
+          {generando ? t('acomoda.generando') : t('acomoda.generarPdf')}
         </Boton>
 
         {aviso && <Aviso tono="error">{aviso}</Aviso>}
@@ -483,6 +480,7 @@ function Presets({
   onCargar: (config: Config) => void;
   onAviso: (mensaje: string | null) => void;
 }) {
+  const { t } = useIdioma();
   const [nombre, setNombre] = useState('Sin nombre');
   const [guardados, setGuardados] = useState<string[]>(() => Object.keys(leerPresets()));
 
@@ -491,7 +489,7 @@ function Presets({
       <input
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
-        aria-label="Nombre del preset"
+        aria-label={t('acomoda.nombreDelPreset')}
         className="border border-linea-fuerte bg-white px-2 py-1.5 text-base"
       />
 
@@ -504,11 +502,11 @@ function Presets({
             onAviso(null);
           }}
         >
-          Guardar
+          {t('comun.guardar')}
         </Boton>
 
         <select
-          aria-label="Preset guardado"
+          aria-label={t('acomoda.presetGuardadoEtiqueta')}
           onChange={(e) => {
             const preset = leerPresets()[e.target.value];
             if (preset) onCargar(desdePreset(preset).config);
@@ -516,7 +514,7 @@ function Presets({
           className="border border-linea-fuerte bg-white px-2 py-1.5 text-base"
           defaultValue=""
         >
-          <option value="">Cargar…</option>
+          <option value="">{t('acomoda.cargarPunto')}</option>
           {guardados.map((n) => (
             <option key={n} value={n}>
               {n}
@@ -541,11 +539,11 @@ function Presets({
             URL.revokeObjectURL(url);
           }}
         >
-          Exportar
+          {t('acomoda.exportar')}
         </Boton>
 
         <label className="cursor-pointer border border-linea-fuerte bg-white px-3 py-1.5 text-base text-tinta shadow-impresa">
-          Importar
+          {t('acomoda.importar')}
           <input
             type="file"
             accept="application/json,.json"
@@ -562,7 +560,7 @@ function Presets({
                 setNombre(cargado);
                 onAviso(null);
               } catch {
-                onAviso('Ese archivo no es un preset válido.');
+                onAviso(t('acomoda.presetInvalido'));
               }
             }}
           />
@@ -579,14 +577,17 @@ function EditorPrecios({
   precios: Precios;
   onCambio: (precios: Precios) => void;
 }) {
+  const { t } = useIdioma();
   return (
     <div className="mt-3 border border-linea p-2">
-      <p className="mb-2 font-mono text-micro uppercase text-grafito">Color, por imagen</p>
+      <p className="mb-2 font-mono text-micro uppercase text-grafito">
+        {t('acomoda.colorPorImagen')}
+      </p>
       {Object.keys(precios.color)
         .map(Number)
         .sort((a, b) => a - b)
         .map((celdas) => (
-          <Etiqueta key={celdas} texto={`${celdas} por hoja`}>
+          <Etiqueta key={celdas} texto={t('acomoda.porHoja', { n: celdas })}>
             <Numero
               valor={(precios.color[celdas] ?? 0) / 100}
               paso={0.5}
@@ -597,7 +598,7 @@ function EditorPrecios({
           </Etiqueta>
         ))}
       <p className="mb-2 mt-3 font-mono text-micro uppercase text-grafito">
-        Blanco y negro, por hoja
+        {t('acomoda.blancoYNegroPorHoja')}
       </p>
       <Numero
         valor={precios.blancoYNegro / 100}
@@ -642,6 +643,7 @@ function Numero({
   max?: number;
   onCambio: (valor: number) => void;
 }) {
+  const { t } = useIdioma();
   const acotar = (v: number) => {
     const acotado = Math.max(min, max === undefined ? v : Math.min(max, v));
     // Se redondea a dos decimales: sumar 0.05 en coma flotante deja 0.30000000000000004.
@@ -663,7 +665,7 @@ function Numero({
       <span className="flex flex-col">
         <button
           type="button"
-          aria-label="Aumentar"
+          aria-label={t('acomoda.aumentar')}
           onClick={() => onCambio(acotar(valor + paso))}
           className="border border-l-0 border-linea-fuerte px-1 text-micro leading-none"
         >
@@ -671,7 +673,7 @@ function Numero({
         </button>
         <button
           type="button"
-          aria-label="Disminuir"
+          aria-label={t('acomoda.disminuir')}
           onClick={() => onCambio(acotar(valor - paso))}
           className="border border-l-0 border-t-0 border-linea-fuerte px-1 text-micro leading-none"
         >

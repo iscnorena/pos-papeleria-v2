@@ -7,6 +7,7 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { branches, inventories, productCategories, products } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { aCentavos, formatearCantidad } from '@/lib/money';
 import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { AjusteExistencia } from './AjusteExistencia';
@@ -18,6 +19,7 @@ export default async function PantallaInventario({
 }: {
   searchParams: Promise<Filtros>;
 }) {
+  const idioma = await obtenerIdioma();
   const filtros = await searchParams;
   const sucursalId = Number(filtros.sucursal);
   const categoriaId = Number(filtros.categoria);
@@ -79,28 +81,28 @@ export default async function PantallaInventario({
   return (
     <section>
       <EncabezadoPantalla
-        titulo="Inventario"
-        descripcion="Existencias por sucursal. Ajustar aquí fija la cantidad contada, no la suma."
+        titulo={t(idioma, 'inventario.titulo')}
+        descripcion={t(idioma, 'inventario.descripcion')}
       />
 
       {/* Filtros por GET: la búsqueda queda en la URL y se puede compartir o recargar. */}
       <form method="get" className="mb-6 flex flex-wrap items-end gap-3">
         <div className="flex flex-col gap-1">
           <label htmlFor="buscar" className="text-fino font-medium text-tinta">
-            Buscar
+            {t(idioma, 'comun.buscar')}
           </label>
           <input
             id="buscar"
             name="buscar"
             defaultValue={buscar}
-            placeholder="Nombre o código"
+            placeholder={t(idioma, 'admin.buscarPlaceholderNombreCodigo')}
             className="min-h-[2.5rem] w-56 border border-linea-fuerte bg-white px-3 text-base text-tinta"
           />
         </div>
 
         <div className="flex flex-col gap-1">
           <label htmlFor="sucursal" className="text-fino font-medium text-tinta">
-            Sucursal
+            {t(idioma, 'filtros.sucursal')}
           </label>
           <select
             id="sucursal"
@@ -108,7 +110,7 @@ export default async function PantallaInventario({
             defaultValue={filtros.sucursal ?? ''}
             className="min-h-[2.5rem] border border-linea-fuerte bg-white px-3 text-base text-tinta"
           >
-            <option value="">Todas</option>
+            <option value="">{t(idioma, 'comun.todas')}</option>
             {sucursales.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name}
@@ -119,7 +121,7 @@ export default async function PantallaInventario({
 
         <div className="flex flex-col gap-1">
           <label htmlFor="categoria" className="text-fino font-medium text-tinta">
-            Categoría
+            {t(idioma, 'caja.categoria')}
           </label>
           <select
             id="categoria"
@@ -127,7 +129,7 @@ export default async function PantallaInventario({
             defaultValue={filtros.categoria ?? ''}
             className="min-h-[2.5rem] border border-linea-fuerte bg-white px-3 text-base text-tinta"
           >
-            <option value="">Todas</option>
+            <option value="">{t(idioma, 'comun.todas')}</option>
             {categorias.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
@@ -140,13 +142,22 @@ export default async function PantallaInventario({
           type="submit"
           className="min-h-[2.5rem] border border-boligrafo-hondo bg-boligrafo px-4 font-medium text-white shadow-impresa hover:bg-boligrafo-hondo"
         >
-          Filtrar
+          {t(idioma, 'filtros.filtrar')}
         </button>
       </form>
 
-      <Tabla encabezados={['Producto', 'Código', 'Categoría', 'Sucursal', 'Existencia', 'Ajustar']}>
+      <Tabla
+        encabezados={[
+          t(idioma, 'dashboard.colProducto'),
+          t(idioma, 'dashboard.colCodigo'),
+          t(idioma, 'caja.categoria'),
+          t(idioma, 'inventario.colSucursal'),
+          t(idioma, 'dashboard.colExistencia'),
+          t(idioma, 'inventario.colAjustar'),
+        ]}
+      >
         {lista.length === 0 && (
-          <SinDatos columnas={6}>No hay existencias que coincidan con el filtro.</SinDatos>
+          <SinDatos columnas={6}>{t(idioma, 'inventario.sinExistencias')}</SinDatos>
         )}
         {lista.map((r) => {
           const stock = aCentavos(r.stock) ?? 0;
@@ -157,7 +168,7 @@ export default async function PantallaInventario({
                 {r.producto}
                 {!r.activo && (
                   <Distintivo tono="sello" className="ml-2">
-                    Inactivo
+                    {t(idioma, 'comun.inactivo')}
                   </Distintivo>
                 )}
               </Celda>

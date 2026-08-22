@@ -5,6 +5,7 @@ import { useActionState, useCallback, useEffect, useRef, useState } from 'react'
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { clases } from '@/lib/clases';
 import { entrarConContrasena, entrarConPin, type EstadoLogin } from './acciones';
 
@@ -15,20 +16,21 @@ const PIN_MINIMO = 4;
 type Pestana = 'contrasena' | 'pin';
 
 export function FormularioLogin({ siguiente }: { siguiente: string }) {
+  const { t } = useIdioma();
   const [pestana, setPestana] = useState<Pestana>('contrasena');
 
   return (
     <div>
       {/* Las pestañas son solapas de carpeta: se pegan al borde superior de la tarjeta y la
           activa se funde con ella tapando el filete de abajo. */}
-      <div role="tablist" aria-label="Cómo entrar" className="flex gap-1">
+      <div role="tablist" aria-label={t('login.comoEntrar')} className="flex gap-1">
         <Solapa
           activa={pestana === 'contrasena'}
           onClick={() => setPestana('contrasena')}
           id="tab-contrasena"
           panel="panel-contrasena"
         >
-          Contraseña
+          {t('login.pestanaContrasena')}
         </Solapa>
         <Solapa
           activa={pestana === 'pin'}
@@ -36,7 +38,7 @@ export function FormularioLogin({ siguiente }: { siguiente: string }) {
           id="tab-pin"
           panel="panel-pin"
         >
-          PIN
+          {t('login.pestanaPin')}
         </Solapa>
       </div>
 
@@ -85,6 +87,7 @@ function Solapa({
 }
 
 function PanelContrasena({ siguiente }: { siguiente: string }) {
+  const { t } = useIdioma();
   const [estado, accion, enviando] = useActionState(entrarConContrasena, INICIAL);
 
   return (
@@ -96,9 +99,15 @@ function PanelContrasena({ siguiente }: { siguiente: string }) {
       className="flex flex-col gap-4"
     >
       <input type="hidden" name="siguiente" value={siguiente} />
-      <Campo etiqueta="Usuario" name="usuario" autoComplete="username" autoFocus required />
       <Campo
-        etiqueta="Contraseña"
+        etiqueta={t('login.campoUsuario')}
+        name="usuario"
+        autoComplete="username"
+        autoFocus
+        required
+      />
+      <Campo
+        etiqueta={t('login.campoContrasena')}
         name="contrasena"
         type="password"
         autoComplete="current-password"
@@ -106,13 +115,14 @@ function PanelContrasena({ siguiente }: { siguiente: string }) {
       />
       {estado.error && <Aviso tono="error">{estado.error}</Aviso>}
       <Boton type="submit" disabled={enviando}>
-        {enviando ? 'Entrando…' : 'Entrar'}
+        {enviando ? t('login.entrando') : t('login.entrar')}
       </Boton>
     </form>
   );
 }
 
 function PanelPin({ siguiente }: { siguiente: string }) {
+  const { t } = useIdioma();
   const [estado, accion, enviando] = useActionState(entrarConPin, INICIAL);
   const [pin, setPin] = useState('');
   const formulario = useRef<HTMLFormElement>(null);
@@ -170,7 +180,7 @@ function PanelPin({ siguiente }: { siguiente: string }) {
       <div
         className="flex justify-center gap-2"
         aria-live="polite"
-        aria-label={`${pin.length} dígitos`}
+        aria-label={t('login.digitos', { n: pin.length })}
       >
         {Array.from({ length: PIN_MAXIMO }, (_, i) => (
           <span
@@ -195,7 +205,12 @@ function PanelPin({ siguiente }: { siguiente: string }) {
             {d}
           </Boton>
         ))}
-        <Boton variante="secundaria" tamano="tecla" onClick={borrar} aria-label="Borrar un dígito">
+        <Boton
+          variante="secundaria"
+          tamano="tecla"
+          onClick={borrar}
+          aria-label={t('login.borrarDigito')}
+        >
           ←
         </Boton>
         <Boton
@@ -210,9 +225,9 @@ function PanelPin({ siguiente }: { siguiente: string }) {
           type="submit"
           tamano="tecla"
           disabled={!completo || enviando}
-          aria-label="Entrar con PIN"
+          aria-label={t('login.entrarConPin')}
         >
-          {enviando ? '…' : 'Entrar'}
+          {enviando ? '…' : t('login.entrar')}
         </Boton>
       </div>
 

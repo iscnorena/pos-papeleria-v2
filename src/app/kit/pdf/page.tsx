@@ -5,8 +5,9 @@ import {
   IndiceHerramientasPublico,
   type ItemIndicePublico,
 } from '@/components/IndiceHerramientasPublico';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { idsPrivadosEntre } from '@/lib/toolSettings';
-import { subHerramientasPdfListas } from '@/tools/pdf/registro';
+import { nombreSubDe, descripcionSubDe, subHerramientasPdfListas } from '@/tools/pdf/registro';
 
 // Índice público de "Herramientas de PDF", sin sesión — cuelga de /kit. Mismo
 // criterio que el índice principal: pública por defecto, cada sub-herramienta desaparece
@@ -19,14 +20,15 @@ export const dynamic = 'force-dynamic';
 export const metadata: Metadata = { title: 'Herramientas de PDF' };
 
 export default async function ImprimirPdfPage() {
+  const idioma = await obtenerIdioma();
   const listas = subHerramientasPdfListas();
   const idsPrivados = await idsPrivadosEntre(listas.map((s) => s.id));
   const disponibles = listas.filter((s) => !idsPrivados.has(s.id));
 
   const items: ItemIndicePublico[] = disponibles.map((s) => ({
     id: s.id,
-    nombre: s.nombre,
-    descripcion: s.descripcion,
+    nombre: nombreSubDe(s.id, idioma),
+    descripcion: descripcionSubDe(s.id, idioma),
     icono: s.icono,
     rutaPublica: s.rutaPublica,
   }));
@@ -34,12 +36,12 @@ export default async function ImprimirPdfPage() {
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-5">
       <CabeceraPublica
-        titulo="Herramientas de PDF"
-        volver={{ href: '/kit', texto: 'Herramientas' }}
+        titulo={t(idioma, 'herramientas.nombrePdf')}
+        volver={{ href: '/kit', texto: t(idioma, 'nav.herramientas') }}
       />
       <IndiceHerramientasPublico
         items={items}
-        mensajeVacio="Por el momento no hay herramientas de PDF disponibles."
+        mensajeVacio={t(idioma, 'herramientas.sinPdfDisponiblesPublico')}
       />
     </div>
   );

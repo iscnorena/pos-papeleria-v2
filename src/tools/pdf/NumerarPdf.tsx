@@ -8,6 +8,8 @@ import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import { tamanoArchivo } from '@/lib/formato';
+import { useIdioma } from '@/lib/i18n/cliente';
+import type { ClaveI18n } from '@/lib/i18n/nucleo';
 import { inicioValido, numerarPdf, type PosicionNumero } from './numerar';
 import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 
@@ -16,15 +18,14 @@ import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 // herramientas de PDF. El número siempre va abajo; lo único elegible es la posición
 // horizontal (izquierda/centro/derecha) — sin selector de "arriba", que nadie pidió.
 
-const OPCIONES_POSICION: { valor: PosicionNumero; texto: string }[] = [
-  { valor: 'izquierda', texto: 'Abajo a la izquierda' },
-  { valor: 'centro', texto: 'Abajo al centro' },
-  { valor: 'derecha', texto: 'Abajo a la derecha' },
+const CLAVES_POSICION: { valor: PosicionNumero; clave: ClaveI18n }[] = [
+  { valor: 'izquierda', clave: 'pdf.abajoIzquierda' },
+  { valor: 'centro', clave: 'pdf.abajoCentro' },
+  { valor: 'derecha', clave: 'pdf.abajoDerecha' },
 ];
 
-const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya numerado.';
-
 export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
+  const { t } = useIdioma();
   const [archivo, setArchivo] = useState<ArchivoPdf | null>(null);
   const [inicioEn, setInicioEn] = useState(1);
   const [posicion, setPosicion] = useState<PosicionNumero>('centro');
@@ -43,7 +44,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
       setPosicion('centro');
     } catch {
       setAviso({
-        texto: 'Ese archivo no es un PDF válido (o está dañado). Intenta con otro.',
+        texto: t('pdf.archivoInvalido'),
         tono: 'error',
       });
     }
@@ -63,7 +64,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
       enlace.click();
       URL.revokeObjectURL(url);
     } catch {
-      setAviso({ texto: 'No se pudo numerar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoNumerar'), tono: 'error' });
     } finally {
       setGenerando(false);
     }
@@ -80,12 +81,12 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
           { bytes, nombreArchivo: `${archivo.nombre.replace(/\.pdf$/i, '')}-numerado.pdf` },
         ],
         whatsappNumber,
-        tituloCompartir: 'PDF numerado',
-        textoCompartir: TEXTO_WHATSAPP,
-        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+        tituloCompartir: t('pdf.whatsappTituloNumerado'),
+        textoCompartir: t('pdf.whatsappTextoNumerado'),
+        textoRespaldo: t('pdf.whatsappRespaldo', { texto: t('pdf.whatsappTextoNumerado') }),
       });
     } catch {
-      setAviso({ texto: 'No se pudo numerar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoNumerar'), tono: 'error' });
     } finally {
       setEnviando(false);
     }
@@ -96,13 +97,11 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">Tu PDF</h2>
-        <p className="mb-3 text-fino text-grafito">
-          Se procesa aquí mismo, en tu navegador: nunca sube a nuestros servidores.
-        </p>
+        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">{t('pdf.tuPdf')}</h2>
+        <p className="mb-3 text-fino text-grafito">{t('pdf.seProcesaSingular')}</p>
 
         <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
-          {archivo ? 'Cambiar PDF' : 'Agregar PDF'}
+          {archivo ? t('pdf.cambiarPdf') : t('pdf.agregarPdf')}
           <input
             type="file"
             accept="application/pdf,.pdf"
@@ -118,7 +117,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
           <p className="mt-3 text-fino text-tinta">
             {archivo.nombre}
             <span className="block text-micro text-grafito-claro">
-              {archivo.paginas} {archivo.paginas === 1 ? 'página' : 'páginas'} ·{' '}
+              {archivo.paginas} {archivo.paginas === 1 ? t('pdf.pagina') : t('pdf.paginas')} ·{' '}
               {tamanoArchivo(archivo.bytes.byteLength)}
             </span>
           </p>
@@ -127,24 +126,26 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
 
       {archivo && (
         <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Numeración</h2>
+          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">
+            {t('pdf.numeracion')}
+          </h2>
           <div className="grid grid-cols-2 gap-2">
             <Campo
-              etiqueta="Empezar en"
+              etiqueta={t('pdf.empezarEn')}
               type="number"
               min={1}
               value={inicioEn}
               onChange={(e) => setInicioEn(Number(e.target.value) || 1)}
             />
             <Selector
-              etiqueta="Posición"
-              opciones={OPCIONES_POSICION.map((o) => ({ valor: o.valor, texto: o.texto }))}
+              etiqueta={t('pdf.posicion')}
+              opciones={CLAVES_POSICION.map((o) => ({ valor: o.valor, texto: t(o.clave) }))}
               value={posicion}
               onChange={(e) => setPosicion(e.target.value as PosicionNumero)}
             />
           </div>
           <p className="mt-2 text-fino text-grafito">
-            La última hoja quedará con el {inicioValido(inicioEn) + archivo.paginas - 1}.
+            {t('pdf.ultimaHojaQuedara', { n: inicioValido(inicioEn) + archivo.paginas - 1 })}
           </p>
         </section>
       )}
@@ -159,7 +160,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
           disabled={!listo || generando || enviando}
           onClick={() => void numerarYDescargar()}
         >
-          {generando ? 'Numerando…' : 'Numerar y descargar'}
+          {generando ? t('pdf.numerando') : t('pdf.numerarYDescargar')}
         </Boton>
         {whatsappNumber && (
           <Boton
@@ -168,7 +169,7 @@ export function NumerarPdf({ whatsappNumber }: { whatsappNumber?: string } = {})
             disabled={!listo || generando || enviando}
             onClick={() => void numerarYEnviarPorWhatsapp()}
           >
-            {enviando ? 'Numerando…' : 'Enviar por WhatsApp'}
+            {enviando ? t('pdf.numerando') : t('pdf.enviarPorWhatsapp')}
           </Boton>
         )}
       </div>

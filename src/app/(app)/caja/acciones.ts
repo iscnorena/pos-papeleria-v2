@@ -17,35 +17,41 @@ import {
   sales,
 } from '@/db/schema';
 import { diaCompacto, diaDelNegocio } from '@/lib/fechas';
+import { obtenerIdioma, t, type Idioma } from '@/lib/i18n/servidor';
 import { aPesos, aCentavos } from '@/lib/money';
 import type { Resultado } from '@/lib/resultado';
 import { requerirSesion } from '@/lib/sesion';
 import { armarFolio, calcularRenglon, calcularVenta, repartirPagos } from '@/lib/venta';
 
-const esquema = z.object({
-  renglones: z
-    .array(
-      z.object({
-        productId: z.number().int().positive(),
-        cantidad: z.number().int().positive('La cantidad debe ser mayor que cero.'),
-        descuento: z.number().int().min(0),
-        // Solo se usa para productos marcados `openPrice` en el catálogo; para el resto se
-        // ignora y el precio se relee de la base (ver comentario de `registrarVenta`).
-        precioUnitario: z.number().int().min(0).max(POS.precioAbiertoMaximo).optional(),
-      }),
-    )
-    .min(1, 'El carrito está vacío.'),
-  descuentoGeneral: z.number().int().min(0),
-  pagos: z
-    .array(
-      z.object({
-        metodo: z.enum(['cash', 'card', 'transfer']),
-        monto: z.number().int().min(0),
-        referencia: z.string().trim().max(60).optional(),
-      }),
-    )
-    .min(1, 'Falta registrar el pago.'),
-});
+// El mensaje de cada validación depende del idioma de quien cobra, así que el esquema es
+// una función (no una constante de módulo) que arma los mensajes con `t()` una vez
+// resuelto el idioma de la sesión.
+function esquema(idioma: Idioma) {
+  return z.object({
+    renglones: z
+      .array(
+        z.object({
+          productId: z.number().int().positive(),
+          cantidad: z.number().int().positive(t(idioma, 'caja.cantidadMayorCero')),
+          descuento: z.number().int().min(0),
+          // Solo se usa para productos marcados `openPrice` en el catálogo; para el resto se
+          // ignora y el precio se relee de la base (ver comentario de `registrarVenta`).
+          precioUnitario: z.number().int().min(0).max(POS.precioAbiertoMaximo).optional(),
+        }),
+      )
+      .min(1, t(idioma, 'caja.carritoVacio')),
+    descuentoGeneral: z.number().int().min(0),
+    pagos: z
+      .array(
+        z.object({
+          metodo: z.enum(['cash', 'card', 'transfer']),
+          monto: z.number().int().min(0),
+          referencia: z.string().trim().max(60).optional(),
+        }),
+      )
+      .min(1, t(idioma, 'caja.faltaRegistrarPago')),
+  });
+}
 
 export type VentaRegistrada = {
   id: number;
@@ -64,10 +70,14 @@ export type VentaRegistrada = {
  */
 export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaRegistrada>> {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquema.safeParse(entrada);
+  const analisis = esquema(idioma).safeParse(entrada);
   if (!analisis.success) {
-    return { ok: false, error: analisis.error.issues[0]?.message ?? 'Revisa la venta.' };
+    return {
+      ok: false,
+      error: analisis.error.issues[0]?.message ?? t(idioma, 'caja.revisaLaVenta'),
+    };
   }
   const { renglones, descuentoGeneral, pagos: pagosPropuestos } = analisis.data;
 
@@ -77,7 +87,7 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
     .from(cashRegisterShifts)
     .where(and(eq(cashRegisterShifts.userId, sesion.userId), eq(cashRegisterShifts.status, 'open')))
     .limit(1);
-  if (!turno) return { ok: false, error: 'No tienes un turno abierto.' };
+  if (!turno) return { ok: false, error: t(idioma, 'caja.noTienesTurnoAbierto') };
 
   // Precios y costos SIEMPRE de la base, nunca del cliente.
   const ids = renglones.map((r) => r.productId);
@@ -97,12 +107,12 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
   const porId = new Map(catalogo.map((p) => [p.id, p]));
   for (const renglon of renglones) {
     const producto = porId.get(renglon.productId);
-    if (!producto) return { ok: false, error: 'Uno de los productos ya no existe.' };
+    if (!producto) return { ok: false, error: t(idioma, 'caja.productoYaNoExiste') };
     if (!producto.isActive) {
-      return { ok: false, error: `«${producto.name}» ya no está a la venta.` };
+      return { ok: false, error: t(idioma, 'caja.yaNoEstaALaVenta', { nombre: producto.name }) };
     }
     if (producto.openPrice && !(renglon.precioUnitario && renglon.precioUnitario > 0)) {
-      return { ok: false, error: `Falta el precio de «${producto.name}».` };
+      return { ok: false, error: t(idioma, 'caja.faltaElPrecioDe', { nombre: producto.name }) };
     }
   }
 
@@ -122,7 +132,9 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
   });
 
   const totales = calcularVenta(conPrecios, descuentoGeneral, POS.tasaImpuesto);
-  if (totales.total < 0) return { ok: false, error: 'El descuento no puede superar el total.' };
+  if (totales.total < 0) {
+    return { ok: false, error: t(idioma, 'caja.descuentoNoPuedeSuperarTotal') };
+  }
 
   const reparto = repartirPagos(pagosPropuestos, totales.total);
   if (!reparto.ok) return { ok: false, error: reparto.error };
@@ -243,9 +255,12 @@ export async function registrarVenta(entrada: unknown): Promise<Resultado<VentaR
     };
   } catch (error) {
     if (error instanceof SinExistencia) {
-      return { ok: false, error: `Sin existencia suficiente de ${error.producto}.` };
+      return {
+        ok: false,
+        error: t(idioma, 'caja.sinExistenciaSuficienteDe', { nombre: error.producto }),
+      };
     }
-    return { ok: false, error: 'No se pudo cobrar. Vuelve a intentarlo.' };
+    return { ok: false, error: t(idioma, 'caja.noSePudoCobrar') };
   }
 }
 

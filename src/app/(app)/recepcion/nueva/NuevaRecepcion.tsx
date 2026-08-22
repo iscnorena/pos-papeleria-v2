@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { useIdioma } from '@/lib/i18n/cliente';
+import type { ClaveI18n } from '@/lib/i18n/nucleo';
 import {
   crearRecepcionDesdeFoto,
   crearRecepcionDesdeTexto,
@@ -15,29 +17,24 @@ import { ModalClaveClaudeApi } from './ModalClaveClaudeApi';
 
 type Via = 'xml' | 'manual' | 'texto' | 'foto';
 
-const PESTANAS: [Via, string][] = [
-  ['xml', 'Importar XML'],
-  ['manual', 'Captura manual'],
-  ['texto', 'Pegar texto'],
-  ['foto', 'Subir foto'],
+const PESTANAS: [Via, ClaveI18n][] = [
+  ['xml', 'recepcion.pestanaImportarXml'],
+  ['manual', 'recepcion.pestanaCapturaManual'],
+  ['texto', 'recepcion.pestanaPegarTexto'],
+  ['foto', 'recepcion.pestanaSubirFoto'],
 ];
-
-const PROMPT_SUGERIDO = `Lee la foto de este ticket y dame el listado de productos, uno por línea, en este formato exacto y nada más (sin encabezados, sin texto antes o después):
-
-cantidad | descripción | costo unitario
-
-Cantidad y costo con punto decimal, sin $ ni comas de miles. El costo es el precio final de cada producto. Si no puedes leer con certeza algún dato, escribe ? en ese campo en vez de inventar un valor. No incluyas totales ni impuestos.`;
 
 function CamposProveedorYReferencia({
   proveedores,
 }: {
   proveedores: { id: number; name: string }[];
 }) {
+  const { t } = useIdioma();
   return (
     <>
       <div className="flex flex-col gap-1">
         <label htmlFor="supplierId" className="text-fino font-medium text-tinta">
-          Proveedor
+          {t('recepcion.proveedor')}
         </label>
         <select
           id="supplierId"
@@ -45,7 +42,7 @@ function CamposProveedorYReferencia({
           required
           className="min-h-[2.5rem] border border-linea-fuerte bg-white px-3 text-base text-tinta"
         >
-          <option value="">Elige un proveedor…</option>
+          <option value="">{t('recepcion.elegeProveedor')}</option>
           {proveedores.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
@@ -53,21 +50,19 @@ function CamposProveedorYReferencia({
           ))}
         </select>
         {proveedores.length === 0 && (
-          <p className="text-fino text-grafito">
-            No hay proveedores activos todavía — créalos en Administración → Proveedores.
-          </p>
+          <p className="text-fino text-grafito">{t('recepcion.sinProveedoresActivos')}</p>
         )}
       </div>
 
       <div className="flex flex-col gap-1">
         <label htmlFor="referenceNote" className="text-fino font-medium text-tinta">
-          Referencia (opcional)
+          {t('recepcion.referenciaOpcional')}
         </label>
         <input
           id="referenceNote"
           name="referenceNote"
           className="min-h-[2.5rem] border border-linea-fuerte bg-white px-3 text-base text-tinta"
-          placeholder="Folio interno, nota de remisión, etc."
+          placeholder={t('recepcion.referenciaPlaceholder')}
         />
       </div>
     </>
@@ -83,6 +78,7 @@ export function NuevaRecepcion({
   claudeActiva: boolean;
   esAdmin: boolean;
 }) {
+  const { t } = useIdioma();
   const router = useRouter();
   const [via, setVia] = useState<Via>('xml');
   const [error, setError] = useState<string | null>(null);
@@ -135,7 +131,7 @@ export function NuevaRecepcion({
   }
 
   function copiarPrompt() {
-    void navigator.clipboard.writeText(PROMPT_SUGERIDO);
+    void navigator.clipboard.writeText(t('recepcion.promptSugerido'));
   }
 
   return (
@@ -150,7 +146,7 @@ export function NuevaRecepcion({
               via === clave ? 'border-boligrafo text-boligrafo' : 'border-transparent text-grafito'
             }`}
           >
-            {etiqueta}
+            {t(etiqueta)}
           </button>
         ))}
       </div>
@@ -159,7 +155,7 @@ export function NuevaRecepcion({
         <form ref={formXmlRef} action={subirXml} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
             <label htmlFor="archivo" className="text-fino font-medium text-tinta">
-              Archivo XML (CFDI 4.0)
+              {t('recepcion.archivoXmlCfdi')}
             </label>
             <input
               id="archivo"
@@ -169,15 +165,13 @@ export function NuevaRecepcion({
               required
               className="border border-linea-fuerte bg-white px-3 py-2 text-base text-tinta"
             />
-            <p className="text-fino text-grafito">
-              Se lee para extraer proveedor, folio, líneas y totales. El archivo no se guarda.
-            </p>
+            <p className="text-fino text-grafito">{t('recepcion.xmlSeLee')}</p>
           </div>
 
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <Boton type="submit" disabled={enviando}>
-            {enviando ? 'Importando…' : 'Importar XML'}
+            {enviando ? t('recepcion.importando') : t('recepcion.pestanaImportarXml')}
           </Boton>
         </form>
       )}
@@ -189,7 +183,7 @@ export function NuevaRecepcion({
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <Boton type="submit" disabled={enviando || proveedores.length === 0}>
-            {enviando ? 'Creando…' : 'Crear recepción'}
+            {enviando ? t('recepcion.creando') : t('recepcion.crearRecepcion')}
           </Boton>
         </form>
       )}
@@ -199,23 +193,17 @@ export function NuevaRecepcion({
           <CamposProveedorYReferencia proveedores={proveedores} />
 
           <div className="border border-linea-fuerte bg-papel-hondo p-3">
-            <p className="text-fino text-grafito">
-              Tómale foto al ticket y pídele a Claude (en su app) que te dé el listado en este
-              formato, una línea por producto:
-            </p>
+            <p className="text-fino text-grafito">{t('recepcion.tomaFotoPide')}</p>
             <pre className="mt-2 whitespace-pre-wrap text-fino text-tinta">
-              cantidad | descripción | costo unitario
+              {t('recepcion.formatoLinea')}
             </pre>
-            <p className="mt-1 text-fino text-grafito">
-              Si Claude no está seguro de un dato, debe escribir «?» en vez de inventarlo — esa
-              línea se rechaza para que la corrijas.
-            </p>
+            <p className="mt-1 text-fino text-grafito">{t('recepcion.siClaudeNoEstaSeguro')}</p>
             <button
               type="button"
               onClick={copiarPrompt}
               className="mt-2 text-fino text-boligrafo underline underline-offset-2"
             >
-              Copiar instrucciones para Claude
+              {t('recepcion.copiarInstrucciones')}
             </button>
             {esAdmin && (
               <div className="mt-2">
@@ -226,16 +214,14 @@ export function NuevaRecepcion({
 
           <div className="flex flex-col gap-1">
             <label htmlFor="texto" className="text-fino font-medium text-tinta">
-              Listado pegado
+              {t('recepcion.listadoPegado')}
             </label>
             <textarea
               id="texto"
               name="texto"
               required
               rows={10}
-              placeholder={
-                '3 | Cuaderno profesional 100 hojas | 25.50\n1 | Caja de lápices Faber Castell 12 pzas | 45.00'
-              }
+              placeholder={t('recepcion.textoPlaceholderEjemplo')}
               className="border border-linea-fuerte bg-white px-3 py-2 font-mono text-fino text-tinta"
             />
           </div>
@@ -243,7 +229,7 @@ export function NuevaRecepcion({
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <Boton type="submit" disabled={enviando || proveedores.length === 0}>
-            {enviando ? 'Creando…' : 'Crear recepción'}
+            {enviando ? t('recepcion.creando') : t('recepcion.crearRecepcion')}
           </Boton>
         </form>
       )}
@@ -254,7 +240,7 @@ export function NuevaRecepcion({
 
           <div className="flex flex-col gap-1">
             <label htmlFor="archivo-foto" className="text-fino font-medium text-tinta">
-              Foto del ticket
+              {t('recepcion.fotoDelTicket')}
             </label>
             <input
               id="archivo-foto"
@@ -264,15 +250,13 @@ export function NuevaRecepcion({
               required
               className="border border-linea-fuerte bg-white px-3 py-2 text-base text-tinta"
             />
-            <p className="text-fino text-grafito">
-              Se manda a la API de Claude para leer el listado. La imagen no se guarda.
-            </p>
+            <p className="text-fino text-grafito">{t('recepcion.fotoSeManda')}</p>
           </div>
 
           {error && <Aviso tono="error">{error}</Aviso>}
 
           <Boton type="submit" disabled={enviando || proveedores.length === 0}>
-            {enviando ? 'Leyendo el ticket…' : 'Crear recepción'}
+            {enviando ? t('recepcion.leyendoTicket') : t('recepcion.crearRecepcion')}
           </Boton>
         </form>
       )}

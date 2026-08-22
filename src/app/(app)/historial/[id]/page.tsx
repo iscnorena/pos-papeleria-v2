@@ -5,16 +5,26 @@ import { asc, eq } from 'drizzle-orm';
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { Celda, Fila, Tabla } from '@/components/Tabla';
 import { Distintivo } from '@/components/ui/Distintivo';
-import { POS, type MetodoPago } from '@/config/pos';
+import type { MetodoPago } from '@/config/pos';
 import { db } from '@/db';
 import { branches, salePayments, saleItems, sales, users } from '@/db/schema';
 import { momento } from '@/lib/formato';
+import { obtenerIdioma, t, type ClaveI18n } from '@/lib/i18n/servidor';
 import { aCentavos, formatear, formatearCantidad } from '@/lib/money';
 import { requerirSesion } from '@/lib/sesion';
 import { BotonCancelar } from './BotonCancelar';
 
+// `POS.metodosPago` es config de negocio (no se traduce ahí, ver caja/turnos): este mapa
+// local apunta cada método a la misma clave del diccionario que ya usan esos módulos.
+const ETIQUETA_METODO: Record<MetodoPago, ClaveI18n> = {
+  cash: 'caja.efectivo',
+  card: 'caja.tarjeta',
+  transfer: 'caja.transferencia',
+};
+
 export default async function DetalleVenta({ params }: { params: Promise<{ id: string }> }) {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
   const { id } = await params;
   const ventaId = Number(id);
   if (!Number.isInteger(ventaId)) notFound();
@@ -56,7 +66,7 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
   return (
     <section>
       <EncabezadoPantalla
-        titulo={`Venta ${venta.folio}`}
+        titulo={t(idioma, 'historial.ventaTitulo', { folio: venta.folio })}
         descripcion={`${venta.sucursal} · ${venta.cajera}`}
       >
         <div className="flex items-center gap-2">
@@ -65,7 +75,7 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
             target="_blank"
             className="min-h-[2.5rem] border border-linea-fuerte bg-white px-4 py-2 font-medium text-tinta shadow-impresa hover:bg-papel-hondo"
           >
-            Ver ticket
+            {t(idioma, 'historial.verTicket')}
           </Link>
           {sesion.rol === 'admin' && !cancelada && (
             <BotonCancelar saleId={venta.id} folio={venta.folio} />
@@ -75,27 +85,41 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
 
       {cancelada && (
         <p className="mb-6 border border-sello bg-sello-tenue px-3 py-2 text-base text-sello-hondo">
-          Esta venta está cancelada. Sus existencias se devolvieron y no cuenta en los reportes.
+          {t(idioma, 'historial.ventaCanceladaAviso')}
         </p>
       )}
 
       <dl className="mb-8 grid gap-px border border-linea-fuerte bg-linea-fuerte sm:grid-cols-4">
-        <Dato etiqueta="Fecha">{momento(venta.createdAt)}</Dato>
-        <Dato etiqueta="Estado">
+        <Dato etiqueta={t(idioma, 'historial.colFecha')}>{momento(venta.createdAt, idioma)}</Dato>
+        <Dato etiqueta={t(idioma, 'filtros.estado')}>
           {cancelada ? (
-            <Distintivo tono="sello">Cancelada</Distintivo>
+            <Distintivo tono="sello">{t(idioma, 'turnos.cancelada')}</Distintivo>
           ) : (
-            <Distintivo tono="visto">Completada</Distintivo>
+            <Distintivo tono="visto">{t(idioma, 'turnos.completada')}</Distintivo>
           )}
         </Dato>
-        <Dato etiqueta="Total">{formatear(aCentavos(venta.total) ?? 0)}</Dato>
+        <Dato etiqueta={t(idioma, 'turnos.colTotal')}>
+          {formatear(aCentavos(venta.total) ?? 0)}
+        </Dato>
         {sesion.rol === 'admin' && (
-          <Dato etiqueta="Ganancia">{formatear(aCentavos(venta.ganancia) ?? 0)}</Dato>
+          <Dato etiqueta={t(idioma, 'turnos.ganancia')}>
+            {formatear(aCentavos(venta.ganancia) ?? 0)}
+          </Dato>
         )}
       </dl>
 
-      <h2 className="mb-3 font-display text-cuerpo font-semibold text-tinta">Renglones</h2>
-      <Tabla encabezados={['Producto', 'Cantidad', 'Precio', 'Descuento', 'Importe']}>
+      <h2 className="mb-3 font-display text-cuerpo font-semibold text-tinta">
+        {t(idioma, 'historial.renglones')}
+      </h2>
+      <Tabla
+        encabezados={[
+          t(idioma, 'dashboard.colProducto'),
+          t(idioma, 'caja.cantidad'),
+          t(idioma, 'caja.precio'),
+          t(idioma, 'caja.descuento'),
+          t(idioma, 'caja.importe'),
+        ]}
+      >
         {renglones.map((r) => (
           <Fila key={r.id}>
             {/* `product_name` se copió al vender: si el producto cambió de nombre después,
@@ -117,11 +141,19 @@ export default async function DetalleVenta({ params }: { params: Promise<{ id: s
         ))}
       </Tabla>
 
-      <h2 className="mb-3 mt-8 font-display text-cuerpo font-semibold text-tinta">Pagos</h2>
-      <Tabla encabezados={['Método', 'Importe', 'Referencia']}>
+      <h2 className="mb-3 mt-8 font-display text-cuerpo font-semibold text-tinta">
+        {t(idioma, 'historial.pagos')}
+      </h2>
+      <Tabla
+        encabezados={[
+          t(idioma, 'turnos.colMetodo'),
+          t(idioma, 'caja.importe'),
+          t(idioma, 'historial.colReferencia'),
+        ]}
+      >
         {pagos.map((p) => (
           <Fila key={p.id}>
-            <Celda>{POS.metodosPago[p.method as MetodoPago]}</Celda>
+            <Celda>{t(idioma, ETIQUETA_METODO[p.method as MetodoPago])}</Celda>
             <Celda mono className="text-right">
               {formatear(aCentavos(p.amount) ?? 0)}
             </Celda>

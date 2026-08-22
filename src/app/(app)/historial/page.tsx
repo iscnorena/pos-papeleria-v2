@@ -8,6 +8,7 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { PAGINACION } from '@/config/pos';
 import { diaDelNegocio } from '@/lib/fechas';
 import { momento } from '@/lib/formato';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { aCentavos, formatear } from '@/lib/money';
 import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { contarVentas, totalesDe, ventasDe, type Filtros } from '@/lib/reportes';
@@ -43,6 +44,7 @@ export default async function PantallaHistorial({
   searchParams: Promise<Busqueda>;
 }) {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
   const busqueda = await searchParams;
   const filtros = filtrosDe(busqueda);
   const pagina = paginaDeBusqueda(busqueda.pagina);
@@ -56,21 +58,37 @@ export default async function PantallaHistorial({
   return (
     <section>
       <EncabezadoPantalla
-        titulo="Historial de ventas"
-        descripcion={sesion.rol === 'admin' ? 'Todas las ventas del negocio.' : 'Tus ventas.'}
+        titulo={t(idioma, 'historial.titulo')}
+        descripcion={
+          sesion.rol === 'admin'
+            ? t(idioma, 'historial.descAdmin')
+            : t(idioma, 'historial.descCajera')
+        }
       />
 
       <FiltrosFecha sesion={sesion} valores={busqueda} conEstado />
 
       <dl className="mb-6 grid gap-px border border-linea-fuerte bg-linea-fuerte sm:grid-cols-4">
-        <Resumen etiqueta="Ventas" valor={String(totales.ventas)} />
-        <Resumen etiqueta="Ingreso" valor={formatear(totales.ingreso)} />
-        <Resumen etiqueta="Ganancia" valor={formatear(totales.ganancia)} />
-        <Resumen etiqueta="Canceladas" valor={String(totales.canceladas)} />
+        <Resumen etiqueta={t(idioma, 'turnos.ventas')} valor={String(totales.ventas)} />
+        <Resumen etiqueta={t(idioma, 'turnos.ingreso')} valor={formatear(totales.ingreso)} />
+        <Resumen etiqueta={t(idioma, 'turnos.ganancia')} valor={formatear(totales.ganancia)} />
+        <Resumen etiqueta={t(idioma, 'filtros.canceladas')} valor={String(totales.canceladas)} />
       </dl>
 
-      <Tabla encabezados={['Folio', 'Fecha', 'Cajera', 'Sucursal', 'Total', 'Estado', '']}>
-        {ventas.length === 0 && <SinDatos columnas={7}>No hay ventas en ese rango.</SinDatos>}
+      <Tabla
+        encabezados={[
+          t(idioma, 'turnos.colFolio'),
+          t(idioma, 'historial.colFecha'),
+          t(idioma, 'turnos.colCajera'),
+          t(idioma, 'filtros.sucursal'),
+          t(idioma, 'turnos.colTotal'),
+          t(idioma, 'filtros.estado'),
+          '',
+        ]}
+      >
+        {ventas.length === 0 && (
+          <SinDatos columnas={7}>{t(idioma, 'historial.sinVentasRango')}</SinDatos>
+        )}
         {ventas.map((v) => {
           const cancelada = v.status === 'cancelled';
           return (
@@ -79,7 +97,7 @@ export default async function PantallaHistorial({
               <Celda mono className={cancelada ? 'line-through' : ''}>
                 {v.folio}
               </Celda>
-              <Celda mono>{momento(v.createdAt)}</Celda>
+              <Celda mono>{momento(v.createdAt, idioma)}</Celda>
               <Celda>{v.cajera}</Celda>
               <Celda>{v.sucursal}</Celda>
               <Celda mono className={`text-right ${cancelada ? 'line-through' : ''}`}>
@@ -87,14 +105,14 @@ export default async function PantallaHistorial({
               </Celda>
               <Celda>
                 {cancelada ? (
-                  <Distintivo tono="sello">Cancelada</Distintivo>
+                  <Distintivo tono="sello">{t(idioma, 'turnos.cancelada')}</Distintivo>
                 ) : (
-                  <Distintivo tono="visto">Completada</Distintivo>
+                  <Distintivo tono="visto">{t(idioma, 'turnos.completada')}</Distintivo>
                 )}
               </Celda>
               <Celda>
                 <Link href={`/historial/${v.id}`} className="text-boligrafo underline">
-                  Ver
+                  {t(idioma, 'turnos.ver')}
                 </Link>
               </Celda>
             </Fila>

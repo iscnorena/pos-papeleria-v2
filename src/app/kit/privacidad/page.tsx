@@ -5,6 +5,7 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { POS, SEGURIDAD } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 
 // Aviso de privacidad simplificado (LFPDPPP) de la sección pública /kit. Redactado
 // contra lo que el código realmente hace, no contra una plantilla genérica — ver la
@@ -23,6 +24,7 @@ export const metadata: Metadata = { title: 'Aviso de privacidad' };
 export const dynamic = 'force-dynamic';
 
 export default async function PantallaAvisoPrivacidad() {
+  const idioma = await obtenerIdioma();
   const sucursales = await db
     .select({ name: branches.name, address: branches.address, phone: branches.phone })
     .from(branches)
@@ -34,56 +36,41 @@ export default async function PantallaAvisoPrivacidad() {
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
       <CabeceraPublica
-        titulo="Aviso de privacidad"
-        volver={{ href: '/kit', texto: 'Herramientas' }}
+        titulo={t(idioma, 'privacidad.titulo')}
+        volver={{ href: '/kit', texto: t(idioma, 'nav.herramientas') }}
       />
 
       <div className="flex flex-col gap-4 text-fino text-tinta">
         <p>
-          <strong>{POS.nombreNegocio}</strong> es el responsable del tratamiento de los datos
-          personales que se describen en este aviso, conforme a la Ley Federal de Protección de
-          Datos Personales en Posesión de los Particulares (LFPDPPP).
+          <strong>{POS.nombreNegocio}</strong> {t(idioma, 'privacidad.esResponsable')}
         </p>
 
         <section>
           <h2 className="mb-1 font-mono text-micro uppercase text-grafito">
-            Tus archivos y lo que escribes
+            {t(idioma, 'privacidad.seccionArchivos')}
           </h2>
-          <p>
-            Los PDF que subes a Dividir, Unir, Rotar, Numerar y Reordenar; las fotos que subes en
-            Acomodar impresión; y el texto y las imágenes que capturas en Hoja de libreta y
-            Generador de Rifas se procesan por completo dentro de tu propio navegador. Ninguno de
-            esos archivos ni datos se envía a nuestros servidores ni se guarda en ningún lado —
-            cuando cierras o recargas la página, desaparecen.
-          </p>
+          <p>{t(idioma, 'privacidad.textoArchivos')}</p>
         </section>
 
         <section>
           <h2 className="mb-1 font-mono text-micro uppercase text-grafito">
-            Lo único que sí registramos
+            {t(idioma, 'privacidad.seccionRegistramos')}
           </h2>
-          <p>
-            Al usar &quot;Buscar gratis&quot; en Acomodar impresión (búsqueda de fotos de bancos de
-            imágenes), registramos tu dirección IP únicamente para limitar cuántas búsquedas puedes
-            hacer en poco tiempo y evitar abusos del servicio. Esa IP se borra automáticamente a los{' '}
-            {retencionDias} días; no se usa para ningún otro fin.
-          </p>
-        </section>
-
-        <section>
-          <h2 className="mb-1 font-mono text-micro uppercase text-grafito">Transferencias</h2>
-          <p>
-            Esa misma búsqueda manda tu término de búsqueda (no tu IP ni ningún otro dato tuyo) a
-            los bancos de imágenes Unsplash, Pexels o Pixabay para traerte resultados. No
-            compartimos tus archivos, tu IP ni ningún otro dato personal con nadie más.
-          </p>
+          <p>{t(idioma, 'privacidad.textoRegistramos', { dias: retencionDias })}</p>
         </section>
 
         <section>
           <h2 className="mb-1 font-mono text-micro uppercase text-grafito">
-            Ejercer tus derechos (acceso, rectificación, cancelación u oposición)
+            {t(idioma, 'privacidad.seccionTransferencias')}
           </h2>
-          <p>Puedes acudir directamente a cualquiera de nuestras sucursales:</p>
+          <p>{t(idioma, 'privacidad.textoTransferencias')}</p>
+        </section>
+
+        <section>
+          <h2 className="mb-1 font-mono text-micro uppercase text-grafito">
+            {t(idioma, 'privacidad.seccionDerechos')}
+          </h2>
+          <p>{t(idioma, 'privacidad.acudeSucursales')}</p>
           <ul className="mt-2 flex flex-col gap-2">
             {sucursales.map((s) => (
               <li key={s.name} className="border border-linea-fuerte bg-white p-2">
@@ -95,10 +82,7 @@ export default async function PantallaAvisoPrivacidad() {
           </ul>
         </section>
 
-        <p className="text-micro text-grafito-claro">
-          Este aviso puede actualizarse; los cambios aplican desde que se publican en esta misma
-          página.
-        </p>
+        <p className="text-micro text-grafito-claro">{t(idioma, 'privacidad.notaActualizacion')}</p>
       </div>
     </div>
   );

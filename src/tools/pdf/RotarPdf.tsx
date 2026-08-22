@@ -7,6 +7,8 @@ import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import { tamanoArchivo } from '@/lib/formato';
+import { useIdioma } from '@/lib/i18n/cliente';
+import type { ClaveI18n } from '@/lib/i18n/nucleo';
 import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 import { paginasARotar, rotarPdf, type AnguloRotacion } from './rotar';
 
@@ -17,20 +19,19 @@ import { paginasARotar, rotarPdf, type AnguloRotacion } from './rotar';
 // pdf.js, que no está en el proyecto). El giro se acumula en pantalla como un solo número
 // (0/90/180/270) y se aplica de una vez al descargar, no en cada clic.
 
-const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya girado.';
-
 function normalizar(angulo: number): number {
   return ((angulo % 360) + 360) % 360;
 }
 
-function etiquetaGiro(angulo: number): string {
-  if (angulo === 0) return 'Sin girar todavía';
-  if (angulo === 90) return 'Se va a girar 90° a la derecha';
-  if (angulo === 180) return 'Se va a girar 180°';
-  return 'Se va a girar 90° a la izquierda'; // 270
+function claveEtiquetaGiro(angulo: number): ClaveI18n {
+  if (angulo === 0) return 'pdf.sinGirarTodavia';
+  if (angulo === 90) return 'pdf.girar90Derecha';
+  if (angulo === 180) return 'pdf.girar180';
+  return 'pdf.girar90Izquierda'; // 270
 }
 
 export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
+  const { t } = useIdioma();
   const [archivo, setArchivo] = useState<ArchivoPdf | null>(null);
   const [anguloTotal, setAnguloTotal] = useState(0);
   const [rangoTexto, setRangoTexto] = useState('');
@@ -49,7 +50,7 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
       setRangoTexto('');
     } catch {
       setAviso({
-        texto: 'Ese archivo no es un PDF válido (o está dañado). Intenta con otro.',
+        texto: t('pdf.archivoInvalido'),
         tono: 'error',
       });
     }
@@ -64,7 +65,7 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
   function validar(): { indices: Set<number> | null } | null {
     if (!archivo) return null;
     if (anguloTotal === 0) {
-      setAviso({ texto: 'Elige hacia dónde girar antes de continuar.', tono: 'error' });
+      setAviso({ texto: t('pdf.elegeHaciaDonde'), tono: 'error' });
       return null;
     }
     try {
@@ -91,7 +92,7 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
       enlace.click();
       URL.revokeObjectURL(url);
     } catch {
-      setAviso({ texto: 'No se pudo girar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoGirar'), tono: 'error' });
     } finally {
       setGenerando(false);
     }
@@ -109,12 +110,12 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
       await compartirPdfPorWhatsapp({
         archivos: [{ bytes, nombreArchivo: `${archivo.nombre.replace(/\.pdf$/i, '')}-girado.pdf` }],
         whatsappNumber,
-        tituloCompartir: 'PDF girado',
-        textoCompartir: TEXTO_WHATSAPP,
-        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+        tituloCompartir: t('pdf.whatsappTituloGirado'),
+        textoCompartir: t('pdf.whatsappTextoGirado'),
+        textoRespaldo: t('pdf.whatsappRespaldo', { texto: t('pdf.whatsappTextoGirado') }),
       });
     } catch {
-      setAviso({ texto: 'No se pudo girar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoGirar'), tono: 'error' });
     } finally {
       setEnviando(false);
     }
@@ -125,13 +126,11 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">Tu PDF</h2>
-        <p className="mb-3 text-fino text-grafito">
-          Se procesa aquí mismo, en tu navegador: nunca sube a nuestros servidores.
-        </p>
+        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">{t('pdf.tuPdf')}</h2>
+        <p className="mb-3 text-fino text-grafito">{t('pdf.seProcesaSingular')}</p>
 
         <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
-          {archivo ? 'Cambiar PDF' : 'Agregar PDF'}
+          {archivo ? t('pdf.cambiarPdf') : t('pdf.agregarPdf')}
           <input
             type="file"
             accept="application/pdf,.pdf"
@@ -147,7 +146,7 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
           <p className="mt-3 text-fino text-tinta">
             {archivo.nombre}
             <span className="block text-micro text-grafito-claro">
-              {archivo.paginas} {archivo.paginas === 1 ? 'página' : 'páginas'} ·{' '}
+              {archivo.paginas} {archivo.paginas === 1 ? t('pdf.pagina') : t('pdf.paginas')} ·{' '}
               {tamanoArchivo(archivo.bytes.byteLength)}
             </span>
           </p>
@@ -156,25 +155,27 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
 
       {archivo && (
         <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Hacia dónde</h2>
+          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">
+            {t('pdf.haciaDonde')}
+          </h2>
           <div className="grid grid-cols-3 gap-2">
             <Boton variante="secundaria" onClick={() => girar(-90)}>
-              ↺ Izquierda
+              {t('pdf.girarIzquierda')}
             </Boton>
             <Boton variante="secundaria" onClick={() => girar(180)}>
               180°
             </Boton>
             <Boton variante="secundaria" onClick={() => girar(90)}>
-              Derecha ↻
+              {t('pdf.girarDerecha')}
             </Boton>
           </div>
-          <p className="mt-2 text-fino text-grafito">{etiquetaGiro(anguloTotal)}</p>
+          <p className="mt-2 text-fino text-grafito">{t(claveEtiquetaGiro(anguloTotal))}</p>
 
           <div className="mt-3">
             <Campo
-              etiqueta="Páginas (opcional)"
-              placeholder="Ej. 1-3, 5"
-              ayuda={`Vacío = las ${archivo.paginas} páginas.`}
+              etiqueta={t('pdf.paginasOpcional')}
+              placeholder={t('pdf.ejemploPaginasRango')}
+              ayuda={t('pdf.vacioSonLasNPaginas', { n: archivo.paginas })}
               value={rangoTexto}
               onChange={(e) => setRangoTexto(e.target.value)}
             />
@@ -192,7 +193,7 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
           disabled={!listo || generando || enviando}
           onClick={() => void rotarYDescargar()}
         >
-          {generando ? 'Girando…' : 'Girar y descargar'}
+          {generando ? t('pdf.girando') : t('pdf.girarYDescargar')}
         </Boton>
         {whatsappNumber && (
           <Boton
@@ -201,7 +202,7 @@ export function RotarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
             disabled={!listo || generando || enviando}
             onClick={() => void rotarYEnviarPorWhatsapp()}
           >
-            {enviando ? 'Girando…' : 'Enviar por WhatsApp'}
+            {enviando ? t('pdf.girando') : t('pdf.enviarPorWhatsapp')}
           </Boton>
         )}
       </div>

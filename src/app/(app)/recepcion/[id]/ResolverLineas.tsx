@@ -7,6 +7,7 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Distintivo } from '@/components/ui/Distintivo';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { aCentavos, aCentesimas, formatear, formatearCantidad } from '@/lib/money';
 import { agregarLineaManual, editarLinea, eliminarLinea } from '../acciones';
 import { BuscadorProducto } from './BuscadorProducto';
@@ -33,6 +34,7 @@ export function ResolverLineas({
   lineas: LineaRecepcion[];
   categorias: { id: number; name: string }[];
 }) {
+  const { t } = useIdioma();
   const router = useRouter();
   const [buscadorAbierto, setBuscadorAbierto] = useState<number | null>(null);
 
@@ -45,7 +47,7 @@ export function ResolverLineas({
     <div className="flex flex-col gap-3">
       {lineas.length === 0 && (
         <p className="border border-linea-fuerte bg-papel-hondo p-4 text-base text-grafito">
-          Esta recepción todavía no tiene líneas.
+          {t('recepcion.sinLineas')}
         </p>
       )}
 
@@ -63,7 +65,7 @@ export function ResolverLineas({
               onClick={() => setBuscadorAbierto(linea.id)}
               className="mt-2 text-fino text-boligrafo underline"
             >
-              Vincular producto
+              {t('recepcion.vincularProducto')}
             </button>
           )}
 
@@ -84,7 +86,7 @@ export function ResolverLineas({
               onClick={() => setBuscadorAbierto(linea.id)}
               className="mt-2 text-fino text-boligrafo underline"
             >
-              Cambiar producto
+              {t('recepcion.cambiarProducto')}
             </button>
           )}
         </div>
@@ -96,6 +98,7 @@ export function ResolverLineas({
 }
 
 function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: () => void }) {
+  const { t } = useIdioma();
   const [descripcion, setDescripcion] = useState(linea.description);
   const [cantidad, setCantidad] = useState(formatearCantidad(aCentesimas(linea.quantity) ?? 0));
   const [costo, setCosto] = useState(((aCentavos(linea.unitCost) ?? 0) / 100).toFixed(2));
@@ -124,7 +127,7 @@ function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: (
     <div className="flex flex-wrap items-end gap-3">
       <div className="min-w-[14rem] flex-1">
         <Campo
-          etiqueta="Descripción"
+          etiqueta={t('recepcion.campoDescripcion')}
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
           onBlur={() => descripcion !== linea.description && guardar({ description: descripcion })}
@@ -132,14 +135,14 @@ function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: (
         />
         {linea.supplierCode && (
           <span className="font-mono text-micro text-grafito-claro">
-            Código: {linea.supplierCode}
+            {t('recepcion.codigo', { codigo: linea.supplierCode })}
           </span>
         )}
       </div>
 
       <div className="w-24">
         <Campo
-          etiqueta="Cantidad"
+          etiqueta={t('caja.cantidad')}
           value={cantidad}
           onChange={(e) => setCantidad(e.target.value)}
           onBlur={() => guardar({ quantity: cantidad })}
@@ -151,7 +154,7 @@ function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: (
 
       <div className="w-28">
         <Campo
-          etiqueta="Costo unitario"
+          etiqueta={t('recepcion.costoUnitario')}
           value={costo}
           onChange={(e) => setCosto(e.target.value)}
           onBlur={() => guardar({ unitCost: costo })}
@@ -162,23 +165,25 @@ function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: (
       </div>
 
       <div className="flex w-28 flex-col gap-1">
-        <span className="text-fino font-medium text-tinta">Total línea</span>
+        <span className="text-fino font-medium text-tinta">{t('recepcion.totalLinea')}</span>
         <span className="tabular min-h-[2.25rem] px-2 py-1 text-right font-mono text-base text-tinta">
           {formatear(aCentavos(linea.lineTotal) ?? 0)}
         </span>
       </div>
 
       <div className="flex flex-col gap-1">
-        <span className="text-fino font-medium text-tinta">Producto</span>
+        <span className="text-fino font-medium text-tinta">{t('recepcion.producto')}</span>
         {linea.productId !== null ? (
           <span className="text-base text-tinta">
             {linea.productName}{' '}
             {linea.productCode && <span className="text-grafito-claro">({linea.productCode})</span>}
           </span>
         ) : (
-          <Distintivo tono="sello">Sin vincular</Distintivo>
+          <Distintivo tono="sello">{t('recepcion.sinVincular')}</Distintivo>
         )}
-        {linea.alertaVariacion && <Distintivo tono="marcador">Costo varió {'>'} 15%</Distintivo>}
+        {linea.alertaVariacion && (
+          <Distintivo tono="marcador">{t('recepcion.costoVarioMas15')}</Distintivo>
+        )}
       </div>
 
       <button
@@ -187,7 +192,7 @@ function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: (
         disabled={enviando}
         className="ml-auto text-fino text-sello underline disabled:opacity-50"
       >
-        Eliminar
+        {t('comun.eliminar')}
       </button>
 
       {error && (
@@ -200,6 +205,7 @@ function FilaLinea({ linea, onCambiada }: { linea: LineaRecepcion; onCambiada: (
 }
 
 function AgregarLinea({ receiptId, onAgregada }: { receiptId: number; onAgregada: () => void }) {
+  const { t } = useIdioma();
   const [descripcion, setDescripcion] = useState('');
   const [cantidad, setCantidad] = useState('1');
   const [costo, setCosto] = useState('0.00');
@@ -230,15 +236,15 @@ function AgregarLinea({ receiptId, onAgregada }: { receiptId: number; onAgregada
     <div className="flex flex-wrap items-end gap-3 border border-dashed border-linea-fuerte p-3">
       <div className="min-w-[14rem] flex-1">
         <Campo
-          etiqueta="Descripción"
+          etiqueta={t('recepcion.campoDescripcion')}
           value={descripcion}
           onChange={(e) => setDescripcion(e.target.value)}
-          placeholder="Nombre del producto tal como lo factura el proveedor"
+          placeholder={t('recepcion.nombreProductoPlaceholder')}
         />
       </div>
       <div className="w-24">
         <Campo
-          etiqueta="Cantidad"
+          etiqueta={t('caja.cantidad')}
           value={cantidad}
           onChange={(e) => setCantidad(e.target.value)}
           inputMode="decimal"
@@ -247,7 +253,7 @@ function AgregarLinea({ receiptId, onAgregada }: { receiptId: number; onAgregada
       </div>
       <div className="w-28">
         <Campo
-          etiqueta="Costo unitario"
+          etiqueta={t('recepcion.costoUnitario')}
           value={costo}
           onChange={(e) => setCosto(e.target.value)}
           inputMode="decimal"
@@ -260,7 +266,7 @@ function AgregarLinea({ receiptId, onAgregada }: { receiptId: number; onAgregada
         disabled={enviando || descripcion.trim() === ''}
         onClick={agregar}
       >
-        {enviando ? 'Agregando…' : 'Agregar línea'}
+        {enviando ? t('recepcion.agregando') : t('recepcion.agregarLinea')}
       </Boton>
       {error && (
         <div className="w-full">

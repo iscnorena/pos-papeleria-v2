@@ -7,6 +7,7 @@ import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import { tamanoArchivo } from '@/lib/formato';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { cargarPdf, type ArchivoPdf } from './pdfArchivo';
 import { analizarOrden, reordenarPdf, textoOrdenActual, textoOrdenInvertido } from './reordenar';
 
@@ -19,9 +20,8 @@ import { analizarOrden, reordenarPdf, textoOrdenActual, textoOrdenInvertido } fr
 // vez de escribir todo desde cero, y "Invertir orden" cubre el caso más común (un
 // escáner dúplex que entregó las hojas al revés).
 
-const TEXTO_WHATSAPP = 'Hola, les mando este PDF ya reordenado.';
-
 export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {}) {
+  const { t } = useIdioma();
   const [archivo, setArchivo] = useState<ArchivoPdf | null>(null);
   const [ordenTexto, setOrdenTexto] = useState('');
   const [generando, setGenerando] = useState(false);
@@ -38,7 +38,7 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
       setOrdenTexto(textoOrdenActual(cargado.paginas));
     } catch {
       setAviso({
-        texto: 'Ese archivo no es un PDF válido (o está dañado). Intenta con otro.',
+        texto: t('pdf.archivoInvalido'),
         tono: 'error',
       });
     }
@@ -72,7 +72,7 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
       enlace.click();
       URL.revokeObjectURL(url);
     } catch {
-      setAviso({ texto: 'No se pudo reordenar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoReordenar'), tono: 'error' });
     } finally {
       setGenerando(false);
     }
@@ -92,12 +92,12 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
           { bytes, nombreArchivo: `${archivo.nombre.replace(/\.pdf$/i, '')}-reordenado.pdf` },
         ],
         whatsappNumber,
-        tituloCompartir: 'PDF reordenado',
-        textoCompartir: TEXTO_WHATSAPP,
-        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+        tituloCompartir: t('pdf.whatsappTituloReordenado'),
+        textoCompartir: t('pdf.whatsappTextoReordenado'),
+        textoRespaldo: t('pdf.whatsappRespaldo', { texto: t('pdf.whatsappTextoReordenado') }),
       });
     } catch {
-      setAviso({ texto: 'No se pudo reordenar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('pdf.noSePudoReordenar'), tono: 'error' });
     } finally {
       setEnviando(false);
     }
@@ -108,13 +108,11 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">Tu PDF</h2>
-        <p className="mb-3 text-fino text-grafito">
-          Se procesa aquí mismo, en tu navegador: nunca sube a nuestros servidores.
-        </p>
+        <h2 className="mb-1 font-mono text-micro uppercase text-grafito">{t('pdf.tuPdf')}</h2>
+        <p className="mb-3 text-fino text-grafito">{t('pdf.seProcesaSingular')}</p>
 
         <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
-          {archivo ? 'Cambiar PDF' : 'Agregar PDF'}
+          {archivo ? t('pdf.cambiarPdf') : t('pdf.agregarPdf')}
           <input
             type="file"
             accept="application/pdf,.pdf"
@@ -130,7 +128,7 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
           <p className="mt-3 text-fino text-tinta">
             {archivo.nombre}
             <span className="block text-micro text-grafito-claro">
-              {archivo.paginas} {archivo.paginas === 1 ? 'página' : 'páginas'} ·{' '}
+              {archivo.paginas} {archivo.paginas === 1 ? t('pdf.pagina') : t('pdf.paginas')} ·{' '}
               {tamanoArchivo(archivo.bytes.byteLength)}
             </span>
           </p>
@@ -139,10 +137,12 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
 
       {archivo && (
         <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Nuevo orden</h2>
+          <h2 className="mb-3 font-mono text-micro uppercase text-grafito">
+            {t('pdf.nuevoOrden')}
+          </h2>
           <Campo
-            etiqueta="Orden de páginas"
-            ayuda="Lista las páginas en el orden que quieras, separadas por comas."
+            etiqueta={t('pdf.ordenDePaginas')}
+            ayuda={t('pdf.listaPaginasAyuda')}
             value={ordenTexto}
             onChange={(e) => setOrdenTexto(e.target.value)}
           />
@@ -151,7 +151,7 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
             className="mt-2"
             onClick={() => setOrdenTexto(textoOrdenInvertido(archivo.paginas))}
           >
-            Invertir orden
+            {t('pdf.invertirOrden')}
           </Boton>
         </section>
       )}
@@ -166,7 +166,7 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
           disabled={!listo || generando || enviando}
           onClick={() => void reordenarYDescargar()}
         >
-          {generando ? 'Reordenando…' : 'Reordenar y descargar'}
+          {generando ? t('pdf.reordenando') : t('pdf.reordenarYDescargar')}
         </Boton>
         {whatsappNumber && (
           <Boton
@@ -175,7 +175,7 @@ export function ReordenarPdf({ whatsappNumber }: { whatsappNumber?: string } = {
             disabled={!listo || generando || enviando}
             onClick={() => void reordenarYEnviarPorWhatsapp()}
           >
-            {enviando ? 'Reordenando…' : 'Enviar por WhatsApp'}
+            {enviando ? t('pdf.reordenando') : t('pdf.enviarPorWhatsapp')}
           </Boton>
         )}
       </div>

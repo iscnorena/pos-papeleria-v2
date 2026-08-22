@@ -5,6 +5,7 @@ import { useState, type ReactNode } from 'react';
 import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import {
   CONFIG_POR_DEFECTO,
@@ -25,22 +26,24 @@ import { VistaPreviaPublica } from './VistaPreviaPublica';
 
 const LIMITE_IMAGENES = 20;
 
-const LAYOUTS: { etiqueta: string; filas: number; columnas: number }[] = [
-  { etiqueta: '1 foto', filas: 1, columnas: 1 },
-  { etiqueta: '2 fotos', filas: 1, columnas: 2 },
-  { etiqueta: '4 fotos', filas: 2, columnas: 2 },
-  { etiqueta: '6 fotos', filas: 2, columnas: 3 },
-];
-
-const CONFIG_INICIAL: Config = { ...CONFIG_POR_DEFECTO, orientacion: 'Horizontal' };
-
 export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) {
+  const { t } = useIdioma();
   const [imagenes, setImagenes] = useState<ImagenDelLote[]>([]);
-  const [config, setConfig] = useState<Config>(CONFIG_INICIAL);
+  const [config, setConfig] = useState<Config>({
+    ...CONFIG_POR_DEFECTO,
+    orientacion: 'Horizontal',
+  });
   const [pagina, setPagina] = useState(0);
   const [buscando, setBuscando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  const LAYOUTS: { etiqueta: string; filas: number; columnas: number }[] = [
+    { etiqueta: t('acomoda.layout1Foto'), filas: 1, columnas: 1 },
+    { etiqueta: t('acomoda.layout2Fotos'), filas: 1, columnas: 2 },
+    { etiqueta: t('acomoda.layout4Fotos'), filas: 2, columnas: 2 },
+    { etiqueta: t('acomoda.layout6Fotos'), filas: 2, columnas: 3 },
+  ];
 
   function aplicarConfig(cambios: Partial<Config>) {
     const nueva = { ...config, ...cambios };
@@ -54,12 +57,12 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
 
     const cabida = LIMITE_IMAGENES - imagenes.length;
     if (cabida <= 0) {
-      setAviso(`Ya tienes el máximo de ${LIMITE_IMAGENES} fotos.`);
+      setAviso(t('acomoda.maxFotos', { n: LIMITE_IMAGENES }));
       return;
     }
     const recortada = lista.slice(0, cabida);
     if (recortada.length < lista.length) {
-      setAviso(`Solo se agregaron ${recortada.length}: el máximo es ${LIMITE_IMAGENES} fotos.`);
+      setAviso(t('acomoda.soloSeAgregaron', { n: recortada.length, max: LIMITE_IMAGENES }));
     }
     const cargadas = await Promise.all(recortada.map((a) => cargarImagen(a, a.name)));
     setImagenes((actuales) => [...actuales, ...cargadas]);
@@ -91,13 +94,12 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
       await compartirPdfPorWhatsapp({
         archivos: [{ bytes, nombreArchivo: 'impresion.pdf' }],
         whatsappNumber,
-        tituloCompartir: 'Impresión',
-        textoCompartir: 'Hola, les mando este archivo para imprimir 🖨️',
-        textoRespaldo:
-          'Hola, les mando mi archivo para imprimir 🖨️ (acabo de descargar el PDF, se los adjunto aquí).',
+        tituloCompartir: t('acomoda.whatsappTitulo'),
+        textoCompartir: t('acomoda.whatsappTexto'),
+        textoRespaldo: t('acomoda.whatsappRespaldo'),
       });
     } catch {
-      setAviso('No se pudo generar el PDF. Revisa que las fotos sean JPG o PNG.');
+      setAviso(t('acomoda.errorGenerarPdfFotos'));
     } finally {
       setEnviando(false);
     }
@@ -106,19 +108,17 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
   return (
     <div className="mx-auto w-full max-w-md px-4 pb-10 pt-6">
       <CabeceraPublica
-        titulo="Acomodar impresión"
-        descripcion="Arma tu impresión y mándala por WhatsApp"
-        volver={{ href: '/kit', texto: 'Herramientas' }}
+        titulo={t('acomoda.tituloPublico')}
+        descripcion={t('acomoda.descPublico')}
+        volver={{ href: '/kit', texto: t('nav.herramientas') }}
       />
 
       <div className="flex flex-col gap-5">
-        <Seccion titulo="Tus fotos">
-          <p className="text-fino text-grafito">
-            Se procesan aquí mismo, en tu navegador: nunca suben a nuestros servidores.
-          </p>
+        <Seccion titulo={t('acomoda.tusFotos')}>
+          <p className="text-fino text-grafito">{t('acomoda.seProcesanAqui')}</p>
           <div className="flex flex-wrap gap-2">
             <label className="flex min-h-tecla flex-1 cursor-pointer items-center justify-center border border-boligrafo-hondo bg-boligrafo px-4 text-center text-cuerpo font-medium text-white shadow-impresa">
-              Agregar fotos
+              {t('acomoda.agregarFotos')}
               <input
                 type="file"
                 accept="image/*"
@@ -131,7 +131,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
               />
             </label>
             <Boton tamano="tecla" variante="secundaria" onClick={() => setBuscando(true)}>
-              Buscar gratis
+              {t('acomoda.buscarGratis')}
             </Boton>
           </div>
 
@@ -152,7 +152,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
                   <span className="flex-1 truncate text-fino text-tinta">{imagen.nombre}</span>
                   <button
                     type="button"
-                    aria-label={`Subir ${imagen.nombre}`}
+                    aria-label={t('acomoda.subirNombre', { nombre: imagen.nombre })}
                     disabled={indice === 0}
                     onClick={() => moverImagen(indice, -1)}
                     className="px-2 py-1 text-base text-tinta disabled:opacity-30"
@@ -161,7 +161,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
                   </button>
                   <button
                     type="button"
-                    aria-label={`Bajar ${imagen.nombre}`}
+                    aria-label={t('acomoda.bajarNombre', { nombre: imagen.nombre })}
                     disabled={indice === imagenes.length - 1}
                     onClick={() => moverImagen(indice, 1)}
                     className="px-2 py-1 text-base text-tinta disabled:opacity-30"
@@ -170,7 +170,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
                   </button>
                   <button
                     type="button"
-                    aria-label={`Quitar ${imagen.nombre}`}
+                    aria-label={t('acomoda.quitarNombre', { nombre: imagen.nombre })}
                     onClick={() => quitarImagen(imagen.id)}
                     className="px-2 py-1 text-base text-sello"
                   >
@@ -182,7 +182,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
           )}
         </Seccion>
 
-        <Seccion titulo="¿Cuántas fotos por hoja?">
+        <Seccion titulo={t('acomoda.cuantasFotosPorHoja')}>
           <div className="grid grid-cols-2 gap-2">
             {LAYOUTS.map((l) => {
               const activo = config.filas === l.filas && config.columnas === l.columnas;
@@ -206,7 +206,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
 
           <div className="mt-3 grid grid-cols-2 gap-2">
             <label className="flex flex-col gap-1">
-              <span className="text-fino text-grafito">Papel</span>
+              <span className="text-fino text-grafito">{t('acomoda.papel')}</span>
               <select
                 value={config.papel}
                 onChange={(e) => aplicarConfig({ papel: e.target.value as Papel })}
@@ -218,21 +218,21 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
               </select>
             </label>
             <label className="flex flex-col gap-1">
-              <span className="text-fino text-grafito">Orientación</span>
+              <span className="text-fino text-grafito">{t('acomoda.orientacion')}</span>
               <select
                 value={config.orientacion}
                 onChange={(e) => aplicarConfig({ orientacion: e.target.value as Orientacion })}
                 className="min-h-tecla border border-linea-fuerte bg-white px-2 text-base"
               >
-                <option value="Vertical">Vertical</option>
-                <option value="Horizontal">Horizontal</option>
+                <option value="Vertical">{t('acomoda.vertical')}</option>
+                <option value="Horizontal">{t('acomoda.horizontal')}</option>
               </select>
             </label>
           </div>
         </Seccion>
 
         {imagenes.length > 0 && (
-          <Seccion titulo="Vista previa">
+          <Seccion titulo={t('acomoda.vistaPrevia')}>
             <VistaPreviaPublica
               config={config}
               imagenes={imagenes}
@@ -250,7 +250,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
           disabled={imagenes.length === 0 || enviando}
           onClick={() => void enviarPorWhatsapp()}
         >
-          {enviando ? 'Preparando…' : 'Enviar por WhatsApp'}
+          {enviando ? t('acomoda.preparando') : t('acomoda.enviarPorWhatsapp')}
         </Boton>
       </div>
 
@@ -268,7 +268,7 @@ export function ImprimirPublico({ whatsappNumber }: { whatsappNumber: string }) 
             setBuscando(false);
             if (recortados.length < blobs.length) {
               setAviso(
-                `Solo se agregaron ${recortados.length}: el máximo es ${LIMITE_IMAGENES} fotos.`,
+                t('acomoda.soloSeAgregaron', { n: recortados.length, max: LIMITE_IMAGENES }),
               );
             }
           })();

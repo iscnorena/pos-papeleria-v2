@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 
+import { useIdioma } from '@/lib/i18n/cliente';
 import {
   ALTO_MAX_IMAGEN_HEADER,
   ANCHO_MAX_IMAGEN_HEADER,
@@ -11,7 +12,7 @@ import {
   COLOR_BORDE,
   COLOR_FILA_PAR,
   COLOR_FONDO_DEFECTO,
-  ENCABEZADOS_TABLA,
+  encabezadosTabla,
   GAP_IMAGEN_TEXTO,
   HEADER_HEIGHT,
   MARGIN,
@@ -51,6 +52,7 @@ function cargarImagenSiHay(src: string | undefined): Promise<HTMLImageElement | 
 
 export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pagina: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { idioma, t } = useIdioma();
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -101,7 +103,7 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
         textoAncho -= ancho + GAP_IMAGEN_TEXTO;
       }
 
-      const lineas = lineasHeader(config);
+      const lineas = lineasHeader(config, idioma);
       const alturaBloque = lineas.reduce((acc, l) => acc + l.tamano * 1.3, 0);
       let y = MARGIN + HEADER_HEIGHT / 2 - alturaBloque / 2;
       for (const linea of lineas) {
@@ -133,21 +135,22 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
       const colContactoX = colNombreX + colNombreW;
       const colContactoW = TABLE_W * COL_CONTACTO;
 
+      const [textoColNumero, textoColNombre, textoColContacto] = encabezadosTabla(idioma);
       ctx.fillStyle = colorTexto;
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(
-        ENCABEZADOS_TABLA[0],
+        textoColNumero,
         colNumeroX + colNumeroW / 2,
         yEncabezadoTabla + TABLE_HEADER_ROW / 2 + 3,
       );
       ctx.fillText(
-        ENCABEZADOS_TABLA[1],
+        textoColNombre,
         colNombreX + colNombreW / 2,
         yEncabezadoTabla + TABLE_HEADER_ROW / 2 + 3,
       );
       ctx.fillText(
-        ENCABEZADOS_TABLA[2],
+        textoColContacto,
         colContactoX + colContactoW / 2,
         yEncabezadoTabla + TABLE_HEADER_ROW / 2 + 3,
       );
@@ -190,13 +193,13 @@ export function VistaPreviaCanvas({ config, pagina }: { config: RaffleConfig; pa
       cargarImagenSiHay(config.raffleImage),
       cargarImagenSiHay(config.prizeImage),
     ]).then(([logo, imagenPremio]) => dibujar(logo, imagenPremio));
-  }, [config, pagina]);
+  }, [config, pagina, idioma]);
 
   return (
     <canvas
       ref={canvasRef}
       role="img"
-      aria-label="Vista previa de la hoja de rifa"
+      aria-label={t('rifas.vistaPreviaAriaLabel')}
       className="w-full border border-linea-fuerte bg-white shadow-impresa"
     />
   );

@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import type { Metadata } from 'next';
 
+import { SelectorIdioma } from '@/components/ui/SelectorIdioma';
 import { SelectorTema } from '@/components/ui/SelectorTema';
 import { POS } from '@/config/pos';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 
 // Layout compartido de la sección pública /kit (sin sesión). Dueño de min-h-dvh y
 // bg-papel: las páginas hijas ya no declaran ninguno de los dos, para no duplicar el
@@ -18,7 +20,9 @@ export const metadata: Metadata = {
   description: 'Herramientas gratis para imprimir, sin necesidad de cuenta.',
 };
 
-export default function LayoutImprimir({ children }: { children: React.ReactNode }) {
+export default async function LayoutImprimir({ children }: { children: React.ReactNode }) {
+  const idioma = await obtenerIdioma();
+
   return (
     <div className="flex min-h-dvh flex-col bg-papel">
       <header className="border-b border-linea-fuerte bg-white px-4 py-3">
@@ -26,10 +30,13 @@ export default function LayoutImprimir({ children }: { children: React.ReactNode
           <Link href="/kit" className="inline-block">
             <p className="font-display text-cuerpo font-semibold text-tinta">{POS.nombreNegocio}</p>
             <p className="font-mono text-micro uppercase text-grafito-claro">
-              Herramientas gratis · sin cuenta
+              {t(idioma, 'kit.eslogan')}
             </p>
           </Link>
-          <SelectorTema />
+          <div className="flex items-center gap-2">
+            <SelectorIdioma />
+            <SelectorTema />
+          </div>
         </div>
       </header>
 
@@ -40,7 +47,7 @@ export default function LayoutImprimir({ children }: { children: React.ReactNode
           href="/kit/privacidad"
           className="font-mono text-micro uppercase text-grafito-claro hover:text-tinta"
         >
-          Aviso de privacidad
+          {t(idioma, 'kit.avisoPrivacidad')}
         </Link>
       </footer>
     </div>

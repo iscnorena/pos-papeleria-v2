@@ -2,10 +2,11 @@ import { notFound } from 'next/navigation';
 
 import { EncabezadoPantalla } from '@/components/EncabezadoPantalla';
 import { InterruptorPublico } from '@/components/InterruptorPublico';
+import { obtenerIdioma } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
 import { requerirSesion } from '@/lib/sesion';
 import { ReordenarPdf } from '@/tools/pdf/ReordenarPdf';
-import { subHerramientaPdfPorId } from '@/tools/pdf/registro';
+import { subHerramientaPdfPorId, nombreSubDe, descripcionSubDe } from '@/tools/pdf/registro';
 
 // A diferencia del registro principal, las sub-herramientas de PDF no tienen roles
 // propios: cualquiera con sesión (admin o cajera) que pueda ver "Herramientas de PDF"
@@ -13,6 +14,7 @@ import { subHerramientaPdfPorId } from '@/tools/pdf/registro';
 
 export default async function PantallaReordenarPdf() {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const sub = subHerramientaPdfPorId('reordenar');
   if (!sub) notFound();
@@ -21,7 +23,10 @@ export default async function PantallaReordenarPdf() {
 
   return (
     <section className="flex flex-col gap-4">
-      <EncabezadoPantalla titulo={sub.nombre} descripcion={sub.descripcion} />
+      <EncabezadoPantalla
+        titulo={nombreSubDe('reordenar', idioma)}
+        descripcion={descripcionSubDe('reordenar', idioma)}
+      />
       {sesion.rol === 'admin' && (
         <InterruptorPublico id="reordenar" publicaInicial={publica} rutaPublica={sub.rutaPublica} />
       )}

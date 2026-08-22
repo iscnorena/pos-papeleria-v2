@@ -1,5 +1,6 @@
 'use client';
 
+import { useIdioma } from '@/lib/i18n/cliente';
 import {
   celdasDePagina,
   tamanoPagina,
@@ -23,6 +24,7 @@ export function VistaPreviaPublica({
   pagina: number;
   onCambiarPagina: (pagina: number) => void;
 }) {
+  const { t } = useIdioma();
   const { ancho: anchoPagina, alto: altoPagina } = tamanoPagina(config);
 
   const celdas = celdasDePagina(config, imagenes, pagina);
@@ -36,7 +38,7 @@ export function VistaPreviaPublica({
       <div
         className="relative mx-auto w-full max-w-sm border border-linea-fuerte bg-white shadow-alzada"
         style={{ aspectRatio: `${anchoPagina} / ${altoPagina}` }}
-        aria-label={`Hoja ${pagina + 1} de ${paginas}`}
+        aria-label={t('acomoda.hojaDePaginas', { pagina: pagina + 1, paginas })}
       >
         {celdas.map(({ celda, imagen, imagenId, rotada, deformar }, indice) => {
           const datos = imagenId ? porMiniatura.get(imagenId) : null;
@@ -109,7 +111,7 @@ export function VistaPreviaPublica({
             ◀
           </button>
           <span className="font-mono text-base text-tinta" data-prueba="paginacion">
-            Hoja {pagina + 1} de {paginas}
+            {t('acomoda.hojaDePaginas', { pagina: pagina + 1, paginas })}
           </span>
           <button
             type="button"

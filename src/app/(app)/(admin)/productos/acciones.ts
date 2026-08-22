@@ -9,45 +9,53 @@ import { db } from '@/db';
 import { productSuppliers, products } from '@/db/schema';
 import { calcularCostoConsolidado } from '@/lib/costeo';
 import { asegurarInventario } from '@/lib/inventario';
+import { obtenerIdioma, t, type Idioma } from '@/lib/i18n/servidor';
 import { aCentavos, aPesos } from '@/lib/money';
 import { erroresDeZod, type EstadoFormulario, type Resultado } from '@/lib/resultado';
 import { exigirRol } from '@/lib/sesion';
 
 // El dinero entra como texto del formulario y sale como `numeric` para Postgres. En medio
 // vive en centavos enteros (§2): esta es una de las dos fronteras de conversión.
-const dinero = (etiqueta: string) =>
+const dinero = (idioma: Idioma, etiqueta: string) =>
   z
     .string()
     .trim()
     .transform((texto, ctx) => {
       const centavos = aCentavos(texto);
       if (centavos === null) {
-        ctx.addIssue({ code: 'custom', message: `${etiqueta} no es una cantidad válida.` });
+        ctx.addIssue({
+          code: 'custom',
+          message: t(idioma, 'comun.cantidadNoValida', { etiqueta }),
+        });
         return z.NEVER;
       }
       if (centavos < 0) {
-        ctx.addIssue({ code: 'custom', message: `${etiqueta} no puede ser negativo.` });
+        ctx.addIssue({
+          code: 'custom',
+          message: t(idioma, 'comun.cantidadNegativa', { etiqueta }),
+        });
         return z.NEVER;
       }
       return centavos;
     });
 
-const esquema = z.object({
-  id: z.coerce.number().int().positive().optional(),
-  name: z
-    .string()
-    .trim()
-    .min(1, 'El producto necesita un nombre.')
-    .max(160, 'Nombre demasiado largo.'),
-  code: z.string().trim().max(60, 'Código demasiado largo.').optional(),
-  categoryId: z.coerce.number().int().positive().optional(),
-  costPrice: dinero('El costo'),
-  salePrice: dinero('El precio de venta'),
-  managesInventory: z.boolean(),
-  openPrice: z.boolean(),
-  expiryDate: z.string().trim().optional(),
-  isActive: z.boolean(),
-});
+const esquema = (idioma: Idioma) =>
+  z.object({
+    id: z.coerce.number().int().positive().optional(),
+    name: z
+      .string()
+      .trim()
+      .min(1, t(idioma, 'productos.errorNombreRequerido'))
+      .max(160, t(idioma, 'admin.nombreDemasiadoLargo')),
+    code: z.string().trim().max(60, t(idioma, 'admin.codigoDemasiadoLargo')).optional(),
+    categoryId: z.coerce.number().int().positive().optional(),
+    costPrice: dinero(idioma, t(idioma, 'admin.colCosto')),
+    salePrice: dinero(idioma, t(idioma, 'productos.precioVentaEtiqueta')),
+    managesInventory: z.boolean(),
+    openPrice: z.boolean(),
+    expiryDate: z.string().trim().optional(),
+    isActive: z.boolean(),
+  });
 
 export async function guardarProducto(
   _previo: EstadoFormulario,
@@ -55,8 +63,9 @@ export async function guardarProducto(
 ): Promise<EstadoFormulario> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { error: permiso.error };
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquema.safeParse({
+  const analisis = esquema(idioma).safeParse({
     id: datos.get('id') || undefined,
     name: datos.get('name'),
     code: datos.get('code') || undefined,
@@ -87,16 +96,19 @@ export async function guardarProducto(
       if (valores.managesInventory) await asegurarInventario(id);
     } else {
       const [creado] = await db.insert(products).values(valores).returning({ id: products.id });
-      if (!creado) return { error: 'No se pudo crear el producto.' };
+      if (!creado) return { error: t(idioma, 'productos.errorNoSePudoCrear') };
       if (valores.managesInventory) await asegurarInventario(creado.id);
     }
   } catch {
-    return { error: 'No se pudo guardar el producto. Inténtalo de nuevo.' };
+    return { error: t(idioma, 'productos.errorNoSePudoGuardar') };
   }
 
   revalidatePath('/productos');
   revalidatePath('/inventario');
-  return { ok: true, mensaje: id ? 'Producto actualizado.' : 'Producto creado.' };
+  return {
+    ok: true,
+    mensaje: id ? t(idioma, 'productos.exitoActualizado') : t(idioma, 'productos.exitoCreado'),
+  };
 }
 
 /**
@@ -109,11 +121,12 @@ export async function guardarProducto(
 export async function marcarProveedorPreferido(entrada: unknown): Promise<Resultado<undefined>> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { ok: false, error: permiso.error };
+  const idioma = await obtenerIdioma();
 
   const analisis = z
     .object({ productId: z.number().int().positive(), supplierId: z.number().int().positive() })
     .safeParse(entrada);
-  if (!analisis.success) return { ok: false, error: 'Datos no válidos.' };
+  if (!analisis.success) return { ok: false, error: t(idioma, 'admin.datosNoValidos') };
   const { productId, supplierId } = analisis.data;
 
   await db.transaction(async (tx) => {

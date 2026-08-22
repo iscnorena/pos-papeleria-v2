@@ -6,21 +6,31 @@ import { z } from 'zod';
 
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t, type Idioma } from '@/lib/i18n/servidor';
 import { erroresDeZod, type EstadoFormulario } from '@/lib/resultado';
 import { exigirRol } from '@/lib/sesion';
 
-const esquema = z.object({
-  id: z.coerce.number().int().positive().optional(),
-  name: z
-    .string()
-    .trim()
-    .min(1, 'La sucursal necesita un nombre.')
-    .max(120, 'Nombre demasiado largo.'),
-  address: z.string().trim().max(200, 'Dirección demasiado larga.').optional(),
-  phone: z.string().trim().max(40, 'Teléfono demasiado largo.').optional(),
-  whatsappNumber: z.string().trim().max(20, 'Número demasiado largo.').optional(),
-  isActive: z.boolean(),
-});
+const esquema = (idioma: Idioma) =>
+  z.object({
+    id: z.coerce.number().int().positive().optional(),
+    name: z
+      .string()
+      .trim()
+      .min(1, t(idioma, 'sucursales.errorNombreRequerido'))
+      .max(120, t(idioma, 'admin.nombreDemasiadoLargo')),
+    address: z
+      .string()
+      .trim()
+      .max(200, t(idioma, 'sucursales.errorDireccionDemasiadoLarga'))
+      .optional(),
+    phone: z.string().trim().max(40, t(idioma, 'admin.telefonoDemasiadoLargo')).optional(),
+    whatsappNumber: z
+      .string()
+      .trim()
+      .max(20, t(idioma, 'sucursales.errorNumeroDemasiadoLargo'))
+      .optional(),
+    isActive: z.boolean(),
+  });
 
 export async function guardarSucursal(
   _previo: EstadoFormulario,
@@ -30,6 +40,7 @@ export async function guardarSucursal(
   // una Server Action se puede invocar sin pasar por ninguna página.
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { error: permiso.error };
+  const idioma = await obtenerIdioma();
 
   const crudo = {
     id: datos.get('id') || undefined,
@@ -40,7 +51,7 @@ export async function guardarSucursal(
     isActive: datos.get('isActive') === 'on',
   };
 
-  const analisis = esquema.safeParse(crudo);
+  const analisis = esquema(idioma).safeParse(crudo);
   if (!analisis.success) return { errores: erroresDeZod(analisis.error) };
 
   const { id, ...valores } = analisis.data;
@@ -52,9 +63,12 @@ export async function guardarSucursal(
       await db.insert(branches).values(valores);
     }
   } catch {
-    return { error: 'No se pudo guardar la sucursal. Inténtalo de nuevo.' };
+    return { error: t(idioma, 'sucursales.errorNoSePudoGuardar') };
   }
 
   revalidatePath('/sucursales');
-  return { ok: true, mensaje: id ? 'Sucursal actualizada.' : 'Sucursal creada.' };
+  return {
+    ok: true,
+    mensaje: id ? t(idioma, 'sucursales.exitoActualizada') : t(idioma, 'sucursales.exitoCreada'),
+  };
 }

@@ -8,6 +8,7 @@ import { db } from '@/db';
 import { inventories, products } from '@/db/schema';
 import { diaDelNegocio } from '@/lib/fechas';
 import { momento } from '@/lib/formato';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { aCentavos, formatear, formatearCantidad } from '@/lib/money';
 import { totalesDe } from '@/lib/reportes';
 import { requerirSesion } from '@/lib/sesion';
@@ -21,6 +22,7 @@ const EXISTENCIA_BAJA = '5.00';
 
 export default async function Tablero() {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
   const hoy = diaDelNegocio();
 
   const [totales, turno, bajas] = await Promise.all([
@@ -49,53 +51,71 @@ export default async function Tablero() {
 
   return (
     <section>
-      <EncabezadoPantalla titulo={`Buen día, ${sesion.nombre}`} descripcion={`Hoy es ${hoy}.`} />
+      <EncabezadoPantalla
+        titulo={t(idioma, 'dashboard.buenDia', { nombre: sesion.nombre })}
+        descripcion={t(idioma, 'dashboard.hoyEs', { fecha: hoy })}
+      />
 
       <dl className="mb-8 grid gap-px border border-linea-fuerte bg-linea-fuerte sm:grid-cols-3">
-        <Cifra etiqueta="Ventas de hoy" valor={String(totales.ventas)} />
-        <Cifra etiqueta="Ingreso de hoy" valor={formatear(totales.ingreso)} />
+        <Cifra etiqueta={t(idioma, 'dashboard.ventasHoy')} valor={String(totales.ventas)} />
+        <Cifra etiqueta={t(idioma, 'dashboard.ingresoHoy')} valor={formatear(totales.ingreso)} />
         {/* La ganancia es información de negocio: la cajera ve su ingreso, no el margen. */}
         {sesion.rol === 'admin' ? (
-          <Cifra etiqueta="Ganancia de hoy" valor={formatear(totales.ganancia)} />
+          <Cifra
+            etiqueta={t(idioma, 'dashboard.gananciaHoy')}
+            valor={formatear(totales.ganancia)}
+          />
         ) : (
-          <Cifra etiqueta="Canceladas" valor={String(totales.canceladas)} />
+          <Cifra etiqueta={t(idioma, 'filtros.canceladas')} valor={String(totales.canceladas)} />
         )}
       </dl>
 
       <div className="mb-8 border border-linea-fuerte bg-white p-5 shadow-impresa">
-        <h2 className="mb-2 font-mono text-micro uppercase text-grafito">Turno</h2>
+        <h2 className="mb-2 font-mono text-micro uppercase text-grafito">
+          {t(idioma, 'dashboard.turno')}
+        </h2>
         {turno ? (
           <p className="text-cuerpo text-tinta">
-            Tienes el turno <span className="font-mono">#{turno.id}</span> abierto desde{' '}
-            {momento(turno.openedAt)}, con un fondo de{' '}
-            {formatear(aCentavos(turno.openingAmount) ?? 0)}.{' '}
+            {t(idioma, 'dashboard.turnoAbierto', {
+              id: turno.id,
+              fecha: momento(turno.openedAt, idioma),
+              fondo: formatear(aCentavos(turno.openingAmount) ?? 0),
+            })}{' '}
             <Link href={`/turnos/${turno.id}/cerrar`} className="text-boligrafo underline">
-              Cerrarlo
+              {t(idioma, 'dashboard.cerrarlo')}
             </Link>
           </p>
         ) : (
           <p className="text-cuerpo text-tinta">
-            No tienes turno abierto.{' '}
+            {t(idioma, 'dashboard.sinTurno')}{' '}
             <Link href="/turnos/abrir" className="text-boligrafo underline">
-              Abrir uno
+              {t(idioma, 'dashboard.abrirUno')}
             </Link>{' '}
-            para poder vender.
+            {t(idioma, 'dashboard.paraVender')}
           </p>
         )}
       </div>
 
       <div className="mb-8 flex flex-wrap gap-2">
-        <Acceso href="/caja">Ir a la caja</Acceso>
-        <Acceso href="/historial">Historial</Acceso>
-        {sesion.rol === 'admin' && <Acceso href="/reportes">Reportes</Acceso>}
+        <Acceso href="/caja">{t(idioma, 'dashboard.irCaja')}</Acceso>
+        <Acceso href="/historial">{t(idioma, 'nav.historial')}</Acceso>
+        {sesion.rol === 'admin' && <Acceso href="/reportes">{t(idioma, 'nav.reportes')}</Acceso>}
       </div>
 
       <h2 className="mb-3 font-display text-cuerpo font-semibold text-tinta">
-        Existencias bajas en tu sucursal
+        {t(idioma, 'dashboard.existenciasBajas')}
       </h2>
-      <Tabla encabezados={['Producto', 'Código', 'Existencia']}>
+      <Tabla
+        encabezados={[
+          t(idioma, 'dashboard.colProducto'),
+          t(idioma, 'dashboard.colCodigo'),
+          t(idioma, 'dashboard.colExistencia'),
+        ]}
+      >
         {bajas.length === 0 && (
-          <SinDatos columnas={3}>Nada por debajo de {formatearCantidad(500)} piezas.</SinDatos>
+          <SinDatos columnas={3}>
+            {t(idioma, 'dashboard.nadaPorDebajo', { n: formatearCantidad(500) })}
+          </SinDatos>
         )}
         {bajas.map((p) => {
           const stock = aCentavos(p.stock) ?? 0;
@@ -105,7 +125,7 @@ export default async function Tablero() {
               <Celda mono>{p.codigo ?? '—'}</Celda>
               <Celda mono className="text-right">
                 {stock <= 0 ? (
-                  <Distintivo tono="sello">Agotado</Distintivo>
+                  <Distintivo tono="sello">{t(idioma, 'dashboard.agotado')}</Distintivo>
                 ) : (
                   formatearCantidad(stock)
                 )}

@@ -5,6 +5,7 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
 import { GeneradorLibreta } from '@/tools/libreta/GeneradorLibreta';
 
@@ -27,6 +28,7 @@ export default async function ImprimirLibretaPage({
   const publica = await esHerramientaPublica('libreta');
   if (!publica) return <HerramientaNoDisponible />;
 
+  const idioma = await obtenerIdioma();
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -43,9 +45,9 @@ export default async function ImprimirLibretaPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Hoja de libreta"
-        descripcion="Genera hojas con rayado o cuadrícula, con los datos del alumno."
-        volver={{ href: '/kit', texto: 'Herramientas' }}
+        titulo={t(idioma, 'herramientas.nombreLibreta')}
+        descripcion={t(idioma, 'herramientas.descLibreta')}
+        volver={{ href: '/kit', texto: t(idioma, 'nav.herramientas') }}
       />
       <GeneradorLibreta whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

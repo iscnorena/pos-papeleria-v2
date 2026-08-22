@@ -6,6 +6,8 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
 import { POS, type MetodoPago } from '@/config/pos';
+import { useIdioma } from '@/lib/i18n/cliente';
+import type { ClaveI18n } from '@/lib/i18n/nucleo';
 import { aCentavos, formatear } from '@/lib/money';
 import { usarCarrito } from './carrito';
 import { registrarVenta, type VentaRegistrada } from './acciones';
@@ -14,6 +16,14 @@ import { registrarVenta, type VentaRegistrada } from './acciones';
 // rápido. El cambio se muestra y NO se guarda (§7.2).
 
 const IMPORTES_RAPIDOS = [5000, 10000, 20000, 50000]; // centavos: $50, $100, $200, $500
+
+// `POS.metodosPago` (src/config/pos.ts) es config de negocio, no de interfaz — se queda en
+// español ahí. Lo que se muestra en pantalla sale de este mapa, no de esos valores.
+const ETIQUETA_METODO: Record<MetodoPago, ClaveI18n> = {
+  cash: 'caja.efectivo',
+  card: 'caja.tarjeta',
+  transfer: 'caja.transferencia',
+};
 
 type PagoEnPantalla = { metodo: MetodoPago; monto: number; referencia?: string };
 
@@ -28,6 +38,7 @@ export function ModalCobro({
   onCerrar: () => void;
   onCobrado: (venta: VentaRegistrada) => void;
 }) {
+  const { t } = useIdioma();
   const [pagos, setPagos] = useState<PagoEnPantalla[]>([]);
   const [metodo, setMetodo] = useState<MetodoPago>('cash');
   const [montoTexto, setMontoTexto] = useState('');
@@ -86,7 +97,7 @@ export function ModalCobro({
   }
 
   return (
-    <Modal abierto={abierto} onCerrar={onCerrar} titulo="Cobrar">
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo={t('caja.cobrar')}>
       {/* Criterio 6: la venta se cobra sin tocar el mouse. El camino completo es
           F2 → buscar → Enter → F12 → teclear importe → Enter → F12. La segunda F12 es
           esta: la misma tecla que abre el cobro lo confirma cuando ya alcanza. */}
@@ -99,7 +110,7 @@ export function ModalCobro({
         }}
       >
         <div className="flex items-baseline justify-between border-b border-linea pb-3">
-          <span className="text-cuerpo text-grafito">Total</span>
+          <span className="text-cuerpo text-grafito">{t('caja.total')}</span>
           <span className="tabular font-display text-cifra font-semibold text-tinta">
             {formatear(total)}
           </span>
@@ -121,14 +132,14 @@ export function ModalCobro({
                   : 'flex-1 border border-linea-fuerte bg-white px-2 py-2 text-base text-tinta hover:bg-papel-hondo'
               }
             >
-              {POS.metodosPago[m]}
+              {t(ETIQUETA_METODO[m])}
             </button>
           ))}
         </div>
 
         <div className="mt-3 flex gap-2">
           <label className="sr-only" htmlFor="monto-pago">
-            Importe
+            {t('caja.importe')}
           </label>
           <input
             id="monto-pago"
@@ -141,25 +152,25 @@ export function ModalCobro({
               }
             }}
             inputMode="decimal"
-            placeholder="Importe"
+            placeholder={t('caja.importe')}
             className="tabular min-h-[2.5rem] flex-1 border border-linea-fuerte bg-white px-3 text-right font-mono text-cuerpo"
           />
           <Boton variante="secundaria" onClick={() => agregarPago(aCentavos(montoTexto) ?? 0)}>
-            Agregar
+            {t('caja.agregar')}
           </Boton>
         </div>
 
         {(metodo === 'card' || metodo === 'transfer') && (
           <div className="mt-2">
             <label className="sr-only" htmlFor="referencia-pago">
-              Folio o referencia
+              {t('caja.folioOReferencia')}
             </label>
             <input
               id="referencia-pago"
               value={referenciaTexto}
               onChange={(e) => setReferenciaTexto(e.target.value)}
               maxLength={60}
-              placeholder="Folio de la terminal (opcional)"
+              placeholder={t('caja.folioTerminalPlaceholder')}
               className="min-h-[2.5rem] w-full border border-linea-fuerte bg-white px-3 text-base text-tinta"
             />
           </div>
@@ -182,7 +193,7 @@ export function ModalCobro({
             disabled={restante <= 0}
             className="border border-linea-fuerte bg-white px-3 py-1 font-mono text-fino text-tinta hover:bg-papel-hondo disabled:opacity-50"
           >
-            Exacto
+            {t('caja.exacto')}
           </button>
         </div>
 
@@ -191,7 +202,7 @@ export function ModalCobro({
             {pagos.map((pago, i) => (
               <li key={i} className="flex items-center justify-between py-1.5">
                 <span className="text-base text-tinta">
-                  {POS.metodosPago[pago.metodo]}
+                  {t(ETIQUETA_METODO[pago.metodo])}
                   {pago.referencia && (
                     <span className="ml-1 text-fino text-grafito-claro">· {pago.referencia}</span>
                   )}
@@ -202,10 +213,10 @@ export function ModalCobro({
                 <button
                   type="button"
                   onClick={() => setPagos((actuales) => actuales.filter((_, j) => j !== i))}
-                  aria-label={`Quitar pago de ${formatear(pago.monto)}`}
+                  aria-label={t('caja.quitarPagoDe', { monto: formatear(pago.monto) })}
                   className="ml-3 text-fino text-sello underline"
                 >
-                  Quitar
+                  {t('caja.quitar')}
                 </button>
               </li>
             ))}
@@ -214,11 +225,13 @@ export function ModalCobro({
 
         <dl className="mt-4 space-y-1">
           <div className="flex justify-between">
-            <dt className="text-base text-grafito">Entregado</dt>
+            <dt className="text-base text-grafito">{t('caja.entregado')}</dt>
             <dd className="tabular font-mono text-base text-tinta">{formatear(entregado)}</dd>
           </div>
           <div className="flex justify-between">
-            <dt className="text-base text-grafito">{restante > 0 ? 'Falta' : 'Cambio'}</dt>
+            <dt className="text-base text-grafito">
+              {restante > 0 ? t('caja.falta') : t('caja.cambio')}
+            </dt>
             <dd
               data-prueba="cambio"
               className={`tabular font-mono text-cifra ${restante > 0 ? 'text-sello' : 'text-visto'}`}
@@ -236,10 +249,10 @@ export function ModalCobro({
 
         <div className="mt-5 flex gap-2">
           <Boton onClick={cobrar} disabled={!alcanza || guardando} className="flex-1">
-            {guardando ? 'Cobrando…' : 'Confirmar cobro (F12)'}
+            {guardando ? t('caja.cobrando') : t('caja.confirmarCobroF12')}
           </Boton>
           <Boton variante="secundaria" onClick={onCerrar} disabled={guardando}>
-            Cancelar
+            {t('comun.cancelar')}
           </Boton>
         </div>
       </div>

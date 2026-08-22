@@ -2,6 +2,7 @@
 
 import { useMemo } from 'react';
 
+import { useIdioma } from '@/lib/i18n/cliente';
 import {
   celdasDePagina,
   tamanoPagina,
@@ -28,6 +29,7 @@ export function VistaPrevia({
   onCambiarPagina: (pagina: number) => void;
   onSoltarSobre: (indiceDestino: number) => void;
 }) {
+  const { t } = useIdioma();
   const { ancho: anchoPagina, alto: altoPagina } = tamanoPagina(config);
   const escala = ANCHO_EN_PANTALLA / anchoPagina;
 
@@ -45,7 +47,7 @@ export function VistaPrevia({
       <div
         className="relative border border-linea-fuerte bg-white shadow-alzada"
         style={{ width: anchoPagina * escala, height: altoPagina * escala }}
-        aria-label={`Hoja ${pagina + 1} de ${paginas}`}
+        aria-label={t('acomoda.hojaDePaginas', { pagina: pagina + 1, paginas })}
       >
         {celdas.map(({ celda, imagen, imagenId, rotada, deformar }, indice) => {
           const datos = imagenId ? porMiniatura.get(imagenId) : null;
@@ -122,10 +124,10 @@ export function VistaPrevia({
           disabled={pagina <= 0}
           className="border border-linea-fuerte bg-white px-3 py-1.5 text-base text-tinta shadow-impresa disabled:opacity-40"
         >
-          ◀ Anterior
+          {t('acomoda.paginaAnterior')}
         </button>
         <span className="font-mono text-base text-tinta" data-prueba="paginacion">
-          Página {pagina + 1} de {paginas}
+          {t('acomoda.paginaDe', { pagina: pagina + 1, paginas })}
         </span>
         <button
           type="button"
@@ -133,7 +135,7 @@ export function VistaPrevia({
           disabled={pagina >= paginas - 1}
           className="border border-linea-fuerte bg-white px-3 py-1.5 text-base text-tinta shadow-impresa disabled:opacity-40"
         >
-          Siguiente ▶
+          {t('acomoda.paginaSiguiente')}
         </button>
       </div>
     </div>

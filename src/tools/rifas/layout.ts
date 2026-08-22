@@ -1,3 +1,5 @@
+import { t, type Idioma } from '@/lib/i18n/nucleo';
+
 // Motor puro de la hoja de control de rifa: una sola fuente de verdad para el PDF
 // (pdf.ts) y la vista previa en <canvas> (VistaPreviaCanvas.tsx). Ninguna de las dos debe
 // recalcular estos valores por su cuenta — si se duplicara el cálculo, la vista previa y
@@ -34,7 +36,16 @@ export const COLOR_FILA_PAR = '#F8FAFC';
 export const COLOR_BORDE = '#CBD5E1';
 export const COLOR_FONDO_DEFECTO = '#17212F'; // "tinta" de la paleta del proyecto
 
-export const ENCABEZADOS_TABLA = ['No. Boleto', 'Nombre', 'Contacto'] as const;
+/** Encabezados de la tabla, en el idioma pedido — función y no una constante porque el
+ *  texto cambia con el idioma (ver src/lib/i18n). Reutiliza `admin.nombre`/`admin.contacto`,
+ *  que ya significan exactamente lo mismo en otras pantallas. */
+export function encabezadosTabla(idioma: Idioma): readonly [string, string, string] {
+  return [
+    t(idioma, 'rifas.tablaNumBoleto'),
+    t(idioma, 'admin.nombre'),
+    t(idioma, 'admin.contacto'),
+  ];
+}
 
 /** Tamaño máximo del logo y de la foto del premio dentro del header (mismo tope para
  * los dos: van en extremos opuestos, simétricos). */
@@ -158,6 +169,7 @@ export type LineaHeader = { texto: string; tamano: number; negrita: boolean; sec
  */
 export function lineasHeader(
   config: Pick<RaffleConfig, 'eventName' | 'prize' | 'date' | 'cost' | 'organizer' | 'phone'>,
+  idioma: Idioma,
 ): LineaHeader[] {
   const lineas: LineaHeader[] = [];
 
@@ -165,7 +177,12 @@ export function lineasHeader(
     lineas.push({ texto: config.eventName, tamano: 18, negrita: true, secundario: false });
   }
   if (config.prize) {
-    lineas.push({ texto: `Premio: ${config.prize}`, tamano: 11, negrita: false, secundario: true });
+    lineas.push({
+      texto: t(idioma, 'rifas.lineaPremio', { premio: config.prize }),
+      tamano: 11,
+      negrita: false,
+      secundario: true,
+    });
   }
 
   // El costo siempre lleva "$" al frente, lo haya tecleado el usuario o no (y sin
@@ -173,11 +190,11 @@ export function lineasHeader(
   const costoConSigno = config.cost ? `$${config.cost.replace(/^\$+\s*/, '')}` : '';
   const fechaCosto =
     config.date && costoConSigno
-      ? `Fecha: ${config.date}  |  Costo: ${costoConSigno}`
+      ? t(idioma, 'rifas.lineaFechaCosto', { fecha: config.date, costo: costoConSigno })
       : config.date
-        ? `Fecha: ${config.date}`
+        ? t(idioma, 'rifas.lineaFecha', { fecha: config.date })
         : costoConSigno
-          ? `Costo: ${costoConSigno}`
+          ? t(idioma, 'rifas.lineaCosto', { costo: costoConSigno })
           : '';
   if (fechaCosto) lineas.push({ texto: fechaCosto, tamano: 9, negrita: false, secundario: true });
 

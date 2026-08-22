@@ -1,6 +1,7 @@
 import fontkit from '@pdf-lib/fontkit';
 import { PDFDocument, rgb, type PDFFont } from 'pdf-lib';
 
+import { t, type Idioma } from '@/lib/i18n/nucleo';
 import {
   ALTO_MAX_IMAGEN_HEADER,
   ANCHO_MAX_IMAGEN_HEADER,
@@ -10,7 +11,7 @@ import {
   COLOR_BORDE,
   COLOR_FILA_PAR,
   COLOR_FONDO_DEFECTO,
-  ENCABEZADOS_TABLA,
+  encabezadosTabla,
   GAP_IMAGEN_TEXTO,
   HEADER_HEIGHT,
   MARGIN,
@@ -133,6 +134,7 @@ export type ResultadoPdfRifas = {
 
 export async function generarPdfRifas(
   config: RaffleConfig,
+  idioma: Idioma,
   onProgress?: (actual: number, total: number) => void,
 ): Promise<ResultadoPdfRifas> {
   const documento = await PDFDocument.create();
@@ -142,12 +144,12 @@ export async function generarPdfRifas(
   const sanear = (campo: string, texto: string, fuente: PDFFont) =>
     sanearCampo(campo, texto, fuente, camposModificados);
 
-  const eventName = sanear('Nombre del evento', config.eventName, bold);
-  const prize = sanear('Premio', config.prize, regular);
-  const date = sanear('Fecha', config.date, regular);
-  const cost = sanear('Costo', config.cost, regular);
-  const organizer = sanear('Organizador', config.organizer, regular);
-  const phone = sanear('Teléfono', config.phone, regular);
+  const eventName = sanear(t(idioma, 'rifas.nombreDelEvento'), config.eventName, bold);
+  const prize = sanear(t(idioma, 'rifas.premio'), config.prize, regular);
+  const date = sanear(t(idioma, 'comun.fecha'), config.date, regular);
+  const cost = sanear(t(idioma, 'rifas.costo'), config.cost, regular);
+  const organizer = sanear(t(idioma, 'rifas.organizador'), config.organizer, regular);
+  const phone = sanear(t(idioma, 'admin.telefono'), config.phone, regular);
 
   const colorFondo = config.backgroundColor || COLOR_FONDO_DEFECTO;
   const colorTexto = color(colorTextoPrincipal(colorFondo));
@@ -217,7 +219,7 @@ export async function generarPdfRifas(
       textoAncho -= imagenPremio.ancho + GAP_IMAGEN_TEXTO;
     }
 
-    const lineas = lineasHeader({ eventName, prize, date, cost, organizer, phone });
+    const lineas = lineasHeader({ eventName, prize, date, cost, organizer, phone }, idioma);
 
     const alturaBloque = lineas.reduce((acc, l) => acc + l.tamano * 1.3, 0);
     let yLinea = yHeader + HEADER_HEIGHT / 2 + alturaBloque / 2;
@@ -246,10 +248,11 @@ export async function generarPdfRifas(
       height: TABLE_HEADER_ROW,
       color: colorHeader,
     });
+    const [textoColNumero, textoColNombre, textoColContacto] = encabezadosTabla(idioma);
     const columnas = [
-      { x: colNumeroX, ancho: colNumeroW, texto: ENCABEZADOS_TABLA[0] },
-      { x: colNombreX, ancho: colNombreW, texto: ENCABEZADOS_TABLA[1] },
-      { x: colContactoX, ancho: colContactoW, texto: ENCABEZADOS_TABLA[2] },
+      { x: colNumeroX, ancho: colNumeroW, texto: textoColNumero },
+      { x: colNombreX, ancho: colNombreW, texto: textoColNombre },
+      { x: colContactoX, ancho: colContactoW, texto: textoColContacto },
     ];
     for (const col of columnas) {
       pdfPagina.drawText(col.texto, {

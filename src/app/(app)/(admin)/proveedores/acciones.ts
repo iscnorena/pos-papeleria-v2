@@ -6,27 +6,33 @@ import { z } from 'zod';
 
 import { db } from '@/db';
 import { suppliers } from '@/db/schema';
+import { obtenerIdioma, t, type Idioma } from '@/lib/i18n/servidor';
 import { erroresDeZod, type EstadoFormulario } from '@/lib/resultado';
 import { exigirRol } from '@/lib/sesion';
 
-const esquema = z.object({
-  id: z.coerce.number().int().positive().optional(),
-  name: z
-    .string()
-    .trim()
-    .min(1, 'El proveedor necesita un nombre.')
-    .max(160, 'Nombre demasiado largo.'),
-  rfc: z
-    .string()
-    .trim()
-    .toUpperCase()
-    .max(13, 'El RFC tiene como máximo 13 caracteres.')
-    .optional(),
-  contactName: z.string().trim().max(160, 'Nombre de contacto demasiado largo.').optional(),
-  phone: z.string().trim().max(40, 'Teléfono demasiado largo.').optional(),
-  email: z.string().trim().max(160, 'Correo demasiado largo.').optional(),
-  isActive: z.boolean(),
-});
+const esquema = (idioma: Idioma) =>
+  z.object({
+    id: z.coerce.number().int().positive().optional(),
+    name: z
+      .string()
+      .trim()
+      .min(1, t(idioma, 'proveedores.errorNombreRequerido'))
+      .max(160, t(idioma, 'admin.nombreDemasiadoLargo')),
+    rfc: z
+      .string()
+      .trim()
+      .toUpperCase()
+      .max(13, t(idioma, 'proveedores.errorRfcDemasiadoLargo'))
+      .optional(),
+    contactName: z
+      .string()
+      .trim()
+      .max(160, t(idioma, 'proveedores.errorContactoDemasiadoLargo'))
+      .optional(),
+    phone: z.string().trim().max(40, t(idioma, 'admin.telefonoDemasiadoLargo')).optional(),
+    email: z.string().trim().max(160, t(idioma, 'admin.correoDemasiadoLargo')).optional(),
+    isActive: z.boolean(),
+  });
 
 export async function guardarProveedor(
   _previo: EstadoFormulario,
@@ -34,8 +40,9 @@ export async function guardarProveedor(
 ): Promise<EstadoFormulario> {
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { error: permiso.error };
+  const idioma = await obtenerIdioma();
 
-  const analisis = esquema.safeParse({
+  const analisis = esquema(idioma).safeParse({
     id: datos.get('id') || undefined,
     name: datos.get('name'),
     rfc: datos.get('rfc') || undefined,
@@ -57,11 +64,14 @@ export async function guardarProveedor(
     }
   } catch (err) {
     if (err instanceof Error && 'code' in err && err.code === '23505') {
-      return { error: 'Ya existe un proveedor con ese RFC.' };
+      return { error: t(idioma, 'proveedores.errorYaExisteRfc') };
     }
-    return { error: 'No se pudo guardar el proveedor. Inténtalo de nuevo.' };
+    return { error: t(idioma, 'proveedores.errorNoSePudoGuardar') };
   }
 
   revalidatePath('/proveedores');
-  return { ok: true, mensaje: id ? 'Proveedor actualizado.' : 'Proveedor creado.' };
+  return {
+    ok: true,
+    mensaje: id ? t(idioma, 'proveedores.exitoActualizado') : t(idioma, 'proveedores.exitoCreado'),
+  };
 }

@@ -9,14 +9,21 @@ import { Distintivo } from '@/components/ui/Distintivo';
 import { PAGINACION } from '@/config/pos';
 import { db } from '@/db';
 import { branches, users } from '@/db/schema';
+import { obtenerIdioma, t, type ClaveI18n } from '@/lib/i18n/servidor';
 import { offsetDePagina, paginaDeBusqueda } from '@/lib/paginacion';
 import { guardarUsuario } from './acciones';
+
+const ETIQUETA_ROL: Record<'admin' | 'cajera', ClaveI18n> = {
+  admin: 'nav.rolAdmin',
+  cajera: 'nav.rolCajera',
+};
 
 export default async function PantallaUsuarios({
   searchParams,
 }: {
   searchParams: Promise<{ editar?: string; pagina?: string }>;
 }) {
+  const idioma = await obtenerIdioma();
   const { editar, pagina: paginaTexto } = await searchParams;
   const idEditar = Number(editar);
   const pagina = paginaDeBusqueda(paginaTexto);
@@ -49,35 +56,47 @@ export default async function PantallaUsuarios({
   return (
     <section>
       <EncabezadoPantalla
-        titulo="Usuarios"
-        descripcion="Quién entra a la caja, con qué rol y en qué sucursal."
+        titulo={t(idioma, 'usuarios.titulo')}
+        descripcion={t(idioma, 'usuarios.descripcion')}
       />
 
       <div className="grid gap-8 lg:grid-cols-[1fr_22rem]">
         <div>
-          <Tabla encabezados={['Usuario', 'Nombre', 'Rol', 'Sucursal', 'PIN', 'Estado', '']}>
-            {lista.length === 0 && <SinDatos columnas={7}>Todavía no hay usuarios.</SinDatos>}
+          <Tabla
+            encabezados={[
+              t(idioma, 'usuarios.colUsuario'),
+              t(idioma, 'admin.nombre'),
+              t(idioma, 'admin.rol'),
+              t(idioma, 'filtros.sucursal'),
+              t(idioma, 'usuarios.colPin'),
+              t(idioma, 'filtros.estado'),
+              '',
+            ]}
+          >
+            {lista.length === 0 && (
+              <SinDatos columnas={7}>{t(idioma, 'usuarios.sinUsuarios')}</SinDatos>
+            )}
             {lista.map((u) => (
               <Fila key={u.id}>
                 <Celda mono>{u.username}</Celda>
                 <Celda>{u.name}</Celda>
                 <Celda>
                   <Distintivo tono={u.role === 'admin' ? 'marcador' : 'neutro'}>
-                    {u.role}
+                    {t(idioma, ETIQUETA_ROL[u.role])}
                   </Distintivo>
                 </Celda>
                 <Celda>{u.sucursal ?? '—'}</Celda>
-                <Celda>{u.tienePin ? 'Sí' : '—'}</Celda>
+                <Celda>{u.tienePin ? t(idioma, 'comun.si') : '—'}</Celda>
                 <Celda>
                   {u.isActive ? (
-                    <Distintivo tono="visto">Activo</Distintivo>
+                    <Distintivo tono="visto">{t(idioma, 'comun.activo')}</Distintivo>
                   ) : (
-                    <Distintivo tono="sello">Inactivo</Distintivo>
+                    <Distintivo tono="sello">{t(idioma, 'comun.inactivo')}</Distintivo>
                   )}
                 </Celda>
                 <Celda>
                   <Link href={`/usuarios?editar=${u.id}`} className="text-boligrafo underline">
-                    Editar
+                    {t(idioma, 'comun.editar')}
                   </Link>
                 </Celda>
               </Fila>
@@ -93,76 +112,88 @@ export default async function PantallaUsuarios({
 
         <aside className="border border-linea-fuerte bg-white p-5 shadow-impresa">
           <h2 className="mb-4 font-display text-cuerpo font-semibold text-tinta">
-            {enEdicion ? `Editar «${enEdicion.username}»` : 'Nuevo usuario'}
+            {enEdicion
+              ? t(idioma, 'usuarios.editarConUsername', { username: enEdicion.username })
+              : t(idioma, 'usuarios.nuevoUsuario')}
           </h2>
 
           <FormularioCrud
             key={enEdicion?.id ?? 'nuevo'}
             accion={guardarUsuario}
-            textoEnviar={enEdicion ? 'Guardar cambios' : 'Crear usuario'}
+            textoEnviar={
+              enEdicion ? t(idioma, 'admin.guardarCambios') : t(idioma, 'usuarios.crearUsuario')
+            }
             ocultos={enEdicion ? { id: String(enEdicion.id) } : {}}
             campos={[
               {
                 tipo: 'texto',
                 nombre: 'name',
-                etiqueta: 'Nombre',
+                etiqueta: t(idioma, 'admin.nombre'),
                 requerido: true,
                 valor: enEdicion?.name,
               },
               {
                 tipo: 'texto',
                 nombre: 'username',
-                etiqueta: 'Usuario',
+                etiqueta: t(idioma, 'usuarios.colUsuario'),
                 requerido: true,
                 valor: enEdicion?.username,
-                ayuda: 'Corto y en minúsculas: así se teclea rápido al abrir el día.',
+                ayuda: t(idioma, 'usuarios.usuarioAyuda'),
               },
               {
                 tipo: 'selector',
                 nombre: 'role',
-                etiqueta: 'Rol',
+                etiqueta: t(idioma, 'admin.rol'),
                 requerido: true,
                 valor: enEdicion?.role ?? 'cajera',
                 opciones: [
-                  { valor: 'cajera', texto: 'Cajera' },
-                  { valor: 'admin', texto: 'Administración' },
+                  { valor: 'cajera', texto: t(idioma, 'usuarios.opcionCajera') },
+                  { valor: 'admin', texto: t(idioma, 'nav.administracion') },
                 ],
               },
               {
                 tipo: 'selector',
                 nombre: 'branchId',
-                etiqueta: 'Sucursal',
+                etiqueta: t(idioma, 'filtros.sucursal'),
                 requerido: true,
                 valor: enEdicion ? String(enEdicion.branchId) : '',
-                vacio: 'Elige una…',
+                vacio: t(idioma, 'admin.eligeUna'),
                 opciones: sucursales.map((s) => ({ valor: String(s.id), texto: s.name })),
               },
               {
                 tipo: 'contrasena',
                 nombre: 'password',
-                etiqueta: enEdicion ? 'Restablecer contraseña' : 'Contraseña',
+                etiqueta: enEdicion
+                  ? t(idioma, 'usuarios.restablecerContrasena')
+                  : t(idioma, 'login.campoContrasena'),
                 requerido: !enEdicion,
-                ayuda: enEdicion ? 'Vacío = no cambiarla.' : 'Mínimo 6 caracteres.',
+                ayuda: enEdicion
+                  ? t(idioma, 'usuarios.contrasenaAyudaEditar')
+                  : t(idioma, 'usuarios.contrasenaAyudaNueva'),
               },
               {
                 tipo: 'texto',
                 nombre: 'pin',
-                etiqueta: enEdicion ? 'Restablecer PIN' : 'PIN',
-                ayuda: enEdicion ? 'Vacío = no cambiarlo.' : '4 a 6 dígitos, único entre todos.',
+                etiqueta: enEdicion
+                  ? t(idioma, 'usuarios.restablecerPin')
+                  : t(idioma, 'login.pestanaPin'),
+                ayuda: enEdicion
+                  ? t(idioma, 'usuarios.pinAyudaEditar')
+                  : t(idioma, 'usuarios.pinAyudaNueva'),
               },
               {
                 tipo: 'casilla',
                 nombre: 'isActive',
-                etiqueta: 'Activo',
+                etiqueta: t(idioma, 'comun.activo'),
                 valor: enEdicion?.isActive ?? true,
-                ayuda: 'Un usuario no se borra: se desactiva y deja de poder entrar.',
+                ayuda: t(idioma, 'usuarios.activoAyuda'),
               },
             ]}
           />
 
           {enEdicion && (
             <Link href="/usuarios" className="mt-3 block text-fino text-boligrafo underline">
-              Cancelar edición
+              {t(idioma, 'admin.cancelarEdicion')}
             </Link>
           )}
         </aside>

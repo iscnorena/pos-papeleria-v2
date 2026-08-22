@@ -6,6 +6,7 @@ import { z } from 'zod';
 
 import { db } from '@/db';
 import { inventories, products, saleItems, sales } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import type { EstadoFormulario } from '@/lib/resultado';
 import { exigirRol } from '@/lib/sesion';
 
@@ -23,11 +24,12 @@ export async function cancelarVenta(
   _previo: EstadoFormulario,
   datos: FormData,
 ): Promise<EstadoFormulario> {
+  const idioma = await obtenerIdioma();
   const permiso = await exigirRol('admin');
   if (!permiso.ok) return { error: permiso.error };
 
   const analisis = z.coerce.number().int().positive().safeParse(datos.get('saleId'));
-  if (!analisis.success) return { error: 'Venta no válida.' };
+  if (!analisis.success) return { error: t(idioma, 'historial.ventaNoValida') };
   const saleId = analisis.data;
 
   try {
@@ -70,15 +72,15 @@ export async function cancelarVenta(
     });
 
     if (resultado === 'ya-cancelada') {
-      return { error: 'Esa venta ya estaba cancelada.' };
+      return { error: t(idioma, 'historial.yaEstabaCancelada') };
     }
   } catch {
-    return { error: 'No se pudo cancelar la venta. Inténtalo de nuevo.' };
+    return { error: t(idioma, 'historial.noSePudoCancelar') };
   }
 
   revalidatePath('/historial');
   revalidatePath(`/historial/${saleId}`);
   revalidatePath('/reportes');
   revalidatePath('/inventario');
-  return { ok: true, mensaje: 'Venta cancelada y existencias devueltas.' };
+  return { ok: true, mensaje: t(idioma, 'historial.ventaCanceladaExito') };
 }

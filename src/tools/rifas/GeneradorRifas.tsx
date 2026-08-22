@@ -6,6 +6,7 @@ import { RIFAS } from '@/config/pos';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { compartirPdfPorWhatsapp } from '@/lib/compartirPorWhatsapp';
 import {
   COLOR_FONDO_DEFECTO,
@@ -22,8 +23,6 @@ import { VistaPreviaCanvas } from './VistaPreviaCanvas';
 // pública (/kit/rifas, sin sesión). La única diferencia entre las dos es el botón de
 // WhatsApp: solo aparece si se recibe `whatsappNumber` (la ruta pública lo resuelve por
 // sucursal; la interna no lo pasa, porque el personal ya está en la papelería).
-
-const TEXTO_WHATSAPP = 'cree este documento en generador de loterias me gustaria imprimir';
 
 const CONFIG_INICIAL: RaffleConfig = {
   quantity: 100,
@@ -74,6 +73,7 @@ async function normalizarImagen(archivo: File): Promise<string> {
 }
 
 export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } = {}) {
+  const { idioma, t } = useIdioma();
   const [config, setConfig] = useState<RaffleConfig>(CONFIG_INICIAL);
   const [pagina, setPagina] = useState(0);
   const [generando, setGenerando] = useState(false);
@@ -103,7 +103,7 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
       const dataUrl = await normalizarImagen(archivo);
       actualizar('raffleImage', dataUrl);
     } catch {
-      setAviso({ texto: 'No se pudo cargar el logotipo. Intenta con otra imagen.', tono: 'error' });
+      setAviso({ texto: t('rifas.errorNoSePudoCargarLogo'), tono: 'error' });
     }
   }
 
@@ -113,10 +113,7 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
       const dataUrl = await normalizarImagen(archivo);
       actualizar('prizeImage', dataUrl);
     } catch {
-      setAviso({
-        texto: 'No se pudo cargar la foto del premio. Intenta con otra imagen.',
-        tono: 'error',
-      });
+      setAviso({ texto: t('rifas.errorNoSePudoCargarFotoPremio'), tono: 'error' });
     }
   }
 
@@ -124,7 +121,7 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
   function validar(): boolean {
     if (config.quantity < 1 || config.quantity > RIFAS.cantidadMaxima) {
       setAviso({
-        texto: `La cantidad de boletos debe estar entre 1 y ${RIFAS.cantidadMaxima}.`,
+        texto: t('rifas.errorCantidadBoletosRango', { max: RIFAS.cantidadMaxima }),
         tono: 'error',
       });
       return false;
@@ -134,7 +131,10 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
       config.ticketsPorPagina > TICKETS_POR_PAGINA_MAXIMO
     ) {
       setAviso({
-        texto: `Los boletos por página deben estar entre ${TICKETS_POR_PAGINA_MINIMO} y ${TICKETS_POR_PAGINA_MAXIMO}.`,
+        texto: t('rifas.errorBoletosPorPaginaRango', {
+          min: TICKETS_POR_PAGINA_MINIMO,
+          max: TICKETS_POR_PAGINA_MAXIMO,
+        }),
         tono: 'error',
       });
       return false;
@@ -149,7 +149,7 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
     setGenerando(true);
     setProgreso(null);
     try {
-      const resultado = await generarPdfRifas(config, (actual, total) =>
+      const resultado = await generarPdfRifas(config, idioma, (actual, total) =>
         setProgreso({ actual, total }),
       );
 
@@ -163,12 +163,14 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
 
       if (resultado.camposSaneados.length > 0) {
         setAviso({
-          texto: `Se quitaron caracteres no compatibles (probablemente emoji) en: ${resultado.camposSaneados.join(', ')}.`,
+          texto: t('comun.avisoCaracteresQuitados', {
+            campos: resultado.camposSaneados.join(', '),
+          }),
           tono: 'neutro',
         });
       }
     } catch {
-      setAviso({ texto: 'No se pudo generar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('comun.noSePudoGenerarPdf'), tono: 'error' });
     } finally {
       setGenerando(false);
       setProgreso(null);
@@ -183,43 +185,46 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
     setEnviando(true);
     setProgreso(null);
     try {
-      const resultado = await generarPdfRifas(config, (actual, total) =>
+      const resultado = await generarPdfRifas(config, idioma, (actual, total) =>
         setProgreso({ actual, total }),
       );
+      const textoWhatsapp = t('rifas.textoWhatsapp');
       await compartirPdfPorWhatsapp({
         archivos: [{ bytes: resultado.bytes, nombreArchivo: `rifa-${Date.now()}.pdf` }],
         whatsappNumber,
-        tituloCompartir: 'Rifa',
-        textoCompartir: TEXTO_WHATSAPP,
-        textoRespaldo: `${TEXTO_WHATSAPP} (acabo de descargar el PDF, se los adjunto aquí).`,
+        tituloCompartir: t('rifas.tituloCompartirRifa'),
+        textoCompartir: textoWhatsapp,
+        textoRespaldo: t('comun.textoRespaldoWhatsapp', { texto: textoWhatsapp }),
       });
 
       if (resultado.camposSaneados.length > 0) {
         setAviso({
-          texto: `Se quitaron caracteres no compatibles (probablemente emoji) en: ${resultado.camposSaneados.join(', ')}.`,
+          texto: t('comun.avisoCaracteresQuitados', {
+            campos: resultado.camposSaneados.join(', '),
+          }),
           tono: 'neutro',
         });
       }
     } catch {
-      setAviso({ texto: 'No se pudo generar el PDF. Intenta de nuevo.', tono: 'error' });
+      setAviso({ texto: t('comun.noSePudoGenerarPdf'), tono: 'error' });
     } finally {
       setEnviando(false);
       setProgreso(null);
     }
   }
 
+  const palabraPagina = t(paginasTotales === 1 ? 'rifas.pagina' : 'rifas.paginas');
+  const palabraBoleto = t(porPaginaEfectivo === 1 ? 'rifas.boleto' : 'rifas.boletos');
+
   return (
     <div className="mx-auto flex max-w-md flex-col gap-5">
-      <p className="text-fino text-grafito">
-        Todo lo que escribas o subas aquí (fotos incluidas) se procesa en tu navegador: nunca sube a
-        nuestros servidores.
-      </p>
+      <p className="text-fino text-grafito">{t('rifas.disclaimerProcesado')}</p>
 
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Boletos</h2>
+        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">{t('rifas.boletos')}</h2>
         <div className="grid grid-cols-2 gap-2">
           <Campo
-            etiqueta="Cantidad de boletos"
+            etiqueta={t('rifas.cantidadBoletos')}
             type="number"
             min={1}
             max={RIFAS.cantidadMaxima}
@@ -227,37 +232,46 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
             onChange={(e) => actualizar('quantity', Number(e.target.value) || 0)}
           />
           <Campo
-            etiqueta="Boletos por página"
+            etiqueta={t('rifas.boletosPorPagina')}
             type="number"
             min={TICKETS_POR_PAGINA_MINIMO}
             max={TICKETS_POR_PAGINA_MAXIMO}
             value={config.ticketsPorPagina}
             onChange={(e) => actualizar('ticketsPorPagina', Number(e.target.value) || 0)}
-            ayuda={`Entre ${TICKETS_POR_PAGINA_MINIMO} y ${TICKETS_POR_PAGINA_MAXIMO}.`}
+            ayuda={t('rifas.entreNyM', {
+              min: TICKETS_POR_PAGINA_MINIMO,
+              max: TICKETS_POR_PAGINA_MAXIMO,
+            })}
           />
         </div>
         <p className="mt-2 text-fino text-grafito">
-          Salen {paginasTotales} {paginasTotales === 1 ? 'página' : 'páginas'}, de{' '}
-          {porPaginaEfectivo} {porPaginaEfectivo === 1 ? 'boleto' : 'boletos'} cada una.
+          {t('rifas.salenResumen', {
+            paginas: paginasTotales,
+            palabraPagina,
+            porPagina: porPaginaEfectivo,
+            palabraBoleto,
+          })}
         </p>
       </section>
 
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Datos de la rifa</h2>
+        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">
+          {t('rifas.datosDeLaRifa')}
+        </h2>
         <div className="flex flex-col gap-2">
           <Campo
-            etiqueta="Nombre del evento"
+            etiqueta={t('rifas.nombreDelEvento')}
             value={config.eventName}
             onChange={(e) => actualizar('eventName', e.target.value)}
           />
           <div className="grid grid-cols-[1fr_auto] items-end gap-2">
             <Campo
-              etiqueta="Premio"
+              etiqueta={t('rifas.premio')}
               value={config.prize}
               onChange={(e) => actualizar('prize', e.target.value)}
             />
             <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-linea-fuerte bg-white px-3 text-center text-base text-tinta shadow-impresa">
-              {config.prizeImage ? 'Cambiar foto' : 'Foto (opcional)'}
+              {config.prizeImage ? t('rifas.cambiarFoto') : t('rifas.fotoOpcional')}
               <input
                 type="file"
                 accept="image/*"
@@ -271,26 +285,26 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Campo
-              etiqueta="Fecha"
-              placeholder="Ej. 24 de diciembre"
+              etiqueta={t('comun.fecha')}
+              placeholder={t('rifas.fechaPlaceholder')}
               value={config.date}
               onChange={(e) => actualizar('date', e.target.value)}
             />
             <Campo
-              etiqueta="Costo por boleto"
-              placeholder="Ej. 50"
+              etiqueta={t('rifas.costoPorBoleto')}
+              placeholder={t('rifas.costoPlaceholder')}
               value={config.cost}
               onChange={(e) => actualizar('cost', e.target.value)}
             />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <Campo
-              etiqueta="Organizador"
+              etiqueta={t('rifas.organizador')}
               value={config.organizer}
               onChange={(e) => actualizar('organizer', e.target.value)}
             />
             <Campo
-              etiqueta="Teléfono"
+              etiqueta={t('admin.telefono')}
               value={config.phone}
               onChange={(e) => actualizar('phone', e.target.value)}
             />
@@ -299,17 +313,17 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
       </section>
 
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Estilo</h2>
+        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">{t('comun.estilo')}</h2>
         <div className="grid grid-cols-2 items-end gap-2">
           <Campo
-            etiqueta="Color de fondo"
+            etiqueta={t('rifas.colorDeFondo')}
             type="color"
             value={config.backgroundColor ?? COLOR_FONDO_DEFECTO}
             onChange={(e) => actualizar('backgroundColor', e.target.value)}
             className="h-10 p-1"
           />
           <label className="flex min-h-tecla cursor-pointer items-center justify-center border border-linea-fuerte bg-white px-3 text-center text-base text-tinta shadow-impresa">
-            {config.raffleImage ? 'Cambiar logotipo' : 'Agregar logotipo'}
+            {config.raffleImage ? t('rifas.cambiarLogotipo') : t('rifas.agregarLogotipo')}
             <input
               type="file"
               accept="image/*"
@@ -324,7 +338,9 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
       </section>
 
       <section className="border border-linea-fuerte bg-white p-3 shadow-impresa">
-        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Vista previa</h2>
+        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">
+          {t('comun.vistaPrevia')}
+        </h2>
         <VistaPreviaCanvas config={config} pagina={pagina} />
         {paginasTotales > 1 && (
           <div className="mt-2 flex items-center justify-between">
@@ -333,17 +349,17 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
               disabled={pagina === 0}
               onClick={() => setPagina((p) => Math.max(0, p - 1))}
             >
-              Anterior
+              {t('comun.anterior')}
             </Boton>
             <span className="text-fino text-grafito">
-              Página {pagina + 1} de {paginasTotales}
+              {t('rifas.paginaDeTotal', { pagina: pagina + 1, total: paginasTotales })}
             </span>
             <Boton
               variante="secundaria"
               disabled={pagina >= paginasTotales - 1}
               onClick={() => setPagina((p) => Math.min(paginasTotales - 1, p + 1))}
             >
-              Siguiente
+              {t('comun.siguiente')}
             </Boton>
           </div>
         )}
@@ -361,9 +377,9 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
         >
           {generando
             ? progreso
-              ? `Generando… (${progreso.actual}/${progreso.total})`
-              : 'Generando…'
-            : 'Descargar PDF'}
+              ? t('comun.generandoConProgreso', { actual: progreso.actual, total: progreso.total })
+              : t('comun.generando')
+            : t('rifas.descargarPdf')}
         </Boton>
         {whatsappNumber && (
           <Boton
@@ -374,9 +390,9 @@ export function GeneradorRifas({ whatsappNumber }: { whatsappNumber?: string } =
           >
             {enviando
               ? progreso
-                ? `Enviando… (${progreso.actual}/${progreso.total})`
-                : 'Enviando…'
-              : 'Enviar por WhatsApp'}
+                ? t('comun.enviandoConProgreso', { actual: progreso.actual, total: progreso.total })
+                : t('comun.enviando')
+              : t('comun.enviarPorWhatsapp')}
           </Boton>
         )}
       </div>

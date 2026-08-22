@@ -7,6 +7,7 @@ import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Modal } from '@/components/ui/Modal';
 import { tonoDiferencia } from '@/lib/formato';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { aCentavos, formatear } from '@/lib/money';
 import { FORMULARIO_INICIAL, type EstadoFormulario } from '@/lib/resultado';
 import { cerrarTurno } from '../../acciones';
@@ -30,6 +31,7 @@ export function FormularioCierre({
   efectivoDeVentas: number;
   efectivoEsperado: number;
 }) {
+  const { t } = useIdioma();
   const [estado, enviar, enviando] = useActionState<EstadoFormulario, FormData>(
     cerrarTurno,
     FORMULARIO_INICIAL,
@@ -43,11 +45,17 @@ export function FormularioCierre({
   return (
     <>
       <div className="mb-6 border border-linea-fuerte bg-white p-5 shadow-impresa">
-        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">Cuentas del turno</h2>
+        <h2 className="mb-3 font-mono text-micro uppercase text-grafito">
+          {t('turnos.cuentasDelTurno')}
+        </h2>
         <dl className="divide-y divide-linea">
-          <Renglon etiqueta="Fondo de caja" valor={formatear(fondoDeCaja)} />
-          <Renglon etiqueta="Efectivo de las ventas" valor={formatear(efectivoDeVentas)} />
-          <Renglon etiqueta="Efectivo esperado" valor={formatear(efectivoEsperado)} destacado />
+          <Renglon etiqueta={t('turnos.fondoDeCaja')} valor={formatear(fondoDeCaja)} />
+          <Renglon etiqueta={t('turnos.efectivoDeVentas')} valor={formatear(efectivoDeVentas)} />
+          <Renglon
+            etiqueta={t('turnos.efectivoEsperado')}
+            valor={formatear(efectivoEsperado)}
+            destacado
+          />
         </dl>
       </div>
 
@@ -65,18 +73,18 @@ export function FormularioCierre({
         <input type="hidden" name="shiftId" value={shiftId} />
 
         <Campo
-          etiqueta="Efectivo contado"
+          etiqueta={t('turnos.efectivoContado')}
           name="actualCash"
           value={contadoTexto}
           onChange={(e) => setContadoTexto(e.target.value)}
           inputMode="decimal"
           autoFocus
-          ayuda="Lo que hay de verdad en el cajón, billetes y monedas."
+          ayuda={t('turnos.contadoAyuda')}
           error={estado.errores?.actualCash}
         />
 
         <div className="mt-4 flex items-baseline justify-between border-t border-linea-fuerte pt-4">
-          <span className="text-cuerpo text-grafito">Diferencia</span>
+          <span className="text-cuerpo text-grafito">{t('turnos.colDiferencia')}</span>
           <span
             className={`tabular font-mono text-cifra ${diferencia === null ? 'text-grafito-claro' : tonoDiferencia(diferencia)}`}
             aria-live="polite"
@@ -88,13 +96,13 @@ export function FormularioCierre({
         {diferencia !== null && diferencia !== 0 && (
           <p className="mt-2 text-fino text-grafito">
             {diferencia < 0
-              ? `Falta ${formatear(Math.abs(diferencia))} respecto a lo esperado.`
-              : `Sobra ${formatear(diferencia)} respecto a lo esperado.`}
+              ? t('turnos.faltaRespecto', { monto: formatear(Math.abs(diferencia)) })
+              : t('turnos.sobraRespecto', { monto: formatear(diferencia) })}
           </p>
         )}
 
         <div className="mt-4">
-          <Campo etiqueta="Nota (opcional)" name="notes" />
+          <Campo etiqueta={t('turnos.notaOpcional')} name="notes" />
         </div>
 
         {estado.error && (
@@ -104,17 +112,18 @@ export function FormularioCierre({
         )}
 
         <Boton type="submit" className="mt-5 w-full" disabled={enviando}>
-          {enviando ? 'Cerrando…' : 'Cerrar turno'}
+          {enviando ? t('turnos.cerrando') : t('turnos.cerrarTurno')}
         </Boton>
 
         <Modal
           abierto={confirmando}
           onCerrar={() => setConfirmando(false)}
-          titulo="¿Cerrar el turno?"
+          titulo={t('turnos.confirmarCierreTitulo')}
         >
           <p className="text-base text-tinta">
-            Vas a cerrar con <span className="tabular font-mono">{formatear(contado ?? 0)}</span>{' '}
-            contados y una diferencia de{' '}
+            {t('turnos.confirmarCierrePre')}{' '}
+            <span className="tabular font-mono">{formatear(contado ?? 0)}</span>{' '}
+            {t('turnos.confirmarCierrePost')}{' '}
             <span
               className={`tabular font-mono ${diferencia === null ? '' : tonoDiferencia(diferencia)}`}
             >
@@ -122,14 +131,14 @@ export function FormularioCierre({
             </span>
             .
           </p>
-          <p className="mt-2 text-fino text-grafito">Esto no se puede deshacer.</p>
+          <p className="mt-2 text-fino text-grafito">{t('turnos.noSePuedeDeshacer')}</p>
 
           <div className="mt-5 flex gap-2">
             <Boton type="submit" disabled={enviando}>
-              Sí, cerrar
+              {t('turnos.siCerrar')}
             </Boton>
             <Boton variante="secundaria" onClick={() => setConfirmando(false)}>
-              Volver
+              {t('comun.volver')}
             </Boton>
           </div>
         </Modal>

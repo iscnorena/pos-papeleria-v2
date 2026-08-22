@@ -180,41 +180,54 @@ describe('lineasHeader', () => {
   const vacio = { eventName: '', prize: '', date: '', cost: '', organizer: '', phone: '' };
 
   it('omite el "|" si falta fecha o costo', () => {
-    expect(lineasHeader({ ...vacio, date: '15 dic' }).map((l) => l.texto)).toEqual([
+    expect(lineasHeader({ ...vacio, date: '15 dic' }, 'es').map((l) => l.texto)).toEqual([
       'Fecha: 15 dic',
     ]);
-    expect(lineasHeader({ ...vacio, cost: '50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
-    expect(lineasHeader({ ...vacio, date: '15 dic', cost: '50' }).map((l) => l.texto)).toEqual([
-      'Fecha: 15 dic  |  Costo: $50',
+    expect(lineasHeader({ ...vacio, cost: '50' }, 'es').map((l) => l.texto)).toEqual([
+      'Costo: $50',
     ]);
+    expect(
+      lineasHeader({ ...vacio, date: '15 dic', cost: '50' }, 'es').map((l) => l.texto),
+    ).toEqual(['Fecha: 15 dic  |  Costo: $50']);
   });
 
   it('el costo siempre lleva "$" al frente, lo haya tecleado el usuario o no', () => {
-    expect(lineasHeader({ ...vacio, cost: '50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
-    expect(lineasHeader({ ...vacio, cost: '$50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
-    expect(lineasHeader({ ...vacio, cost: '$ 50' }).map((l) => l.texto)).toEqual(['Costo: $50']);
+    expect(lineasHeader({ ...vacio, cost: '50' }, 'es').map((l) => l.texto)).toEqual([
+      'Costo: $50',
+    ]);
+    expect(lineasHeader({ ...vacio, cost: '$50' }, 'es').map((l) => l.texto)).toEqual([
+      'Costo: $50',
+    ]);
+    expect(lineasHeader({ ...vacio, cost: '$ 50' }, 'es').map((l) => l.texto)).toEqual([
+      'Costo: $50',
+    ]);
   });
 
   it('omite la línea de contacto si no hay organizador ni teléfono', () => {
-    expect(lineasHeader(vacio)).toEqual([]);
+    expect(lineasHeader(vacio, 'es')).toEqual([]);
   });
 
   it('junta organizador y teléfono con un guion solo si están los dos', () => {
-    expect(lineasHeader({ ...vacio, organizer: 'Juan' }).map((l) => l.texto)).toEqual(['Juan']);
+    expect(lineasHeader({ ...vacio, organizer: 'Juan' }, 'es').map((l) => l.texto)).toEqual([
+      'Juan',
+    ]);
     expect(
-      lineasHeader({ ...vacio, organizer: 'Juan', phone: '744...' }).map((l) => l.texto),
+      lineasHeader({ ...vacio, organizer: 'Juan', phone: '744...' }, 'es').map((l) => l.texto),
     ).toEqual(['Juan - 744...']);
   });
 
   it('respeta el orden: evento, premio, fecha/costo, contacto', () => {
-    const lineas = lineasHeader({
-      eventName: 'Rifa navideña',
-      prize: 'Una tele',
-      date: '24 dic',
-      cost: '$20',
-      organizer: 'Juan',
-      phone: '744...',
-    });
+    const lineas = lineasHeader(
+      {
+        eventName: 'Rifa navideña',
+        prize: 'Una tele',
+        date: '24 dic',
+        cost: '$20',
+        organizer: 'Juan',
+        phone: '744...',
+      },
+      'es',
+    );
     expect(lineas.map((l) => l.texto)).toEqual([
       'Rifa navideña',
       'Premio: Una tele',

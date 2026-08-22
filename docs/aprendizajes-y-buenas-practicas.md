@@ -113,6 +113,48 @@ una lectura síncrona con snapshot explícito por entorno.
 
 ---
 
+## Internacionalización (i18n)
+
+**Aunque el sistema se construya para un solo idioma, escribir el texto de
+interfaz detrás de claves (`t('clave')`) desde el primer commit, no como
+literales sueltos en JSX/Server Actions/mensajes de Zod.** Este proyecto se
+construyó ~40 pantallas en español puro, sin pensar en inglés, y cuando
+llegó el pedido de soportar los dos idiomas (2026-08), agregar el segundo
+idioma implicó tocar ~90 archivos y extraer 837 cadenas a mano: cada
+literal en JSX, cada mensaje de error armado dentro de una Server Action,
+cada `.min()/.max()/.regex()` de Zod con el texto embebido, cada mapa
+`Record<Enum, string>` repetido en varias pantallas. Si esas mismas
+cadenas hubieran nacido como `t('clave')` apuntando a un único diccionario
+en español, agregar inglés habría sido escribir un segundo archivo
+`en.ts` con las mismas claves — casi gratis en comparación. **El costo de
+esta previsión cuando solo hace falta un idioma es mínimo** (una función
+`t()` que de entrada solo lee un diccionario fijo) **y el ahorro cuando
+hace falta un segundo idioma es enorme** — la diferencia entre escribir
+un archivo nuevo y reescribir el sistema entero.
+
+**El texto que corre en el servidor (Server Components, Server Actions)
+necesita persistencia en cookie, no `localStorage`, para cualquier
+preferencia que cambie contenido (no solo apariencia).** El selector de
+tema visual (`SelectorTema`, sesión anterior) funcionó con `localStorage`
+
+- CSS porque solo recolorea lo que el servidor ya mandó. El selector de
+  idioma no puede: casi toda la interfaz la generan ~40 Server Components
+  `async`, donde `localStorage` no existe. La regla general — antes de
+  copiar un patrón de "preferencia del usuario" ya probado en el proyecto,
+  preguntar si lo que cambia es CSS (localStorage sirve) o contenido
+  (hace falta cookie + `router.refresh()` tras una Server Action que la
+  fije, para que el árbol de Server Components se vuelva a renderizar).
+
+**Un diccionario propio (`Record<Clave, string>` por idioma, tipado con
+`keyof typeof es`) es preferible a una librería de i18n cuando el volumen
+es de cientos de claves, no miles, y no hace falta pluralización ICU.**
+TypeScript ya obliga a que el segundo archivo (`en.ts`) tenga exactamente
+las mismas claves que el primero — sin librería, sin runtime extra, mismo
+patrón que el resto del repo (Zod + tipos estrictos en vez de una
+dependencia para lo que una función propia resuelve).
+
+---
+
 ## Decisiones de alcance en features con IA
 
 **Preguntar explícitamente antes de introducir un proveedor de pago nuevo

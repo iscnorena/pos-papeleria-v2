@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { PAGINACION } from '@/config/pos';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { totalDePaginas } from '@/lib/paginacion';
 
 /**
@@ -10,7 +11,7 @@ import { totalDePaginas } from '@/lib/paginacion';
  * estado…) — se preservan al cambiar de página, igual que `FiltrosFecha` los preserva al
  * enviar el formulario.
  */
-export function Paginacion({
+export async function Paginacion({
   ruta,
   parametros = {},
   pagina,
@@ -25,6 +26,7 @@ export function Paginacion({
 }) {
   const paginas = totalDePaginas(totalFilas, porPagina);
   if (paginas <= 1) return null;
+  const idioma = await obtenerIdioma();
 
   function href(destino: number): string {
     const params = new URLSearchParams();
@@ -37,17 +39,17 @@ export function Paginacion({
 
   return (
     <nav
-      aria-label="Paginación"
+      aria-label={t(idioma, 'paginacion.etiqueta')}
       className="mt-4 flex items-center justify-between gap-3 border-t border-linea pt-3"
     >
       <EnlacePagina href={href(pagina - 1)} deshabilitado={pagina <= 1}>
-        ← Anterior
+        {t(idioma, 'paginacion.anterior')}
       </EnlacePagina>
       <span className="font-mono text-micro uppercase text-grafito-claro">
-        Página {pagina} de {paginas} · {totalFilas} en total
+        {t(idioma, 'paginacion.resumen', { pagina, paginas, total: totalFilas })}
       </span>
       <EnlacePagina href={href(pagina + 1)} deshabilitado={pagina >= paginas}>
-        Siguiente →
+        {t(idioma, 'paginacion.siguiente')}
       </EnlacePagina>
     </nav>
   );

@@ -6,6 +6,7 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Selector } from '@/components/ui/Selector';
+import { useIdioma } from '@/lib/i18n/cliente';
 import {
   crearProductoDesdeLinea,
   sugerirProductos,
@@ -28,6 +29,7 @@ export function BuscadorProducto({
   categorias: { id: number; name: string }[];
   onResuelto: () => void;
 }) {
+  const { t } = useIdioma();
   const [termino, setTermino] = useState(descripcionInicial);
   const [sugerencias, setSugerencias] = useState<SugerenciaProducto[]>([]);
   // Sin match directo entre `termino` y `terminoResuelto`, la búsqueda sigue en curso. Se
@@ -82,13 +84,13 @@ export function BuscadorProducto({
   return (
     <div className="flex flex-col gap-2 border border-linea-fuerte bg-papel-hondo p-3">
       <Campo
-        etiqueta="Buscar producto"
+        etiqueta={t('caja.buscarProducto')}
         value={termino}
         onChange={(e) => setTermino(e.target.value)}
-        placeholder="Buscar producto por nombre…"
+        placeholder={t('caja.buscarProductoPorNombre')}
       />
 
-      {buscando && <p className="text-fino text-grafito">Buscando…</p>}
+      {buscando && <p className="text-fino text-grafito">{t('recepcion.buscando')}</p>}
 
       {!buscando && sugerencias.length > 0 && (
         <ul className="flex flex-col gap-1">
@@ -108,7 +110,7 @@ export function BuscadorProducto({
       )}
 
       {!buscando && sugerencias.length === 0 && (
-        <p className="text-fino text-grafito">Sin coincidencias.</p>
+        <p className="text-fino text-grafito">{t('recepcion.sinCoincidencias')}</p>
       )}
 
       {!creandoNuevo ? (
@@ -117,24 +119,24 @@ export function BuscadorProducto({
           onClick={() => setCreandoNuevo(true)}
           className="self-start text-fino text-boligrafo underline"
         >
-          Crear producto nuevo con estos datos
+          {t('recepcion.crearProductoNuevoConDatos')}
         </button>
       ) : (
         <div className="flex flex-col gap-2 border-t border-linea pt-2">
           <Selector
-            etiqueta="Categoría (opcional)"
+            etiqueta={t('recepcion.categoriaOpcional')}
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            vacio="Sin categoría"
+            vacio={t('recepcion.sinCategoria')}
             opciones={categorias.map((c) => ({ valor: String(c.id), texto: c.name }))}
           />
           <Campo
-            etiqueta="Código (opcional)"
+            etiqueta={t('recepcion.codigoOpcional')}
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
           <Boton type="button" tamano="normal" disabled={enviando} onClick={crearNuevo}>
-            {enviando ? 'Creando…' : 'Crear y vincular'}
+            {enviando ? t('recepcion.creando') : t('recepcion.crearYVincular')}
           </Boton>
         </div>
       )}

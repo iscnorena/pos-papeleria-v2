@@ -5,7 +5,9 @@ import { CabeceraPublica } from '@/components/CabeceraPublica';
 import { HerramientaNoDisponible } from '@/components/HerramientaNoDisponible';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { esHerramientaPublica } from '@/lib/toolSettings';
+import { nombreSubDe, descripcionSubDe } from '@/tools/pdf/registro';
 import { ReordenarPdf } from '@/tools/pdf/ReordenarPdf';
 
 // Versión pública de Reordenar páginas: misma herramienta que /herramientas/pdf/reordenar,
@@ -27,6 +29,7 @@ export default async function ImprimirPdfReordenarPage({
   const publica = await esHerramientaPublica('reordenar');
   if (!publica) return <HerramientaNoDisponible />;
 
+  const idioma = await obtenerIdioma();
   const { sucursal } = await searchParams;
   const idSucursal = Number(sucursal);
 
@@ -43,9 +46,9 @@ export default async function ImprimirPdfReordenarPage({
   return (
     <div className="mx-auto w-full max-w-md px-4 py-6">
       <CabeceraPublica
-        titulo="Reordenar páginas"
-        descripcion="Cambia el orden de las páginas de un PDF."
-        volver={{ href: '/kit/pdf', texto: 'Herramientas de PDF' }}
+        titulo={nombreSubDe('reordenar', idioma)}
+        descripcion={descripcionSubDe('reordenar', idioma)}
+        volver={{ href: '/kit/pdf', texto: t(idioma, 'herramientas.nombrePdf') }}
       />
       <ReordenarPdf whatsappNumber={destino?.whatsappNumber ?? undefined} />
     </div>

@@ -1,5 +1,6 @@
 import type { ComponentType } from 'react';
 
+import { t, type ClaveI18n, type Idioma } from '@/lib/i18n/nucleo';
 import {
   IconoDividirPdf,
   IconoNumerarPdf,
@@ -105,4 +106,36 @@ export function subHerramientaPdfPorId(id: string): SubHerramientaPdf | undefine
  * `tool_settings`, igual que `herramientasConVersionPublica` en el registro principal. */
 export function subHerramientasPdfListas(): SubHerramientaPdf[] {
   return HERRAMIENTAS_PDF.filter((h) => h.estado !== 'proxima');
+}
+
+// Mismo criterio que src/tools/registry.ts: `nombre`/`descripcion` del arreglo se quedan
+// en español (dato interno), lo que se muestra sale de estos mapas + helpers.
+const CLAVE_NOMBRE: Record<string, ClaveI18n> = {
+  unir: 'pdf.nombreUnir',
+  dividir: 'pdf.nombreDividir',
+  rotar: 'pdf.nombreRotar',
+  reordenar: 'pdf.nombreReordenar',
+  numerar: 'pdf.nombreNumerar',
+  convertir: 'pdf.nombreConvertir',
+  comprimir: 'pdf.nombreComprimir',
+};
+
+const CLAVE_DESCRIPCION: Record<string, ClaveI18n> = {
+  unir: 'pdf.descUnir',
+  dividir: 'pdf.descDividir',
+  rotar: 'pdf.descRotar',
+  reordenar: 'pdf.descReordenar',
+  numerar: 'pdf.descNumerar',
+  convertir: 'pdf.descConvertir',
+  comprimir: 'pdf.descComprimir',
+};
+
+export function nombreSubDe(id: string, idioma: Idioma): string {
+  const clave = CLAVE_NOMBRE[id];
+  return clave ? t(idioma, clave) : (subHerramientaPdfPorId(id)?.nombre ?? id);
+}
+
+export function descripcionSubDe(id: string, idioma: Idioma): string {
+  const clave = CLAVE_DESCRIPCION[id];
+  return clave ? t(idioma, clave) : (subHerramientaPdfPorId(id)?.descripcion ?? '');
 }

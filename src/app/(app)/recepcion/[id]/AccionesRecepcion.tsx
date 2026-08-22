@@ -4,6 +4,7 @@ import { useActionState, useState } from 'react';
 
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { FORMULARIO_INICIAL, type EstadoFormulario } from '@/lib/resultado';
 import { autorizarRecepcion, descartarRecepcion } from '../acciones';
 
@@ -11,6 +12,7 @@ import { autorizarRecepcion, descartarRecepcion } from '../acciones';
 // (esconder el botón): la Server Action vuelve a exigir el rol (§2, exigirRol('admin')).
 
 export function AccionesRecepcion({ receiptId, esAdmin }: { receiptId: number; esAdmin: boolean }) {
+  const { t } = useIdioma();
   const [estadoAutorizar, enviarAutorizar, autorizando] = useActionState<
     EstadoFormulario,
     FormData
@@ -27,11 +29,9 @@ export function AccionesRecepcion({ receiptId, esAdmin }: { receiptId: number; e
         <form action={enviarAutorizar} className="flex items-center gap-3">
           <input type="hidden" name="receiptId" value={receiptId} />
           <Boton type="submit" disabled={autorizando || descartando}>
-            {autorizando ? 'Autorizando…' : 'Autorizar recepción'}
+            {autorizando ? t('recepcion.autorizando') : t('recepcion.autorizarRecepcion')}
           </Boton>
-          <span className="text-fino text-grafito">
-            Suma stock y actualiza costos. No se puede deshacer.
-          </span>
+          <span className="text-fino text-grafito">{t('recepcion.sumaStockNota')}</span>
         </form>
       )}
       {estadoAutorizar.error && <Aviso tono="error">{estadoAutorizar.error}</Aviso>}
@@ -42,13 +42,13 @@ export function AccionesRecepcion({ receiptId, esAdmin }: { receiptId: number; e
           onClick={() => setDescartando(true)}
           className="self-start text-fino text-sello underline"
         >
-          Descartar recepción
+          {t('recepcion.descartarRecepcion')}
         </button>
       ) : (
         <form action={enviarDescartar} className="flex flex-col gap-2 border-t border-linea pt-3">
           <input type="hidden" name="receiptId" value={receiptId} />
           <label htmlFor="discardReason" className="text-fino font-medium text-tinta">
-            Motivo (opcional)
+            {t('recepcion.motivoOpcional')}
           </label>
           <textarea
             id="discardReason"
@@ -58,14 +58,14 @@ export function AccionesRecepcion({ receiptId, esAdmin }: { receiptId: number; e
           />
           <div className="flex items-center gap-3">
             <Boton type="submit" variante="destructiva" disabled={autorizando || descartando}>
-              {descartando ? 'Descartando…' : 'Confirmar descarte'}
+              {descartando ? t('recepcion.descartando') : t('recepcion.confirmarDescarte')}
             </Boton>
             <button
               type="button"
               onClick={() => setDescartando(false)}
               className="text-fino text-boligrafo underline"
             >
-              Cancelar
+              {t('comun.cancelar')}
             </button>
           </div>
         </form>

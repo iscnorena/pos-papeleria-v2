@@ -6,6 +6,7 @@ import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Campo } from '@/components/ui/Campo';
 import { Selector, type OpcionSelector } from '@/components/ui/Selector';
+import { useIdioma } from '@/lib/i18n/cliente';
 import { FORMULARIO_INICIAL, type EstadoFormulario } from '@/lib/resultado';
 
 // Los cuatro CRUD de la Fase 2 (sucursales, categorías, usuarios, productos) tienen el
@@ -53,6 +54,7 @@ export function FormularioCrud({
   ocultos?: Record<string, string>;
   onListo?: () => void;
 }) {
+  const { t } = useIdioma();
   const [estado, enviar, enviando] = useActionState(
     async (previo: EstadoFormulario, datos: FormData) => {
       const resultado = await accion(previo, datos);
@@ -124,7 +126,7 @@ export function FormularioCrud({
       {estado.ok && estado.mensaje && <Aviso tono="exito">{estado.mensaje}</Aviso>}
 
       <Boton type="submit" disabled={enviando}>
-        {enviando ? 'Guardando…' : textoEnviar}
+        {enviando ? t('comun.guardando') : textoEnviar}
       </Boton>
     </form>
   );

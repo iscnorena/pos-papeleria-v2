@@ -2,12 +2,19 @@ import 'server-only';
 
 import { and, count, desc, eq, gte, lt, sum, type SQL } from 'drizzle-orm';
 
-import { POS, type MetodoPago } from '@/config/pos';
+import { type MetodoPago } from '@/config/pos';
 import { db } from '@/db';
 import { branches, salePayments, sales, users } from '@/db/schema';
 import { limitesDelDia } from '@/lib/fechas';
+import { t, type ClaveI18n, type Idioma } from '@/lib/i18n/servidor';
 import { aCentavos } from '@/lib/money';
 import type { Sesion } from '@/lib/sesion';
+
+const ETIQUETA_METODO: Record<MetodoPago, ClaveI18n> = {
+  cash: 'caja.efectivo',
+  card: 'caja.tarjeta',
+  transfer: 'caja.transferencia',
+};
 
 // Historial y reportes comparten filtros y totales. Viven juntos aquí para que el reporte
 // diario y el historial del mismo día NO puedan discrepar — que es justo el criterio 1 de
@@ -95,6 +102,7 @@ export type DesgloseMetodo = {
 export async function desglosePorMetodo(
   filtros: Filtros,
   sesion: Sesion,
+  idioma: Idioma,
 ): Promise<DesgloseMetodo[]> {
   const base = condicionesDe({ ...filtros, status: undefined }, sesion);
 
@@ -109,11 +117,11 @@ export async function desglosePorMetodo(
     .where(and(...base, eq(sales.status, 'completed')))
     .groupBy(salePayments.method);
 
-  return (Object.keys(POS.metodosPago) as MetodoPago[]).map((metodo) => {
+  return (Object.keys(ETIQUETA_METODO) as MetodoPago[]).map((metodo) => {
     const fila = filas.find((f) => f.metodo === metodo);
     return {
       metodo,
-      nombre: POS.metodosPago[metodo],
+      nombre: t(idioma, ETIQUETA_METODO[metodo]),
       total: aCentavos(fila?.total ?? '0') ?? 0,
       transacciones: fila?.transacciones ?? 0,
     };

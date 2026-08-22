@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Aviso } from '@/components/ui/Aviso';
 import { Boton } from '@/components/ui/Boton';
 import { Modal } from '@/components/ui/Modal';
+import { useIdioma } from '@/lib/i18n/cliente';
 import type { ImagenDeBanco } from '@/lib/bancosImagenes';
 
 // §7.6 — buscador de bancos de imágenes. Los tres proveedores en este orden, y las llaves
@@ -25,6 +26,7 @@ export function BuscadorBancos({
   onCerrar: () => void;
   onAgregar: (imagenes: Blob[]) => void;
 }) {
+  const { t } = useIdioma();
   const [proveedor, setProveedor] = useState<string>('unsplash');
   const [texto, setTexto] = useState('');
   const [cuantos, setCuantos] = useState(4);
@@ -46,10 +48,10 @@ export function BuscadorBancos({
 
       // Sin llave configurada, el mensaje se muestra y no se lanza ninguna excepción
       // (§7.8 criterio 10).
-      if (!respuesta.ok) setError(datos.error ?? 'No se pudo buscar.');
+      if (!respuesta.ok) setError(datos.error ?? t('acomoda.noSePudoBuscar'));
       else setResultados(datos.resultados ?? []);
     } catch {
-      setError('No se pudo buscar. Revisa la conexión.');
+      setError(t('acomoda.noSePudoBuscarConexion'));
     } finally {
       setCargando(false);
     }
@@ -72,17 +74,17 @@ export function BuscadorBancos({
       );
       onAgregar(blobs);
     } catch {
-      setError('No se pudieron traer las imágenes.');
+      setError(t('acomoda.noSePudieronTraerImagenes'));
     } finally {
       setCargando(false);
     }
   }
 
   return (
-    <Modal abierto={abierto} onCerrar={onCerrar} titulo="Buscar en bancos de imágenes">
+    <Modal abierto={abierto} onCerrar={onCerrar} titulo={t('acomoda.buscarEnBancos')}>
       <div className="flex flex-wrap gap-2">
         <select
-          aria-label="Proveedor"
+          aria-label={t('acomoda.proveedor')}
           value={proveedor}
           onChange={(e) => setProveedor(e.target.value)}
           className="border border-linea-fuerte bg-white px-2 py-1.5 text-base"
@@ -95,7 +97,7 @@ export function BuscadorBancos({
         </select>
 
         <input
-          aria-label="Qué buscar"
+          aria-label={t('acomoda.queBuscar')}
           value={texto}
           onChange={(e) => setTexto(e.target.value)}
           onKeyDown={(e) => {
@@ -104,13 +106,13 @@ export function BuscadorBancos({
               void buscar();
             }
           }}
-          placeholder="gato"
+          placeholder={t('acomoda.placeholderGato')}
           className="flex-1 border border-linea-fuerte bg-white px-2 py-1.5 text-base"
         />
 
         <input
           type="number"
-          aria-label="Cuántos resultados"
+          aria-label={t('acomoda.cuantosResultados')}
           min={1}
           max={20}
           value={cuantos}
@@ -119,7 +121,7 @@ export function BuscadorBancos({
         />
 
         <Boton onClick={() => void buscar()} disabled={cargando || texto.trim() === ''}>
-          Buscar
+          {t('comun.buscar')}
         </Boton>
       </div>
 
@@ -148,7 +150,9 @@ export function BuscadorBancos({
                       setMarcadas(nuevas);
                     }}
                   />
-                  <span className="truncate text-micro text-grafito">{r.tags || 'sin título'}</span>
+                  <span className="truncate text-micro text-grafito">
+                    {r.tags || t('acomoda.sinTitulo')}
+                  </span>
                 </span>
               </label>
             </li>
@@ -158,10 +162,10 @@ export function BuscadorBancos({
 
       <div className="mt-5 flex gap-2">
         <Boton onClick={() => void agregarMarcadas()} disabled={marcadas.size === 0 || cargando}>
-          Agregar {marcadas.size > 0 ? `(${marcadas.size})` : ''}
+          {t('caja.agregar')} {marcadas.size > 0 ? `(${marcadas.size})` : ''}
         </Boton>
         <Boton variante="secundaria" onClick={onCerrar}>
-          Cerrar
+          {t('comun.cerrar')}
         </Boton>
       </div>
     </Modal>

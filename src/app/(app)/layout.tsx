@@ -2,11 +2,15 @@ import { eq } from 'drizzle-orm';
 
 import { salir } from '@/app/acciones-sesion';
 import { EnlaceNav } from '@/components/ui/EnlaceNav';
+import { SelectorIdioma } from '@/components/ui/SelectorIdioma';
 import { SelectorTema } from '@/components/ui/SelectorTema';
 import { POS } from '@/config/pos';
 import { db } from '@/db';
 import { branches } from '@/db/schema';
+import { obtenerIdioma, t } from '@/lib/i18n/servidor';
 import { requerirSesion } from '@/lib/sesion';
+
+const ETIQUETA_ROL = { admin: 'nav.rolAdmin', cajera: 'nav.rolCajera' } as const;
 
 // Todo lo que cuelga de este grupo exige sesión. El `proxy` ya redirige sin cookie, pero
 // esto se vuelve a comprobar aquí: el proxy es una comprobación optimista, no la
@@ -17,6 +21,7 @@ import { requerirSesion } from '@/lib/sesion';
 
 export default async function LayoutApp({ children }: { children: React.ReactNode }) {
   const sesion = await requerirSesion();
+  const idioma = await obtenerIdioma();
 
   const [sucursal] = await db
     .select({ name: branches.name })
@@ -31,7 +36,7 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
           <div>
             <p className="font-display text-cuerpo font-semibold text-tinta">{POS.nombreNegocio}</p>
             <p className="font-mono text-micro uppercase text-grafito-claro">
-              {sucursal?.name ?? 'Sin sucursal'}
+              {sucursal?.name ?? t(idioma, 'nav.sinSucursal')}
             </p>
           </div>
 
@@ -39,16 +44,17 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
             <p className="text-fino text-grafito">
               <span className="text-tinta">{sesion.nombre}</span>
               <span className="ml-2 border border-linea-fuerte px-1.5 py-0.5 font-mono text-micro uppercase text-grafito">
-                {sesion.rol}
+                {t(idioma, ETIQUETA_ROL[sesion.rol])}
               </span>
             </p>
+            <SelectorIdioma />
             <SelectorTema />
             <form action={salir}>
               <button
                 type="submit"
                 className="border border-linea-fuerte bg-white px-3 py-1.5 text-fino font-medium text-tinta shadow-impresa hover:bg-papel-hondo"
               >
-                Salir
+                {t(idioma, 'nav.salir')}
               </button>
             </form>
           </div>
@@ -56,27 +62,29 @@ export default async function LayoutApp({ children }: { children: React.ReactNod
       </header>
 
       <div className="mx-auto flex max-w-6xl gap-8 px-4 py-8">
-        <nav aria-label="Secciones" className="w-44 shrink-0">
-          <p className="mb-2 font-mono text-micro uppercase text-grafito-claro">Operación</p>
-          <EnlaceNav href="/dashboard">Tablero</EnlaceNav>
-          <EnlaceNav href="/caja">Caja</EnlaceNav>
-          <EnlaceNav href="/turnos">Turnos</EnlaceNav>
-          <EnlaceNav href="/historial">Historial</EnlaceNav>
-          <EnlaceNav href="/recepcion">Recepción</EnlaceNav>
-          <EnlaceNav href="/herramientas">Herramientas</EnlaceNav>
+        <nav aria-label={t(idioma, 'nav.secciones')} className="w-44 shrink-0">
+          <p className="mb-2 font-mono text-micro uppercase text-grafito-claro">
+            {t(idioma, 'nav.operacion')}
+          </p>
+          <EnlaceNav href="/dashboard">{t(idioma, 'nav.tablero')}</EnlaceNav>
+          <EnlaceNav href="/caja">{t(idioma, 'nav.caja')}</EnlaceNav>
+          <EnlaceNav href="/turnos">{t(idioma, 'nav.turnos')}</EnlaceNav>
+          <EnlaceNav href="/historial">{t(idioma, 'nav.historial')}</EnlaceNav>
+          <EnlaceNav href="/recepcion">{t(idioma, 'nav.recepcion')}</EnlaceNav>
+          <EnlaceNav href="/herramientas">{t(idioma, 'nav.herramientas')}</EnlaceNav>
 
           {sesion.rol === 'admin' && (
             <>
               <p className="mb-2 mt-6 font-mono text-micro uppercase text-grafito-claro">
-                Administración
+                {t(idioma, 'nav.administracion')}
               </p>
-              <EnlaceNav href="/productos">Productos</EnlaceNav>
-              <EnlaceNav href="/categorias">Categorías</EnlaceNav>
-              <EnlaceNav href="/proveedores">Proveedores</EnlaceNav>
-              <EnlaceNav href="/inventario">Inventario</EnlaceNav>
-              <EnlaceNav href="/usuarios">Usuarios</EnlaceNav>
-              <EnlaceNav href="/sucursales">Sucursales</EnlaceNav>
-              <EnlaceNav href="/reportes">Reportes</EnlaceNav>
+              <EnlaceNav href="/productos">{t(idioma, 'nav.productos')}</EnlaceNav>
+              <EnlaceNav href="/categorias">{t(idioma, 'nav.categorias')}</EnlaceNav>
+              <EnlaceNav href="/proveedores">{t(idioma, 'nav.proveedores')}</EnlaceNav>
+              <EnlaceNav href="/inventario">{t(idioma, 'nav.inventario')}</EnlaceNav>
+              <EnlaceNav href="/usuarios">{t(idioma, 'nav.usuarios')}</EnlaceNav>
+              <EnlaceNav href="/sucursales">{t(idioma, 'nav.sucursales')}</EnlaceNav>
+              <EnlaceNav href="/reportes">{t(idioma, 'nav.reportes')}</EnlaceNav>
             </>
           )}
         </nav>
