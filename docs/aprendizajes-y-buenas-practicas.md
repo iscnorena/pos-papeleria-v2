@@ -48,6 +48,38 @@ un pico de carga ya resuelto, vale la pena mirar `pg_stat_activity`
 (`wait_event = 'ClientRead'`, `state = 'active'`, duración alta) antes de
 asumir que el problema sigue activo.
 
+**El mismo síntoma (`pg_stat_activity` en `active`/`ClientRead`, consultas
+que nunca vuelven) puede tener causas completamente distintas — no asumir
+que ya se conoce la causa solo porque ya se vio el síntoma antes.** El
+2026-08-22, un día después de documentar la "conexión zombi" de arriba,
+reapareció exactamente el mismo cuadro (Recepción/Historial/Turnos
+colgados, `Vercel Runtime Timeout Error` a los 300s) durante el rollout de
+i18n. Se probaron en orden — todos razonables, ninguno la causa real —:
+`statement_timeout`/`idle_in_transaction_session_timeout` por código (no
+sirvió: Supavisor en modo _transaction_ no reenvía esos parámetros de
+sesión al backend), cambiar `DATABASE_URL` de pooler _transaction_
+(puerto 6543) a _session_ (puerto 5432), varios redeploys, y terminar a
+mano los `pid` atorados en `pg_stat_activity`. La causa real apareció
+hasta revisar el dashboard de Supabase directamente: el plan **Free**
+tiene una cuota de egress del _shared pooler_ diminuta (10.58 MB) que ya
+estaba al 100% — Supabase estrangula el tráfico del pooler compartido una
+vez agotada, lo que produce exactamente el mismo síntoma que una conexión
+zombi (la consulta llega y se ejecuta, pero entregar la respuesta se
+queda atorado). **La lección no es "el arreglo de la vez pasada" — es
+revisar el panel de uso/facturación del proveedor gestionado antes de
+asumir que el código tiene la culpa**, sobre todo cuando el síntoma ya se
+vio antes y hay una solución previa "obvia" a la mano.
+
+**Diagnosticar un incidente de producción generando tráfico de prueba
+contra esa misma producción puede empeorarlo.** Durante el incidente de
+arriba, varias rondas de scripts de Playwright automatizados contra
+`pos-papeleria.vercel.app` (para reproducir el cuelgue y confirmar cada
+intento de arreglo) consumieron parte de esa misma cuota de egress ya
+agotada, alargando el incidente en vez de acortarlo. Cuando se sospecha
+de un límite de recursos de un proveedor gestionado, más tráfico propio
+es lo último que ayuda — mejor pedirle a quien tiene acceso al panel que
+revise ahí directamente.
+
 ---
 
 ## Testing (e2e)
@@ -56,6 +88,18 @@ asumir que el problema sigue activo.
 también use producción.** Obvio en retrospectiva; costó un incidente real
 aprenderlo aquí (ver arriba). Con bases separadas, correr la suite completo
 las veces que haga falta es gratis.
+
+**Con un plan gratuito de por medio, ni siquiera el Supabase/Vercel de
+_desarrollo_ es un banco de pruebas seguro — usar Postgres local.** Los
+dos incidentes de agotamiento de cuota (2026-08-20 y 2026-08-22) pasaron
+contra el proyecto de desarrollo, no el de producción compartido de antes.
+Desde el 2026-08-22 las pruebas exhaustivas (e2e, diagnóstico, corridas
+repetidas) van contra un Postgres local en Docker (`docker run postgres:16`,
+`.env.local` apuntando ahí, mismas migraciones y semilla) — a Supabase y
+Vercel solo se sube código ya verificado. `e2e/ayudas.ts` lee `DATABASE_URL`
+de `.env.local` igual que la app, así que no hace falta ningún cambio de
+configuración para que la suite completa corra en local: es una variable
+de entorno, no una decisión de arquitectura.
 
 **Un cambio transversal (ej. "agregar paginación a todas las pantallas
 administrativas") rompe suposiciones de e2e existentes que nadie escribió
