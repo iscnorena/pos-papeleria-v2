@@ -1,22 +1,35 @@
 {
   "fecha": "2026-08-25",
-  "commit": "5d9160a",
-  "skill": "review-web-legal v1 (primera corrida)",
+  "commit": "40d1a20",
+  "skill": "review-web-legal v1.0.1 (re-corrida sobre el mismo código que la baseline anterior, commit 5d9160a — solo cambió la metodología de clasificación, no la app)",
   "perfil_aplicacion": [
     "interna-con-sesion",
     "seccion-publica-sin-cuenta-kit",
     "sin-venta-en-linea",
-    "sin-emision-cfdi",
-    "con-integracion-ia-opcional"
+    "sin-emision-cfdi-ni-generacion-delegada",
+    "con-integracion-ia-opcional",
+    "sin-evidencia-de-menores"
   ],
   "datos_personales_detectados": [
     {
       "dato": "nombre, username, correo, hash de contraseña, hash de PIN",
       "tabla_o_flujo": "users",
-      "sensible": false
+      "sensible": false,
+      "purga_tecnica_identificada": false
     },
-    { "dato": "RFC, contacto, teléfono, correo", "tabla_o_flujo": "suppliers", "sensible": false },
-    { "dato": "IP", "tabla_o_flujo": "login_attempts", "sensible": false, "retencion_dias": 7 },
+    {
+      "dato": "RFC, contacto, teléfono, correo",
+      "tabla_o_flujo": "suppliers",
+      "sensible": false,
+      "purga_tecnica_identificada": false
+    },
+    {
+      "dato": "IP",
+      "tabla_o_flujo": "login_attempts",
+      "sensible": false,
+      "purga_tecnica_identificada": true,
+      "retencion_dias": 7
+    },
     {
       "dato": "foto de ticket de compra (puede incluir datos de terceros)",
       "tabla_o_flujo": "recepcion-por-foto",
@@ -28,45 +41,79 @@
     {
       "nombre": "API de Claude / Anthropic",
       "flujo": "recepcion-por-foto (OCR de tickets)",
+      "pais": "EUA",
+      "relacion_aparente": "tercero (procesa contenido, mayor evidencia de fines propios)",
       "transferencia_declarada": false,
-      "pais": "EUA"
+      "estado": "LEGAL_REVIEW_REQUIRED",
+      "hallazgo": "PRIV-002"
     },
     {
       "nombre": "Supabase",
       "flujo": "infraestructura (base de datos)",
-      "transferencia_declarada": true,
-      "pais": "EUA (us-east-1)"
+      "pais": "EUA (us-east-1)",
+      "relacion_aparente": "candidato a encargado (almacena/sirve bajo instrucciones técnicas, sin evidencia de fines propios)",
+      "transferencia_declarada": false,
+      "estado": "LEGAL_REVIEW_REQUIRED",
+      "hallazgo": "PRIV-004"
     },
     {
       "nombre": "Vercel",
       "flujo": "infraestructura (hosting)",
-      "transferencia_declarada": true,
-      "pais": "EUA"
+      "pais": "EUA",
+      "relacion_aparente": "candidato a encargado (ejecuta la app bajo instrucciones técnicas)",
+      "transferencia_declarada": false,
+      "estado": "LEGAL_REVIEW_REQUIRED",
+      "hallazgo": "PRIV-004"
     },
     {
       "nombre": "Unsplash / Pexels / Pixabay",
       "flujo": "kit/acomoda-impresion (búsqueda de imágenes)",
+      "pais": "EUA",
+      "relacion_aparente": "no aplica — solo reciben el término de búsqueda, no datos personales del visitante (verificado en el código)",
       "transferencia_declarada": true,
-      "pais": "EUA"
+      "estado": "DOCUMENT_MATCH",
+      "hallazgo": null
     }
   ],
   "documentos_identificados": [
     {
       "documento": "aviso-de-privacidad-publico",
       "ruta": "/kit/privacidad",
+      "clasificacion": "LEGAL_REQUIRED",
       "resultado": "DOCUMENT_MATCH"
     },
     {
       "documento": "aviso-de-privacidad-interno",
       "ruta": null,
+      "clasificacion": "LEGAL_REQUIRED",
       "resultado": "DOCUMENT_NOT_IDENTIFIED"
     },
-    { "documento": "terminos-y-condiciones", "ruta": null, "resultado": "DOCUMENT_NOT_IDENTIFIED" },
+    {
+      "documento": "terminos-y-condiciones",
+      "ruta": null,
+      "clasificacion": "RECOMMENDED",
+      "resultado": "DOCUMENT_NOT_IDENTIFIED"
+    },
     {
       "documento": "politica-de-cookies",
       "ruta": null,
+      "clasificacion": "NOT_REQUIRED",
       "resultado": "NOT_APPLICABLE",
       "nota": "solo cookie de sesión propia, sin analytics de terceros detectado"
+    },
+    {
+      "documento": "devoluciones-cancelaciones-reembolsos",
+      "ruta": null,
+      "clasificacion": "NOT_REQUIRED",
+      "resultado": "NOT_APPLICABLE",
+      "nota": "sin venta en línea"
+    },
+    {
+      "documento": "envios",
+      "ruta": null,
+      "clasificacion": "NOT_REQUIRED",
+      "resultado": "NOT_APPLICABLE",
+      "nota": "sin venta en línea"
     }
   ],
   "hallazgos_abiertos": [
@@ -84,6 +131,16 @@
       "id": "PRIV-003",
       "severidad": "MEDIUM",
       "titulo": "claude_integration.apiKey sin cifrar en Postgres"
+    },
+    {
+      "id": "PRIV-004",
+      "severidad": "REVISION_REQUERIDA",
+      "titulo": "Infraestructura de Supabase y Vercel fuera de México — calificación jurídica pendiente (nuevo en v1.0.1, antes agrupado incorrectamente como transferencia declarada)"
+    },
+    {
+      "id": "PRIV-005",
+      "severidad": "REVISION_REQUERIDA",
+      "titulo": "Retención de PII interna sin mecanismo técnico visible — no implica conservación indefinida sin base (nuevo en v1.0.1, antes una entrada ambigua del checklist)"
     },
     {
       "id": "PI-001",
