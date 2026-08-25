@@ -4,16 +4,26 @@ Aplica si hay venta, cobro o publicidad de precios al público en general (no so
 interno, no solo ventas internas tipo POS sin componente en línea dirigido al público).
 Verifica primero contra `references/mexico/sources.md`.
 
-## Cómo confirmar si aplica antes de evaluar nada
+## Cómo confirmar antes de evaluar nada — no actives todo por encontrar una página con precios
 
-- ¿Hay un flujo de checkout/cobro accesible al público sin cuenta administrativa? Busca
-  integraciones de pago (Stripe, Conekta, Mercado Pago, PayPal, Openpay) y páginas de
-  precios/carrito orientadas a un consumidor final.
-- Un sistema de punto de venta puramente interno (empleados cobrando en mostrador) no
-  activa por sí mismo las obligaciones específicas de _comercio electrónico_ de la LFPC
-  — esas nacen de la venta a distancia por medios electrónicos. Sigue existiendo LFPC
-  general para el negocio (precios correctos, no publicidad engañosa), pero eso rara vez
-  se ve reflejado en el código y suele quedar fuera del alcance técnico de este skill.
+**Corrección de v1.0.1**: mostrar precios, tener un plan de suscripción o cobrar entre
+empresas no equivale automáticamente a activar el capítulo de comercio electrónico al
+consumidor de la LFPC. Distingue el escenario primero:
+
+| Escenario                                                          | ¿Cómo se ve técnicamente?                                                                                    | ¿Activa LFPC/PROFECO de consumidor?                                                                                                                                                                                     |
+| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| E-commerce directo (el negocio vende directo al público)           | Checkout propio, integración de pago, carrito orientado a consumidor final                                   | Sí, si hay venta a distancia por medios electrónicos                                                                                                                                                                    |
+| Marketplace (terceros venden a través de la plataforma)            | Cuentas de "vendedor", listados de terceros, la plataforma no es la contraparte de la venta                  | Sí, pero con obligaciones adicionales de identificar claramente quién es el vendedor real vs. la plataforma — `LEGAL_REVIEW_REQUIRED` para deslindar responsabilidades                                                  |
+| Publicidad/promociones sin venta directa en el sitio               | Precios mostrados con fines informativos, sin checkout, la venta ocurre fuera del sistema (ej. en mostrador) | Aplica LFPC general de publicidad no engañosa, no el capítulo de comercio electrónico completo                                                                                                                          |
+| SaaS B2B (contraparte es otra empresa, no un consumidor)           | Facturación a RFC de empresa, contratos, sin relación proveedor-consumidor final                             | Generalmente no — LFPC protege a consumidores, no a otras empresas en su carácter comercial. Verifica igual si hay algún componente B2C mezclado (ej. empleados de esa empresa como usuarios finales con datos propios) |
+| Punto de venta puramente interno (empleados cobrando en mostrador) | Sin componente en línea dirigido al público                                                                  | No activa las obligaciones específicas de comercio electrónico — sigue existiendo LFPC general del negocio (precios correctos, no publicidad engañosa), pero eso rara vez se ve reflejado en el código                  |
+
+Antes de concluir el escenario, verifica explícitamente: ¿existe relación
+proveedor-consumidor? ¿hay venta, contratación o pago real? ¿la contraparte es un
+consumidor final (B2C) o una empresa actuando en su carácter comercial (B2B)? ¿es la
+propia plataforma la vendedora, o solo intermedia entre terceros (marketplace)? Si el
+código no deja claro cuál escenario es, repórtalo como `LEGAL_REVIEW_REQUIRED` en vez de
+asumir el más común.
 
 ## Qué verificar si sí aplica
 

@@ -33,6 +33,8 @@ URL oficial: [enlace verificado en esta corrida]
 Fecha de verificación: [fecha de esta corrida, no de memoria]
 Estado de vigencia: [vigente | reformada recientemente | pendiente de reglamento | no
   verificado]
+Última reforma relevante: [fecha y qué cambió, si aplica — ej. "reemplazada por completo
+  el 20/mar/2025"; deja "no identificada en esta corrida" si no pudiste confirmarlo]
 
 Impacto: [qué pasa si no se atiende]
 Recomendación: [acción propuesta, marcada como sugerencia, no como instrucción legal]

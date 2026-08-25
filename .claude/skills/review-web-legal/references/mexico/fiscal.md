@@ -1,21 +1,44 @@
 # CFDI / SAT
 
-Solo aplica si el sistema **emite** comprobantes fiscales digitales al público — no si
-solo los importa/procesa de proveedores para su propia contabilidad, que es un caso
-distinto sin esta obligación. Confirma cuál de los dos casos es antes de evaluar nada más.
-Verifica primero contra `references/mexico/sources.md`.
+**Corrección de v1.0.1**: no reduzcas la evaluación a un binario "emite / no emite". Hay
+al menos tres escenarios distintos con tratamiento diferente — confírmalos en este orden
+antes de evaluar nada más. Verifica primero contra `references/mexico/sources.md`.
 
-## Cómo confirmar si el sistema emite
+## Los tres escenarios a distinguir
 
-- Busca integración con un PAC (Proveedor Autorizado de Certificación) o llamadas a un
-  servicio de timbrado.
-- Busca generación de XML con estructura de CFDI (nodos `Comprobante`, `Emisor`,
-  `Receptor`, sello, certificado) construida por el propio sistema, no solo parseada.
-- Si el sistema solo **lee/parsea** XMLs de CFDI que le llegan de proveedores (para
-  registrar una compra, por ejemplo), eso es importación, no emisión — no aplica esta
-  sección, dilo explícitamente como `NOT_APPLICABLE` con la justificación.
+1. **Emisión propia** — el sistema genera y timbra CFDI directamente (ver detalle abajo).
+2. **Generación delegada** — el sistema **no** timbra directamente, pero dispara la
+   emisión a través de un tercero (un PAC, una pasarela de pago que factura por cuenta del
+   negocio, un servicio externo de facturación) — el comprobante sale a nombre del
+   negocio aunque la infraestructura de timbrado sea ajena. Esto **no es lo mismo que
+   emisión propia ni que solo importar**: el negocio sigue siendo el emisor fiscal aunque
+   delegue la mecánica técnica, así que las obligaciones de datos fiscales del emisor
+   (RFC, régimen, domicilio) siguen aplicando — solo cambia quién opera el timbrado.
+   Márcalo `REGULATORY_REQUIREMENT` para los datos que el propio sistema debe capturar y
+   enviar correctamente al delegado, y `LEGAL_REVIEW_REQUIRED` para la relación
+   contractual con el delegado si no es evidente en el código.
+3. **Solo consumo/importación** — el sistema únicamente recibe, parsea o solicita CFDI ya
+   emitidos por terceros (proveedores) para su propia contabilidad — sin emitir a nombre
+   propio, ni siquiera de forma delegada. Es el único de los tres sin obligación de
+   emisor.
 
-## Si sí emite
+## Cómo confirmar cuál escenario es
+
+- **Emisión propia**: busca integración con un PAC (Proveedor Autorizado de
+  Certificación) o llamadas a un servicio de timbrado hechas directamente por el sistema,
+  y generación de XML con estructura de CFDI (nodos `Comprobante`, `Emisor`, `Receptor`,
+  sello, certificado) construida por el propio sistema.
+- **Generación delegada**: busca un flujo de "solicitar factura" que envíe los datos
+  fiscales del cliente/negocio a un servicio externo (una pasarela de pago con
+  facturación integrada, un SaaS de facturación) que devuelve o notifica el CFDI ya
+  timbrado — el sistema participa capturando datos y disparando la solicitud, pero no
+  construye ni timbra el XML.
+- **Solo consumo/importación**: el sistema **lee/parsea** XMLs de CFDI que le llegan de
+  proveedores (para registrar una compra, por ejemplo) sin generar ni disparar emisión
+  propia. Dilo explícitamente como `NOT_APPLICABLE` para obligaciones de emisor, con la
+  justificación.
+
+## Si es emisión propia o generación delegada
 
 Verifica en esta corrida (el detalle técnico cambia con cada versión de CFDI y sus reglas
 de carácter general del SAT, no lo fijes de memoria):

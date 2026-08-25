@@ -19,6 +19,13 @@ de Claude Code — donde la especificación original pedía `scripts/discovery`,
 Claude directamente con Grep/Glob/Read/Bash para el código y WebSearch/WebFetch para el
 marco jurídico. No hay motor externo que mantener.
 
+**Versión v1.0.1** — endurecida jurídicamente sobre la v1.0 original: corrige
+equivalencias automáticas demasiado categóricas (infraestructura↔transferencia,
+menor↔dato sensible, emite/no-emite CFDI binario, checkout↔PROFECO completo) que producían
+falsos positivos sistemáticos. Ver `CHANGELOG.md` para el detalle de cada corrección y
+`references/self-audit.md` para los casos de prueba que las motivaron — vale la pena
+correr ese checklist mentalmente antes de reportar cualquier hallazgo de esas categorías.
+
 ## Jurisdicción
 
 México, únicamente. No asumas aplicabilidad de GDPR, CCPA/CPRA, ePrivacy u otra
@@ -51,8 +58,11 @@ confirmar la vigencia con WebSearch/WebFetch antes de citar nada. Ver
    condiciones comerciales ni ningún dato de negocio. Si falta, pregunta o marca
    `INFORMATION_REQUIRED` y sigue solo con lo que sí puedas evaluar.
 2. **Nunca asumir**: que un dato tiene determinada finalidad, que un tercero es encargado,
-   que existe una transferencia, que una cookie requiere consentimiento previo tipo GDPR,
-   que una funcionalidad implica automáticamente una obligación. Necesitas evidencia o una
+   que infraestructura fuera de México ya es una transferencia internacional (ver
+   `references/mexico/transfers.md` — es el error más común de este skill y el que más
+   falsos positivos produce), que un menor de edad implica automáticamente datos
+   sensibles, que una cookie requiere consentimiento previo tipo GDPR, que una
+   funcionalidad implica automáticamente una obligación. Necesitas evidencia o una
    pregunta a Legal.
 3. **Ningún hallazgo jurídico sin fuente primaria vigente y verificable en esta corrida.**
    Registra norma, artículo, autoridad, URL oficial y fecha de consulta.
@@ -80,11 +90,21 @@ confirmar la vigencia con WebSearch/WebFetch antes de citar nada. Ver
 
 ## Estados
 
-Técnicos: `DETECTED` / `NOT_DETECTED` / `INCONCLUSIVE`.
-Documentales: `DOCUMENT_MATCH` / `DOCUMENT_MISMATCH` / `DOCUMENT_NOT_IDENTIFIED`.
-Jurídicos: `LEGAL_REVIEW_REQUIRED` / `SOURCE_NOT_VERIFIED` / `PENDING_REGULATION` /
-`NOT_APPLICABLE`.
-Información: `INFORMATION_REQUIRED` / `INSUFFICIENT_EVIDENCE`.
+Son **tres ejes independientes que nunca debes colapsar en uno solo** — hecho técnico,
+resultado documental, resultado jurídico — más un cuarto para información faltante:
+
+- Eje técnico (¿qué observaste?): `DETECTED` / `NOT_DETECTED` / `INCONCLUSIVE`.
+- Eje documental (¿coincide con lo escrito?): `DOCUMENT_MATCH` / `DOCUMENT_MISMATCH` /
+  `DOCUMENT_NOT_IDENTIFIED`.
+- Eje jurídico (¿qué implica legalmente?): `LEGAL_REVIEW_REQUIRED` / `SOURCE_NOT_VERIFIED`
+  / `PENDING_REGULATION` / `NOT_APPLICABLE`.
+- Información: `INFORMATION_REQUIRED` / `INSUFFICIENT_EVIDENCE`.
+
+Un mismo hallazgo normalmente lleva un valor de cada eje que aplique — no elijas uno solo
+"que mejor resuma" el hallazgo. Ejemplo: "se detectó Google Analytics" es `DETECTED` en el
+eje técnico; si el aviso no lo menciona, es también `DOCUMENT_MISMATCH` en el documental;
+y si no puedes determinar la base jurídica exacta, es también `LEGAL_REVIEW_REQUIRED` en
+el jurídico — los tres a la vez, no uno solo.
 
 No uses un genérico "FAIL" cuando la conclusión en realidad requiere criterio de Legal —
 usa `LEGAL_REVIEW_REQUIRED`.
@@ -118,15 +138,19 @@ y alternativas) en `references/finding-language.md`.
 5. **Data flow.** Mapea conceptualmente usuario → frontend → API → backend → base de
    datos → terceros (CRM, email, analytics, pagos). Qué entra, a dónde va, dónde vive.
 6. **Terceros.** Detecta integraciones (analytics, pixels, pagos, cloud, email, CRM,
-   WhatsApp, storage). Detectar un tercero no prueba que exista una transferencia
-   jurídica — el resultado correcto es "tercero detectado → revisar tratamiento,
-   finalidad, relación contractual".
+   WhatsApp, storage). Detectar un tercero — incluida infraestructura fuera de México —
+   no prueba que exista una transferencia jurídica: sigue el proceso completo de
+   `references/mexico/transfers.md` (proveedor, flujo, datos, relación
+   encargado-vs-tercero) antes de calificarlo así.
 7. **Documentos legales.** Busca en el repo, en rutas públicas del sitio, en contenido
    estático: Aviso de Privacidad, Términos y Condiciones, Cookies, Devoluciones,
    Cancelaciones, Reembolsos, Envíos. Si no lo encuentras, el resultado es
    `DOCUMENT_NOT_IDENTIFIED` — nunca asumas que no existe.
 8. **Document Coverage.** Construye la matriz de `templates/legal-review-report.md`:
-   relevancia (según el perfil) × identificado × revisado × resultado.
+   relevancia × identificado × revisado × resultado. La relevancia se clasifica con
+   `references/document-classification.md` (`LEGAL_REQUIRED` / `CONDITIONALLY_REQUIRED` /
+   `RECOMMENDED` / `NOT_REQUIRED` / `LEGAL_REVIEW_REQUIRED`) — no asumas que todo perfil
+   necesita el mismo set de documentos.
 9. **Aviso de Privacidad — análisis dedicado.** Si existe: qué datos reconoce, qué
    finalidades, qué terceros, qué dice de cookies/consentimiento. Contrástalo contra lo
    que el discovery técnico encontró de verdad. Checklist completo (LFPDPPP 2025) en
@@ -138,7 +162,7 @@ y alternativas) en `references/finding-language.md`.
     `PENDING_REGULATION`. Nunca presentes una buena práctica como obligación. Mapa de
     dónde verificar cada área en `references/mexico/sources.md` y los checklists en
     `references/mexico/{privacy,consumer-ecommerce,cookies-marketing,fiscal,
-intellectual-property}.md`.
+intellectual-property,transfers}.md`.
 11. **Comparación técnico↔documental↔jurídica.** Triangula: qué hace la app + qué dicen
     sus documentos + qué exige la norma vigente. De ahí salen los hallazgos reales.
 12. **Identidad y contenido.** Busca inconsistencias internas: nombres de empresa,
@@ -198,6 +222,12 @@ preguntas para Legal, borradores generados. El resumen ejecutivo debe ser legibl
 Legal, dirección o negocio sin necesitar leer código. La evidencia técnica profunda
 (archivo/línea/función) queda disponible si alguien la pide, pero no en el cuerpo
 principal del reporte.
+
+## Antes de entregar
+
+Corre mentalmente el checklist de `references/self-audit.md` — especialmente las
+preguntas sobre transferencias, menores, retención y CFDI, que son los puntos donde este
+skill producía falsos positivos antes de la v1.0.1.
 
 ## Prohibido
 

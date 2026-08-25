@@ -30,6 +30,11 @@ sensibles / con transferencias internacionales / etc. — y por qué se determin
 
 ## 4. Cobertura documental
 
+Clasificación por columna "Relevancia": `LEGAL_REQUIRED` / `CONDITIONALLY_REQUIRED` /
+`RECOMMENDED` / `NOT_REQUIRED` / `LEGAL_REVIEW_REQUIRED` — ver
+`references/document-classification.md`. No dejes esta columna en blanco ni la llenes con
+texto libre.
+
 | Documento                                 | Relevancia para este perfil | Identificado | Revisado | Resultado |
 | ----------------------------------------- | --------------------------- | ------------ | -------- | --------- |
 | Aviso de Privacidad (integral)            |                             |              |          |           |

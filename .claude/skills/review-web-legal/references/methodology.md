@@ -77,10 +77,13 @@ ejemplos de cómo detectarlo técnicamente, no exhaustivo:
   (ej. una app de consumo general sin control de edad).
 - **¿Hay datos sensibles?** Grep por campos de salud, biometría, afiliación religiosa o
   sindical, orientación sexual, preferencia política, huellas/reconocimiento facial.
-- **¿Hay transferencias internacionales?** La infraestructura misma cuenta: Supabase,
-  Vercel, AWS/GCP en regiones fuera de México, o cualquier API de terceros fuera de
-  México (incluida una API de un modelo de lenguaje) es una transferencia internacional
-  real y debe declararse, exista o no un "envío" explícito de datos que parezca deliberado.
+- **¿Hay procesamiento o infraestructura fuera de México?** Busca Supabase, Vercel,
+  AWS/GCP en regiones fuera de México, APIs de terceros (incluida una API de un modelo de
+  lenguaje). Esto activa el módulo de transferencias para revisión — **no lo declares
+  automáticamente como "transferencia internacional"**: infraestructura fuera de México no
+  equivale por sí sola a una transferencia jurídica declarable. Sigue el proceso completo
+  de `references/mexico/transfers.md` (proveedor, flujo, datos, relación
+  encargado-vs-tercero) antes de calificarlo.
 
 ## Data Flow Discovery
 
