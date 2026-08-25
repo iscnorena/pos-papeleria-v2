@@ -1,5 +1,20 @@
 # Changelog — review-web-legal
 
+## v1.0.1 (adición) — 2026-08-25, misma tarde
+
+Se agregó `references/mexico/notice-patterns.md`, a partir de comparar 5 avisos de
+privacidad/términos reales publicados (Alegra-CO, Solvermedia-ES, MyBusiness POS-MX,
+Odoo-BE, SICAR-MX) durante una sesión de trabajo sobre pos-papeleria. Captura patrones de
+**forma** (tabla de retención por dato, tabla de transferencias con proveedor/ubicación/
+propósito, correo dedicado de privacidad, mecanismo ARCO concreto con plazo de respuesta,
+declaración negativa proactiva cuando sea un hecho verificado) — nunca contenido ni citas
+legales de esos ejemplos, que son de otras jurisdicciones o de otro negocio.
+`templates/document-draft.md` y `references/mexico/privacy.md` actualizados para usarlos.
+También quedó documentado un caso real que confirma el riesgo de `sources.md`: dos de los
+cinco avisos revisados citaban marcos legales obsoletos (LFPDPPP 2010, LOPD española de
+1999); uno (SICAR.mx) ya citaba correctamente a la Secretaría Anticorrupción y Buen
+Gobierno.
+
 ## v1.0.1 — 2026-08-25
 
 Endurecimiento jurídico sobre la v1.0, a partir de una revisión dirigida por el usuario.

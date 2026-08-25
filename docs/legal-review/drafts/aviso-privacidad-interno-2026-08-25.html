@@ -163,6 +163,37 @@
         align-items: center;
         gap: 0.4rem;
       }
+      .neg {
+        background: #eaf5ea;
+        border: 1px solid #7fb87f;
+        border-radius: 4px;
+        padding: 0.05rem 0.4rem;
+        font-weight: 600;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 0.88em;
+        color: #2c5c2c;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 0.75rem 0 1.25rem;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-size: 0.88rem;
+      }
+      th,
+      td {
+        border: 1px solid var(--linea);
+        padding: 0.5rem 0.6rem;
+        text-align: left;
+        vertical-align: top;
+      }
+      th {
+        background: #f4f1ea;
+        font-size: 0.78rem;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        color: var(--grafito);
+      }
     </style>
   </head>
   <body>
@@ -178,13 +209,21 @@
       Generado por el skill <code>review-web-legal</code> v1.0.1 a partir de la revisión
       técnico-legal del 25 de agosto de 2026 (commit <code>18f8f55</code>). Cada afirmación está
       redactada contra lo que el código de pos-papeleria realmente hace — no es una plantilla
-      genérica.
+      genérica. <br /><br />
+      <strong>Revisión (misma tarde)</strong>: retención, transferencias y derechos se reorganizaron
+      en tablas y un procedimiento concreto, siguiendo
+      <code>references/mexico/notice-patterns.md</code> — patrones de <em>forma</em> extraídos de
+      comparar 5 avisos reales (Alegra, Solvermedia, MyBusiness POS, Odoo, SICAR), nunca de
+      contenido. Ningún número ni dato concreto de esos ejemplos se copió aquí.
     </div>
 
     <div class="leyenda">
       <span><span class="req">texto resaltado</span> = información faltante, debe llenarse</span>
       <span
         ><span class="legal">LEGAL_REVIEW_REQUIRED</span> = requiere decisión del equipo legal</span
+      >
+      <span
+        ><span class="neg">declaración verificada</span> = hecho confirmado contra el código</span
       >
     </div>
 
@@ -206,7 +245,13 @@
         ser un dato de configuración en vivo — complétalo aquí con la razón social exacta.
       </p>
       <p>Domicilio: <span class="req">[INFORMATION_REQUIRED]</span></p>
-      <p>Contacto para temas de privacidad: <span class="req">[INFORMATION_REQUIRED]</span></p>
+      <p>
+        Contacto para temas de privacidad:
+        <span class="req"
+          >[INFORMATION_REQUIRED — sugerido: un correo dedicado, ej. privacidad@[dominio del
+          negocio]; no se conoce el dominio real desde el código]</span
+        >
+      </p>
       <p>
         es responsable del tratamiento de los datos personales que se describen en este aviso,
         conforme a la Ley Federal de Protección de Datos Personales en Posesión de los Particulares
@@ -247,6 +292,12 @@
           sistema.
         </li>
       </ul>
+      <p>
+        <span class="neg">No recabamos datos sensibles</span> de nuestros empleados (salud, origen
+        étnico o racial, creencias religiosas o filosóficas, afiliación sindical, orientación
+        sexual) — verificado contra el esquema de la base de datos, ninguno de esos campos existe en
+        el sistema.
+      </p>
 
       <h3>De proveedores</h3>
       <ul>
@@ -276,45 +327,115 @@
         </li>
       </ul>
 
-      <h2>Transferencias y dónde viven estos datos</h2>
-      <ul>
-        <li>
-          La base de datos del sistema es operada por <strong>Supabase</strong>, y la aplicación
-          corre en <strong>Vercel</strong> — ambos con infraestructura fuera de México (Estados
-          Unidos). Procesan y almacenan estos datos bajo instrucciones técnicas del sistema.
-          <span class="legal">LEGAL_REVIEW_REQUIRED</span>: confirmar con Legal si, conforme a los
-          términos contractuales reales de estos proveedores, califican como encargados del
-          tratamiento y qué debe declararse aquí en consecuencia — este borrador asume que sí debe
-          mencionarse la ubicación, pero no determina la calificación jurídica final.
-        </li>
-        <li>
-          Si un administrador activa la función de "carga de recepción por foto", la fotografía del
-          ticket de compra (que puede incluir el nombre y RFC impresos del proveedor) se envía a la
-          <strong>API de Claude (Anthropic, Estados Unidos)</strong> para lectura automática. La
-          imagen no se guarda después de procesarse.
-          <span class="legal">LEGAL_REVIEW_REQUIRED</span>: confirmar si esta transferencia requiere
-          consentimiento expreso adicional al de este aviso.
-        </li>
-        <li>No compartimos estos datos con ningún otro tercero fuera de lo aquí descrito.</li>
-      </ul>
+      <h2>Transferencias — dónde viven estos datos</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Proveedor</th>
+            <th>Ubicación</th>
+            <th>Propósito</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Supabase</td>
+            <td>Estados Unidos (<code>us-east-1</code>)</td>
+            <td>Base de datos del sistema (almacena toda la información descrita en este aviso)</td>
+            <td><span class="legal">LEGAL_REVIEW_REQUIRED</span></td>
+          </tr>
+          <tr>
+            <td>Vercel</td>
+            <td>Estados Unidos</td>
+            <td>Hosting y ejecución de la aplicación</td>
+            <td><span class="legal">LEGAL_REVIEW_REQUIRED</span></td>
+          </tr>
+          <tr>
+            <td>API de Claude (Anthropic)</td>
+            <td>Estados Unidos</td>
+            <td>
+              Lectura automática de la foto de un ticket de compra, solo si un administrador activa
+              esta función en Recepción de Mercancía — la imagen no se guarda después
+            </td>
+            <td><span class="legal">LEGAL_REVIEW_REQUIRED</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        Para Supabase y Vercel, procesan y almacenan estos datos bajo instrucciones técnicas del
+        sistema. <span class="legal">LEGAL_REVIEW_REQUIRED</span>: confirmar con Legal si, conforme
+        a los términos contractuales reales de estos proveedores, califican como encargados del
+        tratamiento y qué debe declararse aquí en consecuencia. Para la API de Claude, la foto puede
+        incluir el nombre y RFC impresos del proveedor —
+        <span class="legal">LEGAL_REVIEW_REQUIRED</span>: confirmar si requiere consentimiento
+        expreso adicional al de este aviso.
+      </p>
+      <p>
+        <span class="neg">No vendemos ni compartimos estos datos</span> con ningún otro tercero
+        fuera de lo descrito en esta tabla — verificado contra el código, no hay integraciones de
+        analytics, publicidad ni venta de datos.
+      </p>
 
       <h2>Conservación</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Dato</th>
+            <th>Plazo</th>
+            <th>Qué pasa al vencer</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cuenta de empleado (<code>users</code>)</td>
+            <td>
+              <span class="req"
+                >[INFORMATION_REQUIRED] — no se identificó un mecanismo técnico de purga
+                automática</span
+              >
+            </td>
+            <td>
+              <span class="req"
+                >[INFORMATION_REQUIRED] — hoy no hay eliminación automática al dar de baja</span
+              >
+            </td>
+          </tr>
+          <tr>
+            <td>Datos de proveedor (<code>suppliers</code>)</td>
+            <td>
+              <span class="req"
+                >[INFORMATION_REQUIRED] — mientras la relación comercial esté vigente, más el plazo
+                que exijan obligaciones fiscales aplicables</span
+              >
+            </td>
+            <td><span class="req">[INFORMATION_REQUIRED]</span></td>
+          </tr>
+          <tr>
+            <td>Registro de intentos de acceso (IP)</td>
+            <td>7 días</td>
+            <td>Se elimina automáticamente (verificado en código)</td>
+          </tr>
+        </tbody>
+      </table>
       <p>
-        Mientras la cuenta del empleado esté activa o la relación con el proveedor esté vigente, más
-        el tiempo adicional que exijan obligaciones legales aplicables (por ejemplo, fiscales, sobre
-        los datos de proveedores).
-        <strong>No se identificó un mecanismo técnico automático de eliminación</strong> al dar de
-        baja a un empleado o proveedor — <span class="req">[INFORMATION_REQUIRED]</span>: definir y
-        documentar aquí el plazo y procedimiento real tras la baja (hallazgo
-        <code>PRIV-005</code> del reporte).
+        La ausencia de un mecanismo técnico de purga para <code>users</code>/<code>suppliers</code>
+        es un hecho técnico, no evidencia de conservación indefinida sin base legal — hallazgo
+        <code>PRIV-005</code> del reporte, pendiente de que Legal determine si el plazo actual es
+        adecuado.
       </p>
 
       <h2>Derechos de acceso, rectificación, cancelación y oposición</h2>
       <p>
-        <span class="req">[INFORMATION_REQUIRED]</span> — el aviso público
-        (<code>/kit/privacidad</code>) usa "acude a tu sucursal" como mecanismo para visitantes
-        externos; para empleados y proveedores define aquí el procedimiento real (¿la misma vía, o
-        un contacto distinto — por ejemplo, con quien administra el sistema?).
+        Para ejercer tus derechos, envía una solicitud por escrito a
+        <span class="req">[INFORMATION_REQUIRED — correo de privacidad]</span> que incluya:
+        identificación oficial, descripción clara del dato sobre el que ejerces tu derecho, y tus
+        datos de contacto para dar seguimiento. Responderemos en un plazo de
+        <span class="req">[INFORMATION_REQUIRED — días hábiles, decisión de negocio/Legal]</span>.
+      </p>
+      <p>
+        El aviso público (<code>/kit/privacidad</code>) usa "acude a tu sucursal" como mecanismo
+        para visitantes externos — Legal debe confirmar si el mismo mecanismo aplica a empleados y
+        proveedores, o si conviene uno distinto.
       </p>
 
       <h2>Medidas de seguridad</h2>

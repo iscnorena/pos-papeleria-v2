@@ -35,7 +35,11 @@ skill.
   "ARCO" — confirma si la ley vigente sigue usando esa sigla o la reformuló). Debe existir
   un mecanismo _real_ para ejercerlos, no solo mencionarse en el texto. Un simple "acude a
   tu sucursal" puede bastar para un negocio pequeño sin plataforma de autoservicio, pero
-  igual debe existir un punto de contacto verificable.
+  igual debe existir un punto de contacto verificable. Formato concreto sugerido (patrón 4
+  de `references/mexico/notice-patterns.md`) al redactar un borrador: procedimiento por
+  escrito + identificación oficial + descripción del dato + plazo de respuesta — el plazo
+  siempre es `[INFORMATION_REQUIRED]` salvo que el negocio ya lo tenga definido, nunca un
+  número copiado de otro aviso.
 - **Transferencias de datos.** **No trates "infraestructura fuera de México" como
   sinónimo automático de "transferencia internacional"** — esa equivalencia produce falsos
   positivos en casi cualquier app moderna. Sigue el proceso completo de

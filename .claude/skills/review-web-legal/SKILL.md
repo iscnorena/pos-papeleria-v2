@@ -180,7 +180,11 @@ finding-language.md`).
     marketing".
 15. **Borradores.** Si falta el documento o está claramente incompleto, genera un borrador
     (`templates/document-draft.md`) con `[INFORMATION_REQUIRED]` explícito donde falte
-    dato — nunca lo rellenes con algo plausible ni lo ocultes para aparentar completo.
+    dato — nunca lo rellenes con algo plausible ni lo ocultes para aparentar completo. Usa
+    los patrones de forma de `references/mexico/notice-patterns.md` (tablas de retención
+    y transferencias, mecanismo ARCO concreto, declaración negativa cuando sea un hecho
+    verificado) — son estructura verificada contra avisos reales, nunca contenido a
+    copiar.
 16. **Reporte y baseline.** Muestra el reporte (`templates/legal-review-report.md`) y
     **sugiere activamente guardarlo como archivo** en el repo auditado — no lo dejes solo
     en el chat por defecto. Un reporte que solo vive en la conversación se pierde en
