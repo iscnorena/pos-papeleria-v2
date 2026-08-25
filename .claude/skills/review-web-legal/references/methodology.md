@@ -116,7 +116,8 @@ hallazgo como `TECHNICAL_FACT` y deja la calificación jurídica para la compara
 Busca en el repositorio, en rutas públicas del sitio, en contenido estático servido, y en
 documentación del proyecto. Como mínimo: Aviso de Privacidad, Términos y Condiciones,
 Política de Cookies, Política de Devoluciones/Cancelaciones/Reembolsos, Política de
-Envíos — y cualquier otro que el perfil de la aplicación sugiera.
+Envíos, Política de Seguridad de la Información — y cualquier otro que el perfil de la
+aplicación sugiera.
 
 No hallar un documento en el repo no es lo mismo que confirmar que no existe (podría
 existir fuera del repo, en un CMS, en papel). El resultado correcto es:

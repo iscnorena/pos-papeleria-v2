@@ -1,8 +1,9 @@
 # Patrones de calidad para avisos de privacidad — no son ley, son práctica
 
-**Nuevo en v1.0.1** (agregado el 25 de agosto de 2026), a partir de comparar 5 avisos de
-privacidad/términos reales publicados: Alegra (Colombia), Solvermedia (España), MyBusiness
-POS (México), Odoo (Bélgica), SICAR (México — Jalisco).
+**Nuevo en v1.0.1** (agregado el 25 de agosto de 2026), a partir de comparar avisos de
+privacidad/términos/seguridad reales publicados: Alegra (Colombia), Solvermedia (España),
+MyBusiness POS (México), Odoo (Bélgica), y la suite legal completa de SICAR (México —
+Jalisco: privacidad, términos, envíos, cancelación y seguridad).
 
 **Regla de origen, no negociable**: de esta comparación **nunca se copia texto legal, cita
 normativa ni redacción literal** de otra jurisdicción — eso violaría el principio central
@@ -84,6 +85,28 @@ datos", "no recabamos datos sensibles". Es gratis declarar esto cuando es
 sensibles ni integraciones de venta de datos) — genera confianza y reduce la superficie de
 `DOCUMENT_MISMATCH` futuro. No lo agregues si no lo verificaste — una declaración negativa
 falsa es peor que no decir nada.
+
+## Patrón 6 — política de seguridad separada, con declaración negativa técnica
+
+Agregado el 25 de agosto de 2026 al revisar la suite legal completa de SICAR.mx (además
+de su aviso y términos, tienen páginas separadas de envíos, cancelación y **seguridad**).
+Su política de seguridad no solo dice "nos importa la seguridad" — declara técnicamente
+qué **no** hacen y cómo lo evitan: no almacenan datos de tarjeta, conexión directa con la
+pasarela de pago, cifrado TLS/AES. Es el patrón 5 (declaración negativa) aplicado
+específicamente a seguridad, no solo a privacidad.
+
+Para un borrador de Política de Seguridad (nuevo tipo de documento,
+`references/document-classification.md`): declara qué medidas técnicas SÍ existen
+(verificadas — ej. "las contraseñas se almacenan como hash, nunca en texto plano") y,
+cuando sea cierto, qué NO se hace (ej. "no almacenamos datos de tarjeta"). Si hay un
+hallazgo de seguridad abierto (ej. una llave de API sin cifrar), **no lo escondas** — o se
+documenta como riesgo aceptado con su justificación, o el borrador queda incompleto con
+`[INFORMATION_REQUIRED]` hasta que se resuelva o se decida conscientemente no resolverlo.
+
+**Gap notable incluso en un ejemplo por lo demás sólido**: la política de seguridad de
+SICAR no menciona PCI-DSS, no nombra proveedores de infraestructura, no tiene plazo de
+retención ni procedimiento de notificación de brechas. Mismo patrón que el resto de la
+comparación — hasta avisos bien estructurados dejan estos huecos.
 
 ## Antipatrón que confirma el caso de advertencia de `sources.md`
 

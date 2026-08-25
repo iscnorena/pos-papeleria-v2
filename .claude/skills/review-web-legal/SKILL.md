@@ -144,8 +144,8 @@ y alternativas) en `references/finding-language.md`.
    encargado-vs-tercero) antes de calificarlo así.
 7. **Documentos legales.** Busca en el repo, en rutas públicas del sitio, en contenido
    estático: Aviso de Privacidad, Términos y Condiciones, Cookies, Devoluciones,
-   Cancelaciones, Reembolsos, Envíos. Si no lo encuentras, el resultado es
-   `DOCUMENT_NOT_IDENTIFIED` — nunca asumas que no existe.
+   Cancelaciones, Reembolsos, Envíos, Política de Seguridad de la Información. Si no lo
+   encuentras, el resultado es `DOCUMENT_NOT_IDENTIFIED` — nunca asumas que no existe.
 8. **Document Coverage.** Construye la matriz de `templates/legal-review-report.md`:
    relevancia × identificado × revisado × resultado. La relevancia se clasifica con
    `references/document-classification.md` (`LEGAL_REQUIRED` / `CONDITIONALLY_REQUIRED` /

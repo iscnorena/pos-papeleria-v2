@@ -1,5 +1,16 @@
 # Changelog — review-web-legal
 
+## v1.0.1 (adición 2) — 2026-08-25, misma noche
+
+Agregado "Política de Seguridad de la Información" como tipo de documento evaluable en
+`references/document-classification.md`, la matriz de `templates/legal-review-report.md`,
+y la lista de documentos a buscar en `SKILL.md` paso 7 y `references/methodology.md`. No
+estaba contemplado hasta ahora. Nunca `LEGAL_REQUIRED` por defecto, pero `RECOMMENDED`
+cuando el discovery encuentre un hallazgo de seguridad abierto (ej. una credencial sin
+cifrar). Motivado por revisar la suite legal completa de SICAR.mx (patrón 6 de
+`references/mexico/notice-patterns.md`): declarar técnicamente qué medidas de seguridad SÍ
+existen y, cuando sea cierto, qué NO se hace (ej. "no almacenamos datos de tarjeta").
+
 ## v1.0.1 (adición) — 2026-08-25, misma tarde
 
 Se agregó `references/mexico/notice-patterns.md`, a partir de comparar 5 avisos de

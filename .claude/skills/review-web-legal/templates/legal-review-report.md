@@ -43,6 +43,7 @@ texto libre.
 | Política de Cookies                       |                             |              |          |           |
 | Devoluciones / Cancelaciones / Reembolsos |                             |              |          |           |
 | Envíos                                    |                             |              |          |           |
+| Política de Seguridad de la Información   |                             |              |          |           |
 
 ## 5. Hallazgos
 
