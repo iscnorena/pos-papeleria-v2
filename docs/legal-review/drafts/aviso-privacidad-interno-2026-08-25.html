@@ -173,6 +173,15 @@
         font-size: 0.88em;
         color: #2c5c2c;
       }
+      .conf {
+        background: #eaf1fb;
+        border: 1px dashed #6c93c9;
+        border-radius: 4px;
+        padding: 0.05rem 0.4rem;
+        font-size: 0.82em;
+        color: #2d4d78;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      }
       table {
         width: 100%;
         border-collapse: collapse;
@@ -214,7 +223,12 @@
       en tablas y un procedimiento concreto, siguiendo
       <code>references/mexico/notice-patterns.md</code> — patrones de <em>forma</em> extraídos de
       comparar 5 avisos reales (Alegra, Solvermedia, MyBusiness POS, Odoo, SICAR), nunca de
-      contenido. Ningún número ni dato concreto de esos ejemplos se copió aquí.
+      contenido. Ningún número ni dato concreto de esos ejemplos se copió aquí. <br /><br />
+      <strong>Llenado (misma noche)</strong>: dos campos completados con lo que ya se puede
+      verificar sin inventar nada (nombre del responsable, propuesta de mecanismo de derechos) —
+      marcados con confianza media, no como dato firme. Todo lo demás sigue
+      <span class="req">[INFORMATION_REQUIRED]</span> porque genuinamente no hay fuente de la que
+      sacarlo.
     </div>
 
     <div class="leyenda">
@@ -225,6 +239,7 @@
       <span
         ><span class="neg">declaración verificada</span> = hecho confirmado contra el código</span
       >
+      <span><span class="conf">confianza media</span> = inferido, no confirmado directamente</span>
     </div>
 
     <div class="pregunta">
@@ -239,17 +254,32 @@
 
       <h2>Responsable</h2>
       <p>
-        <span class="req">[INFORMATION_REQUIRED — razón social / nombre comercial completo]</span>.
-        El sistema tiene configurado un nombre de negocio en la variable
-        <code>POS_COMPANY_NAME</code> de producción, pero su valor no se expuso en este borrador por
-        ser un dato de configuración en vivo — complétalo aquí con la razón social exacta.
+        <strong>Papelería Gabbana</strong>
+        <span class="conf">confianza media — no dato firme</span>. Es el valor configurado en
+        <code>POS_COMPANY_NAME</code> en <code>.env.local</code> de desarrollo; el valor real de
+        producción está oculto en Vercel (marcado "Sensitive") pero casi seguro es el mismo, ya que
+        el negocio es una papelería y coincide con el nombre de otro proyecto ("papeleria-gabbana")
+        en la misma cuenta de Vercel.
+        <span class="req"
+          >Confirma que coincide con producción antes de publicar — y sigue faltando la razón social
+          completa (persona física con actividad empresarial o S.A. de C.V.) y si "Papelería
+          Gabbana" es también el nombre legal o solo el comercial</span
+        >.
       </p>
-      <p>Domicilio: <span class="req">[INFORMATION_REQUIRED]</span></p>
+      <p>
+        Domicilio:
+        <span class="req"
+          >[INFORMATION_REQUIRED] — no hay ninguna dirección de negocio en el código ni en el seed;
+          las direcciones que sí existen (<code>branches.address</code>) son de cada sucursal en la
+          base de datos real de producción, a la que este borrador no tuvo acceso</span
+        >
+      </p>
       <p>
         Contacto para temas de privacidad:
         <span class="req"
-          >[INFORMATION_REQUIRED — sugerido: un correo dedicado, ej. privacidad@[dominio del
-          negocio]; no se conoce el dominio real desde el código]</span
+          >[INFORMATION_REQUIRED] — no hay ningún correo configurado en el sistema. Lo único que sí
+          existe como canal real es el WhatsApp por sucursal (<code>branches.whatsappNumber</code>)
+          que ya usa el aviso público — ver la propuesta en Derechos, abajo</span
         >
       </p>
       <p>
@@ -426,16 +456,32 @@
 
       <h2>Derechos de acceso, rectificación, cancelación y oposición</h2>
       <p>
-        Para ejercer tus derechos, envía una solicitud por escrito a
-        <span class="req">[INFORMATION_REQUIRED — correo de privacidad]</span> que incluya:
-        identificación oficial, descripción clara del dato sobre el que ejerces tu derecho, y tus
-        datos de contacto para dar seguimiento. Responderemos en un plazo de
-        <span class="req">[INFORMATION_REQUIRED — días hábiles, decisión de negocio/Legal]</span>.
+        <em>Propuesta, no decisión final</em> — reutilizar el mecanismo que ya usa el aviso público
+        en vez de esperar un correo nuevo:
       </p>
+      <blockquote
+        style="
+          margin: 0 0 1rem;
+          padding: 0.75rem 1rem;
+          border-left: 4px solid var(--acento);
+          background: #faf6ee;
+          font-style: italic;
+        "
+      >
+        Para ejercer tus derechos, acude directamente a tu sucursal, o contáctanos por WhatsApp al
+        número de la sucursal correspondiente. Solicítalo por escrito e incluye tu identificación
+        oficial y una descripción clara del dato sobre el que ejerces tu derecho. Responderemos en
+        un plazo de
+        <span class="req"
+          >[INFORMATION_REQUIRED — días hábiles, decisión de negocio/Legal — no se copió el "20 días
+          hábiles" que usa SICAR.mx de referencia]</span
+        >.
+      </blockquote>
       <p>
-        El aviso público (<code>/kit/privacidad</code>) usa "acude a tu sucursal" como mecanismo
-        para visitantes externos — Legal debe confirmar si el mismo mecanismo aplica a empleados y
-        proveedores, o si conviene uno distinto.
+        <span class="legal">LEGAL_REVIEW_REQUIRED</span>: confirmar si "acude a tu sucursal" es
+        suficiente para empleados y proveedores (relación más profunda que un visitante anónimo) o
+        si Legal prefiere un canal dedicado y más formal, por ejemplo con quien administra el
+        sistema.
       </p>
 
       <h2>Medidas de seguridad</h2>

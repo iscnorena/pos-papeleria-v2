@@ -26,21 +26,35 @@ a empleados y proveedores en un solo documento por simplicidad — Legal debe co
 conviene mantenerlo así o dividirlo en dos avisos, dado que la relación jurídica con cada
 uno es distinta (relación laboral vs. relación comercial).
 
+**Llenado el 25 de agosto (misma noche)** con lo que ya se puede verificar sin inventar
+nada nuevo — dos campos, marcados abajo con su nivel de confianza. Todo lo demás sigue
+`[INFORMATION_REQUIRED]` porque genuinamente no hay ninguna fuente (código, intake,
+seed) de la que sacarlo sin adivinar.
+
 ---
 
 # Aviso de Privacidad Interno — Empleados y Proveedores
 
 ## Responsable
 
-**[INFORMATION_REQUIRED — razón social / nombre comercial completo]**. El sistema tiene
-configurado un nombre de negocio en la variable `POS_COMPANY_NAME` de producción, pero su
-valor no se expuso en este borrador por ser un dato de configuración en vivo — complétalo
-aquí con la razón social exacta.
+**Papelería Gabbana** _(confianza media — no dato firme)_. Es el valor configurado en
+`POS_COMPANY_NAME` en `.env.local` de desarrollo; el valor real de producción está oculto
+en Vercel (marcado "Sensitive", no legible desde aquí) pero casi seguro es el mismo dato,
+ya que el propio negocio es una papelería y coincide con el nombre de otro proyecto
+("papeleria-gabbana") en la misma cuenta de Vercel. **Confirma que coincide con la
+producción antes de publicar** — y sigue faltando la razón social completa (si es persona
+física con actividad empresarial o una S.A. de C.V. constituida) y si "Papelería Gabbana"
+es también el nombre legal o solo el comercial.
 
-Domicilio: **[INFORMATION_REQUIRED]**
-Contacto para temas de privacidad: **[INFORMATION_REQUIRED — sugerido: un correo
-dedicado, ej. `privacidad@[dominio del negocio]`; no se conoce el dominio real desde el
-código, así que no se completó]**
+Domicilio: **[INFORMATION_REQUIRED]** — no hay ninguna dirección de negocio en el código
+ni en el seed; las direcciones que sí existen (`branches.address`) son de cada sucursal en
+la base de datos real de producción, a la que este borrador no tuvo acceso.
+
+Contacto para temas de privacidad: **[INFORMATION_REQUIRED]** — no hay ningún correo
+configurado en el sistema (verificado por grep en `.env.example` y `src/config`). Lo
+único que sí existe como canal real es el WhatsApp por sucursal (`branches.whatsappNumber`)
+que ya usa el aviso público — ver la sección de Derechos abajo, donde se propone
+reutilizarlo en vez de esperar a que se cree un correo nuevo.
 
 es responsable del tratamiento de los datos personales que se describen en este aviso,
 conforme a la Ley Federal de Protección de Datos Personales en Posesión de los
@@ -129,15 +143,23 @@ vigente) es adecuado o si debe definirse un procedimiento de depuración tras la
 
 ## Derechos de acceso, rectificación, cancelación y oposición
 
-Para ejercer tus derechos, envía una solicitud por escrito a
-**[INFORMATION_REQUIRED — correo de privacidad]** que incluya: identificación oficial,
-descripción clara del dato sobre el que ejerces tu derecho, y tus datos de contacto para
-dar seguimiento. Responderemos en un plazo de **[INFORMATION_REQUIRED — días hábiles,
-decisión de negocio/Legal]**.
+**Propuesta, no decisión final**: en vez de esperar a que se cree un correo de privacidad
+nuevo, reutilizar el mismo mecanismo que ya usa el aviso público (`/kit/privacidad`) —
+"acude a tu sucursal" — porque es un canal que ya existe, ya está en producción, y
+empleados y proveedores de por sí interactúan con la sucursal en persona. Redacción
+sugerida:
 
-El aviso público (`/kit/privacidad`) usa "acude a tu sucursal" como mecanismo para
-visitantes externos — Legal debe confirmar si el mismo mecanismo aplica a empleados y
-proveedores, o si conviene uno distinto (por ejemplo, con quien administra el sistema).
+> Para ejercer tus derechos, acude directamente a tu sucursal, o contáctanos por WhatsApp
+> al número de la sucursal correspondiente. Solicítalo por escrito e incluye tu
+> identificación oficial y una descripción clara del dato sobre el que ejerces tu derecho.
+> Responderemos en un plazo de **[INFORMATION_REQUIRED — días hábiles, decisión de
+> negocio/Legal — no se copió el "20 días hábiles" que usa SICAR.mx de referencia, ver
+> `references/mexico/notice-patterns.md` patrón 4]**.
+
+`LEGAL_REVIEW_REQUIRED`: confirmar si "acude a tu sucursal" es un mecanismo suficiente
+para empleados y proveedores (con quienes hay una relación más profunda que con un
+visitante anónimo del sitio público) o si Legal prefiere un canal dedicado y más formal —
+por ejemplo, con quien administra el sistema en vez de con la sucursal.
 
 ## Medidas de seguridad
 
