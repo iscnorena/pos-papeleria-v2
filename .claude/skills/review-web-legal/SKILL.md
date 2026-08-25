@@ -157,10 +157,15 @@ finding-language.md`).
 15. **Borradores.** Si falta el documento o está claramente incompleto, genera un borrador
     (`templates/document-draft.md`) con `[INFORMATION_REQUIRED]` explícito donde falte
     dato — nunca lo rellenes con algo plausible ni lo ocultes para aparentar completo.
-16. **Reporte y baseline.** Entrega el reporte (`templates/legal-review-report.md`) y
-    guarda el baseline (`templates/baseline.md`) en el repo auditado, normalmente
-    `docs/legal-review/baseline.json` (o la carpeta de docs que ya use ese proyecto) —
-    pregunta si no es obvio dónde. El baseline es lo que `--verify` usará después.
+16. **Reporte y baseline.** Muestra el reporte (`templates/legal-review-report.md`) y
+    **sugiere activamente guardarlo como archivo** en el repo auditado — no lo dejes solo
+    en el chat por defecto. Un reporte que solo vive en la conversación se pierde en
+    cuanto rota la sesión y no sirve para mostrarlo a alguien más (Legal, un manager). Si
+    el usuario acepta, guarda tanto el reporte (`docs/legal-review/report-<fecha>.md`) como
+    el baseline (`templates/baseline.md`, típicamente `docs/legal-review/baseline.json`) en
+    el repo — o la carpeta de docs que ya use ese proyecto; pregunta si no es obvio dónde.
+    El baseline es lo que `--verify` usará después; el reporte en prosa es lo que un humano
+    lee. Si el usuario prefiere no guardarlo, respeta eso, pero siempre ofrécelo primero.
 
 ## `/review-web-legal --verify`
 

@@ -27,7 +27,7 @@ skill.
   proporcionalidad, responsabilidad.
 - **Derechos de acceso, rectificación, cancelación y oposición** (tradicionalmente
   "ARCO" — confirma si la ley vigente sigue usando esa sigla o la reformuló). Debe existir
-  un mecanismo *real* para ejercerlos, no solo mencionarse en el texto. Un simple "acude a
+  un mecanismo _real_ para ejercerlos, no solo mencionarse en el texto. Un simple "acude a
   tu sucursal" puede bastar para un negocio pequeño sin plataforma de autoservicio, pero
   igual debe existir un punto de contacto verificable.
 - **Transferencias de datos.** Si la infraestructura vive fuera de México (Supabase,

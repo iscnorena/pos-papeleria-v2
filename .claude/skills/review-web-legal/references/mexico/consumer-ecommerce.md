@@ -10,7 +10,7 @@ Verifica primero contra `references/mexico/sources.md`.
   integraciones de pago (Stripe, Conekta, Mercado Pago, PayPal, Openpay) y páginas de
   precios/carrito orientadas a un consumidor final.
 - Un sistema de punto de venta puramente interno (empleados cobrando en mostrador) no
-  activa por sí mismo las obligaciones específicas de *comercio electrónico* de la LFPC
+  activa por sí mismo las obligaciones específicas de _comercio electrónico_ de la LFPC
   — esas nacen de la venta a distancia por medios electrónicos. Sigue existiendo LFPC
   general para el negocio (precios correctos, no publicidad engañosa), pero eso rara vez
   se ve reflejado en el código y suele quedar fuera del alcance técnico de este skill.

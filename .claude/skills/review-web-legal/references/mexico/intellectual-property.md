@@ -35,7 +35,7 @@ publica contenido, permite subir archivos, usa recursos de terceros (imágenes, 
 - Determinar si el nombre de la aplicación o de la empresa infringe una marca de un
   tercero, o si el nombre está disponible legalmente para registrarse.
 
-Si detectas algo que *parece* un problema marcario (p. ej. el nombre del proyecto es
+Si detectas algo que _parece_ un problema marcario (p. ej. el nombre del proyecto es
 sospechosamente similar al de otra marca conocida), puedes mencionarlo como observación
 puntual dirigida a Legal, pero no lo investigues ni lo analices — no es el trabajo de este
 skill.

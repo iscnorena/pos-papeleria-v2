@@ -1,0 +1,95 @@
+{
+  "fecha": "2026-08-25",
+  "commit": "5d9160a",
+  "skill": "review-web-legal v1 (primera corrida)",
+  "perfil_aplicacion": [
+    "interna-con-sesion",
+    "seccion-publica-sin-cuenta-kit",
+    "sin-venta-en-linea",
+    "sin-emision-cfdi",
+    "con-integracion-ia-opcional"
+  ],
+  "datos_personales_detectados": [
+    {
+      "dato": "nombre, username, correo, hash de contraseña, hash de PIN",
+      "tabla_o_flujo": "users",
+      "sensible": false
+    },
+    { "dato": "RFC, contacto, teléfono, correo", "tabla_o_flujo": "suppliers", "sensible": false },
+    { "dato": "IP", "tabla_o_flujo": "login_attempts", "sensible": false, "retencion_dias": 7 },
+    {
+      "dato": "foto de ticket de compra (puede incluir datos de terceros)",
+      "tabla_o_flujo": "recepcion-por-foto",
+      "sensible": false,
+      "se_almacena": false
+    }
+  ],
+  "terceros_detectados": [
+    {
+      "nombre": "API de Claude / Anthropic",
+      "flujo": "recepcion-por-foto (OCR de tickets)",
+      "transferencia_declarada": false,
+      "pais": "EUA"
+    },
+    {
+      "nombre": "Supabase",
+      "flujo": "infraestructura (base de datos)",
+      "transferencia_declarada": true,
+      "pais": "EUA (us-east-1)"
+    },
+    {
+      "nombre": "Vercel",
+      "flujo": "infraestructura (hosting)",
+      "transferencia_declarada": true,
+      "pais": "EUA"
+    },
+    {
+      "nombre": "Unsplash / Pexels / Pixabay",
+      "flujo": "kit/acomoda-impresion (búsqueda de imágenes)",
+      "transferencia_declarada": true,
+      "pais": "EUA"
+    }
+  ],
+  "documentos_identificados": [
+    {
+      "documento": "aviso-de-privacidad-publico",
+      "ruta": "/kit/privacidad",
+      "resultado": "DOCUMENT_MATCH"
+    },
+    {
+      "documento": "aviso-de-privacidad-interno",
+      "ruta": null,
+      "resultado": "DOCUMENT_NOT_IDENTIFIED"
+    },
+    { "documento": "terminos-y-condiciones", "ruta": null, "resultado": "DOCUMENT_NOT_IDENTIFIED" },
+    {
+      "documento": "politica-de-cookies",
+      "ruta": null,
+      "resultado": "NOT_APPLICABLE",
+      "nota": "solo cookie de sesión propia, sin analytics de terceros detectado"
+    }
+  ],
+  "hallazgos_abiertos": [
+    {
+      "id": "PRIV-001",
+      "severidad": "CRITICAL",
+      "titulo": "Sin aviso de privacidad interno (empleados/proveedores)"
+    },
+    {
+      "id": "PRIV-002",
+      "severidad": "CRITICAL",
+      "titulo": "Transferencia a API de Claude no declarada en ningún aviso"
+    },
+    {
+      "id": "PRIV-003",
+      "severidad": "MEDIUM",
+      "titulo": "claude_integration.apiKey sin cifrar en Postgres"
+    },
+    {
+      "id": "PI-001",
+      "severidad": "LOW",
+      "titulo": "Licencia de bancos de imágenes no comunicada al usuario final de /kit"
+    },
+    { "id": "DOC-001", "severidad": "LOW", "titulo": "Sin términos y condiciones del sitio" }
+  ]
+}

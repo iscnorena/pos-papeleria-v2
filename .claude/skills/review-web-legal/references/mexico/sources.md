@@ -10,8 +10,7 @@ frecuencia y, como muestra el caso de abajo, a veces se reemplazan por completo.
 La Ley Federal de Protección de Datos Personales en Posesión de los Particulares (la ley
 "clásica" de 2010, la que la mayoría del contenido de entrenamiento y de internet todavía
 describe) fue **abrogada y reemplazada por una ley nueva del mismo nombre**, publicada en
-el Diario Oficial de la Federación el 20 de marzo de 2025, vigente desde el 21 de marzo de
-2025. Como parte de la misma reforma constitucional ("Simplificación Orgánica", DOF 20 de
+el Diario Oficial de la Federación el 20 de marzo de 2025, vigente desde el 21 de marzo de 2025. Como parte de la misma reforma constitucional ("Simplificación Orgánica", DOF 20 de
 diciembre de 2024), el **INAI desapareció** y sus funciones de protección de datos
 personales pasaron a la **Secretaría Anticorrupción y Buen Gobierno (SABG)**; el acceso a
 la información pública quedó en un organismo nuevo, "Transparencia para el Pueblo". Al 25
@@ -27,6 +26,7 @@ archivo.
 ## Puntos de partida oficiales (verificar vigencia en cada corrida)
 
 ### Protección de datos personales
+
 - Cámara de Diputados, LeyesBiblio (texto vigente de leyes federales):
   `https://www.diputados.gob.mx/LeyesBiblio/` — buscar "Ley Federal de Protección de
   Datos Personales en Posesión de los Particulares".
@@ -38,6 +38,7 @@ archivo.
   `https://www.dof.gob.mx/`
 
 ### Consumidor y comercio electrónico
+
 - Ley Federal de Protección al Consumidor, texto de PROFECO:
   `https://www.profeco.gob.mx/juridico/pdf/l_lfpc_ultimo_camdip.pdf` (verificar que sigue
   siendo la versión vigente en LeyesBiblio).
@@ -46,6 +47,7 @@ archivo.
 - PROFECO, sitio general: `https://www.gob.mx/profeco`
 
 ### Fiscal / CFDI
+
 - SAT, sitio oficial: `https://www.sat.gob.mx/`
 - Código Fiscal de la Federación (art. 29 y 29-A regulan los requisitos del CFDI) en
   LeyesBiblio de la Cámara de Diputados.
@@ -53,6 +55,7 @@ archivo.
   `sat.gob.mx`, no reusar un PDF viejo guardado en otro sitio sin confirmar versión.
 
 ### Propiedad intelectual
+
 - Ley Federal del Derecho de Autor, LeyesBiblio de la Cámara de Diputados.
 - IMPI (propiedad industrial, marcas — recuerda: **fuera de alcance** buscar conflictos
   marcarios, solo referencia si Legal lo pide): `https://www.gob.mx/impi`
