@@ -72,5 +72,25 @@ export const PAGINACION = {
 
 export type MetodoPago = keyof typeof POS.metodosPago;
 
-/** Zona de presentación y de corte de día (§2). Una sola constante para todo el sistema. */
-export const ZONA_HORARIA = 'America/Mexico_City';
+// Zona de presentación y de corte de día (§2): es la del NEGOCIO, no la de quien se
+// conecta — un empleado con el celular mal configurado (o viajando) no debe poder mover en
+// qué día contable cae una venta. Configurable por variable de entorno para poder vender
+// el sistema a un negocio en otro país sin tocar código: una zona fija por instalación,
+// igual que `nombreNegocio`. `NEXT_PUBLIC_` porque algunas pantallas de cliente también
+// formatean fechas (ver `src/lib/formato.ts`) y deben coincidir con lo que ya mandó el
+// servidor — si solo viviera en el servidor, el cliente caería siempre al valor por
+// defecto y ambos lados podrían mostrar un día distinto para el mismo instante.
+function zonaHorariaValida(valor: string): string {
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: valor });
+    return valor;
+  } catch {
+    throw new Error(
+      `NEXT_PUBLIC_POS_TIMEZONE="${valor}" no es una zona horaria IANA válida (ej. America/Mexico_City, America/Bogota, Europe/Madrid).`,
+    );
+  }
+}
+
+export const ZONA_HORARIA = zonaHorariaValida(
+  process.env.NEXT_PUBLIC_POS_TIMEZONE || 'America/Mexico_City',
+);

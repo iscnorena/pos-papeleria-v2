@@ -1,8 +1,9 @@
 import { ZONA_HORARIA } from '@/config/pos';
 
-// §2 — «hoy» significa el día natural en `America/Mexico_City`, no `new Date()` del
-// servidor. En Vercel el servidor corre en UTC: sin esto, todo lo vendido después de las
-// 6 de la tarde contaría como del día siguiente.
+// §2 — «hoy» significa el día natural en `ZONA_HORARIA` (la del negocio, configurable por
+// instalación — ver `src/config/pos.ts`), no `new Date()` del servidor. En Vercel el
+// servidor corre en UTC: sin esto, todo lo vendido después de las 6 de la tarde local
+// contaría como del día siguiente.
 
 const PARTES = new Intl.DateTimeFormat('en-CA', {
   timeZone: ZONA_HORARIA,

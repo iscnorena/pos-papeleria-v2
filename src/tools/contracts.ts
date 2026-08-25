@@ -14,9 +14,9 @@ export type CargoHerramienta = {
  * La bandera que decide si el cobro desde herramientas está disponible. Hoy vale `false`
  * y no hay nada detrás.
  *
- * Lleva `NEXT_PUBLIC_` a propósito, y es la ÚNICA variable del sistema que lo lleva: la
- * decide el navegador para pintar o esconder el botón. No es un secreto, es un
- * interruptor.
+ * Lleva `NEXT_PUBLIC_` a propósito: la decide el navegador para pintar o esconder el
+ * botón. No es un secreto, es un interruptor (ver también `ZONA_HORARIA` en
+ * `src/config/pos.ts`, la otra variable `NEXT_PUBLIC_` del sistema).
  */
 export const COBRO_HERRAMIENTAS_ACTIVO = process.env.NEXT_PUBLIC_COBRO_HERRAMIENTAS === 'true';
 

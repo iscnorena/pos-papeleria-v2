@@ -88,6 +88,7 @@ insumo para que un abogado revise, no un sustituto.
 ## Salida
 
 Reporte en markdown con:
+
 - Resumen ejecutivo (1 párrafo): qué tan expuesto está el sistema y la severidad más alta
   encontrada.
 - Tabla de superficies de datos: ruta/endpoint → qué se captura → dónde vive (servidor,

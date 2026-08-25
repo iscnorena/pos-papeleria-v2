@@ -1,8 +1,9 @@
 import { ZONA_HORARIA } from '@/config/pos';
 import type { Idioma } from '@/lib/i18n/nucleo';
 
-// §2 — la zona de presentación es `America/Mexico_City`, siempre, sin importar el idioma
-// de la interfaz (es la zona real del negocio). Lo que SÍ cambia con el idioma es cómo se
+// §2 — la zona de presentación es `ZONA_HORARIA` (la del negocio, configurable por
+// instalación — ver `src/config/pos.ts`), siempre, sin importar el idioma de la interfaz
+// ni desde dónde se conecte quien mira la pantalla. Lo que SÍ cambia con el idioma es cómo se
 // LEEN esos mismos instantes: "lunes, 20 de agosto" vs. "Monday, August 20" — por eso
 // `momento`/`fechaLarga` arman el `Intl.DateTimeFormat` según el idioma en vez de usar una
 // constante de módulo fija en `'es-MX'` como antes.
